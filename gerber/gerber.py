@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import json
 
 
 def red(s):
@@ -9,18 +10,19 @@ def red(s):
 
 
 class Statement:
-    def __init__(self):
-        pass
-
-
-class ParamStmt(Statement):
     def __init__(self, type):
         self.type = type
 
 
+class ParamStmt(Statement):
+    def __init__(self, param):
+        Statement.__init__(self, "PARAM")
+        self.param = param
+
+
 class FSParamStmt(ParamStmt):
-    def __init__(self, type, zero, notation, x, y):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, zero, notation, x, y):
+        ParamStmt.__init__(self, param)
         self.zero = zero
         self.notation = notation
         self.x = x
@@ -28,89 +30,60 @@ class FSParamStmt(ParamStmt):
 
 
 class MOParamStmt(ParamStmt):
-    def __init__(self, type, mo):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, mo):
+        ParamStmt.__init__(self, param)
         self.mo = mo
 
 
 class IPParamStmt(ParamStmt):
-    def __init__(self, type, ip):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, ip):
+        ParamStmt.__init__(self, param)
         self.ip = ip
 
 
 class OFParamStmt(ParamStmt):
-    def __init__(self, type, a, b):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, a, b):
+        ParamStmt.__init__(self, param)
         self.a = a
         self.b = b
 
 
 class LPParamStmt(ParamStmt):
-    def __init__(self, type, lp):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, lp):
+        ParamStmt.__init__(self, param)
         self.lp = lp
 
 
 class ADParamStmt(ParamStmt):
-    def __init__(self, type, d, shape):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, d, aperture, modifiers):
+        ParamStmt.__init__(self, param)
         self.d = d
-        self.shape = shape
-
-
-class ADCircleParamStmt(ADParamStmt):
-    def __init__(self, type, d, shape, definition):
-        ADParamStmt.__init__(self, type, d, shape)
-        self.definition = definition
-
-
-class ADRectParamStmt(ADParamStmt):
-    def __init__(self, type, d, shape, definition):
-        ADParamStmt.__init__(self, type, d, shape)
-        self.definition = definition
-
-
-class ADObroundParamStmt(ADParamStmt):
-    def __init__(self, type, d, shape, definition):
-        ADParamStmt.__init__(self, type, d, shape)
-        self.definition = definition
-
-
-class ADPolyParamStmt(ADParamStmt):
-    def __init__(self, type, d, shape, definition):
-        ADParamStmt.__init__(self, type, d, shape)
-        self.definition = definition
-
-
-class ADMacroParamStmt(ADParamStmt):
-    def __init__(self, type, d, name, definition):
-        ADParamStmt.__init__(self, type, d, "M")
-        self.name = name
-        self.definition = definition
+        self.aperture = aperture
+        self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",")]
 
 
 class AMParamStmt(ParamStmt):
-    def __init__(self, type, name, macro):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, name, macro):
+        ParamStmt.__init__(self, param)
         self.name = name
         self.macro = macro
 
 
 class INParamStmt(ParamStmt):
-    def __init__(self, type, name):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, name):
+        ParamStmt.__init__(self, param)
         self.name = name
 
 
 class LNParamStmt(ParamStmt):
-    def __init__(self, type, name):
-        ParamStmt.__init__(self, type)
+    def __init__(self, param, name):
+        ParamStmt.__init__(self, param)
         self.name = name
 
 
 class CoordStmt(Statement):
     def __init__(self, function, x, y, i, j, op):
+        Statement.__init__(self, "COORD")
         self.function = function
         self.x = x
         self.y = y
@@ -121,20 +94,24 @@ class CoordStmt(Statement):
 
 class ApertureStmt(Statement):
     def __init__(self, d):
+        Statement.__init__(self, "APERTURE")
         self.d = int(d)
 
 
 class CommentStmt(Statement):
     def __init__(self, comment):
+        Statement.__init__(self, "COMMENT")
         self.comment = comment
 
 
 class EofStmt(Statement):
-    pass
+    def __init__(self):
+        Statement.__init__(self, "EOF")
 
 
 class UnknownStmt(Statement):
     def __init__(self, line):
+        Statement.__init__(self, "UNKNOWN")
         self.line = line
 
 
@@ -206,27 +183,28 @@ class GerberContext:
 
 class Gerber:
     NUMBER = r"[\+-]?\d+"
-    FUNCTION = r"G\d{2}"
+    DECIMAL = r"[\+-]?\d+([.]?\d+)?"
     STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
     NAME = "[a-zA-Z_$][a-zA-Z_$0-9]+"
+    FUNCTION = r"G\d{2}"
 
     COORD_OP = r"D[0]?[123]"
 
-    FS = r"(?P<type>FS)(?P<zero>(L|T))(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
-    MO = r"(?P<type>MO)(?P<mo>(MM|IN))"
-    IP = r"(?P<type>IP)(?P<ip>(POS|NEG))"
-    LP = r"(?P<type>LP)(?P<lp>(D|C))"
-    AD_CIRCLE = r"(?P<type>ADD)(?P<d>\d+)(?P<shape>C)(?P<definition>.*)"
-    AD_RECT = r"(?P<type>ADD)(?P<d>\d+)(?P<shape>R)(?P<definition>.*)"
-    AD_OBROUND = r"(?P<type>ADD)(?P<d>\d+)(?P<shape>O)(?P<definition>.*)"
-    AD_POLY = r"(?P<type>ADD)(?P<d>\d+)(?P<shape>P)(?P<definition>.*)"
-    AD_MACRO = r"(?P<type>ADD)(?P<d>\d+)(?P<name>[^CROP,].*)(?P<definition>.*)".format(name=NAME)
-    AM = r"(?P<type>AM)(?P<name>{name})\*(?P<macro>.*)".format(name=NAME)
+    FS = r"(?P<param>FS)(?P<zero>(L|T))(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
+    MO = r"(?P<param>MO)(?P<mo>(MM|IN))"
+    IP = r"(?P<param>IP)(?P<ip>(POS|NEG))"
+    LP = r"(?P<param>LP)(?P<lp>(D|C))"
+    AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>C)[,](?P<modifiers>[^,]*)"
+    AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>R)[,](?P<modifiers>[^,]*)"
+    AD_OBROUND = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>O)[,](?P<modifiers>[^,]*)"
+    AD_POLY = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>P)[,](?P<modifiers>[^,]*)"
+    AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)+(?P<aperture>{name})[,](?P<modifiers>[^,]*)".format(name=NAME)
+    AM = r"(?P<param>AM)(?P<name>{name})\*(?P<macro>.*)".format(name=NAME)
 
     # begin deprecated
-    OF = r"(?P<type>OF)(A(?P<a>[+-]?\d+(.?\d*)))?(B(?P<b>[+-]?\d+(.?\d*)))?"
-    IN = r"(?P<type>IN)(?P<name>.*)"
-    LN = r"(?P<type>LN)(?P<name>.*)"
+    OF = r"(?P<param>OF)(A(?P<a>{decimal}))?(B(?P<b>{decimal}))?".format(decimal=DECIMAL)
+    IN = r"(?P<param>IN)(?P<name>.*)"
+    LN = r"(?P<param>LN)(?P<name>.*)"
     # end deprecated
 
     PARAMS = (FS, MO, IP, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_MACRO, AD_POLY, AM, OF, IN, LN)
@@ -245,17 +223,22 @@ class Gerber:
     EOF_STMT = re.compile(r"(?P<eof>M02)\*")
 
     def __init__(self):
-        self.tokens = []
+        self.statements = []
         self.ctx = GerberContext()
 
     def parse(self, filename):
         fp = open(filename, "r")
         data = fp.readlines()
 
-        for token in self._tokenize(data):
-            self._evaluate(token)
+        for stmt in self._parse(data):
+            self.statements.append(stmt)
+            self._evaluate(stmt)
 
-    def _tokenize(self, data):
+    def dump(self):
+        stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
+        return json.dumps(stmts)
+
+    def _parse(self, data):
         multiline = None
 
         for i, line in enumerate(data):
@@ -298,32 +281,23 @@ class Gerber:
             # parameter
             param = self._match_one_from_many(self.PARAM_STMT, line)
             if param:
-                if param["type"] == "FS":
+                if param["param"] == "FS":
                     yield FSParamStmt(**param)
-                elif param["type"] == "MO":
+                elif param["param"] == "MO":
                     yield MOParamStmt(**param)
-                elif param["type"] == "IP":
+                elif param["param"] == "IP":
                     yield IPParamStmt(**param)
-                elif param["type"] == "LP":
+                elif param["param"] == "LP":
                     yield LPParamStmt(**param)
-                elif param["type"] == "AD":
-                    if param["shape"] == "C":
-                        yield ADCircleParamStmt(**param)
-                    elif param["shape"] == "R":
-                        yield ADRectParamStmt(**param)
-                    elif param["shape"] == "O":
-                        yield ADObroundParamStmt(**param)
-                    elif param["shape"] == "P":
-                        yield ADPolyParamStmt(**param)
-                    else:
-                        yield ADMacroParamStmt(**param)
-                elif param["type"] == "AM":
+                elif param["param"] == "AD":
+                    yield ADParamStmt(**param)
+                elif param["param"] == "AM":
                     yield AMParamStmt(**param)
-                elif param["type"] == "OF":
+                elif param["param"] == "OF":
                     yield OFParamStmt(**param)
-                elif param["type"] == "IN":
+                elif param["param"] == "IN":
                     yield INParamStmt(**param)
-                elif param["type"] == "LN":
+                elif param["param"] == "LN":
                     yield LNParamStmt(**param)
                 else:
                     yield UnknownStmt(line)
@@ -335,9 +309,6 @@ class Gerber:
             if eof:
                 yield EofStmt()
                 continue
-
-            print red("UNKNOWN TOKEN")
-            print "{0}:'{1}'".format(red(str(i+1)), line)
 
             if False:
                 print self.COORD_STMT.pattern
@@ -377,38 +348,38 @@ class Gerber:
 
         return result
 
-    def _evaluate(self, token):
-        if isinstance(token, (CommentStmt, UnknownStmt, EofStmt)):
+    def _evaluate(self, stmt):
+        if isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
             return
 
-        elif isinstance(token, ParamStmt):
-            self._evaluate_param(token)
+        elif isinstance(stmt, ParamStmt):
+            self._evaluate_param(stmt)
 
-        elif isinstance(token, CoordStmt):
-            self._evaluate_coord(token)
+        elif isinstance(stmt, CoordStmt):
+            self._evaluate_coord(stmt)
 
-        elif isinstance(token, ApertureStmt):
-            self._evaluate_aperture(token)
+        elif isinstance(stmt, ApertureStmt):
+            self._evaluate_aperture(stmt)
 
         else:
-            raise Exception("Invalid token to evaluate")
+            raise Exception("Invalid statement to evaluate")
 
-    def _evaluate_param(self, param):
-        if param.type == "FS":
-            self.ctx.set_coord_format(param.zero, param.x, param.y)
-            self.ctx.set_coord_notation(param.notation)
+    def _evaluate_param(self, stmt):
+        if stmt.param == "FS":
+            self.ctx.set_coord_format(stmt.zero, stmt.x, stmt.y)
+            self.ctx.set_coord_notation(stmt.notation)
 
-    def _evaluate_coord(self, coord):
-        self.ctx.move(coord.x, coord.y)
+    def _evaluate_coord(self, stmt):
+        self.ctx.move(stmt.x, stmt.y)
 
-    def _evaluate_aperture(self, aperture):
-        self.ctx.aperture(aperture.d)
+    def _evaluate_aperture(self, stmt):
+        self.ctx.aperture(stmt.d)
 
 
 if __name__ == "__main__":
     import sys
 
     for f in sys.argv[1:]:
-        print f
         g = Gerber()
         g.parse(f)
+        print g.dump()
