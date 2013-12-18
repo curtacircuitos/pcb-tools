@@ -3,38 +3,47 @@
 
 import re
 
+
 def red(s):
     return '\033[1;31m{0}\033[0;m'.format(s)
 
+
 class Statement:
-    pass
+    def __init__(self):
+        pass
+
 
 class ParamStmt(Statement):
-    pass
+    def __init__(self):
+        pass
+
 
 class CoordStmt(Statement):
-    pass
+    def __init__(self):
+        pass
+
 
 class ApertureStmt(Statement):
-    pass
+    def __init__(self):
+        pass
+
 
 class CommentStmt(Statement):
     def __init__(self, comment):
         self.comment = comment
 
+
 class EofStmt(Statement):
     pass
+
 
 class UnexpectedStmt(Statement):
     def __init__(self, line):
         self.line = line
 
-class GerberContext:
-    x = 0
-    y = 0
 
 class Gerber:
-    NUMBER   = r"[\+-]?\d+"
+    NUMBER = r"[\+-]?\d+"
     FUNCTION = r"G\d{2}"
     STRING = r"[a-zA-Z0-9_+-/!?<>”’(){}.\|&@# :]+"
 
@@ -55,20 +64,17 @@ class Gerber:
     EOF_STMT = re.compile(r"M02\*")
 
     def __init__(self):
-        self.apertures = {}
-        self.ctx = GerberContext()
+        self.tokens = []
 
     def parse(self, filename):
-
         fp = open(filename, "r")
         data = fp.readlines()
 
         self.tokens = list(self.tokenize(data))
+
         for token in self.tokens:
             if isinstance(token, UnexpectedStmt):
-                print filename
                 print red("[UNEXPECTED TOKEN]")
-                print self.COORD_STMT.pattern
                 print token.line
 
     def tokenize(self, data):
