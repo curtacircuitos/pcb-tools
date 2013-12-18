@@ -35,3 +35,4 @@ nosetests.xml
 .project
 .pydevproject
 .idea/workspace.xml
+.idea/misc.xml
