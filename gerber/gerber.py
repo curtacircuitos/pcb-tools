@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import re
+import string
 
 
 def red(s):
@@ -37,7 +38,7 @@ class EofStmt(Statement):
     pass
 
 
-class UnexpectedStmt(Statement):
+class UnknownStmt(Statement):
     def __init__(self, line):
         self.line = line
 
@@ -45,7 +46,7 @@ class UnexpectedStmt(Statement):
 class Gerber:
     NUMBER = r"[\+-]?\d+"
     FUNCTION = r"G\d{2}"
-    STRING = r"[a-zA-Z0-9_+-/!?<>”’(){}.\|&@# :]+"
+    STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
 
     COORD_OP = r"D[0]?[123]"
 
@@ -59,7 +60,7 @@ class Gerber:
 
     APERTURE_STMT = re.compile(r"(G54)?D\d+\*")
 
-    COMMENT_STMT = re.compile(r"G04(?P<comment>{string})\*".format(string=STRING))
+    COMMENT_STMT = re.compile(r"G04(?P<comment>{string})(\*)?".format(string=STRING))
 
     EOF_STMT = re.compile(r"M02\*")
 
@@ -73,9 +74,24 @@ class Gerber:
         self.tokens = list(self.tokenize(data))
 
         for token in self.tokens:
-            if isinstance(token, UnexpectedStmt):
-                print red("[UNEXPECTED TOKEN]")
-                print token.line
+            if isinstance(token, UnknownStmt):
+                print filename
+                print red("[INVALID TOKEN]")
+                print "'%s'" % token.line
+
+    def _match_one(self, expr, data):
+        match = expr.match(data)
+        if match is None:
+            return {}
+        else:
+            return match.groupdict()
+
+    def _match_many(self, expr, data):
+        matches = expr.finditer(data)
+        if not matches:
+            return []
+        else:
+            return [match.groupdict() for match in matches]
 
     def tokenize(self, data):
         multiline = None
@@ -87,6 +103,10 @@ class Gerber:
             else:
                 line = line.strip()
 
+            # skip empty lines
+            if not len(line):
+                continue
+
             # deal with multi-line parameters
             if line.startswith("%") and not line.endswith("%"):
                 multiline = line
@@ -95,37 +115,37 @@ class Gerber:
                 multiline = None
 
             # parameter
-            match = self.PARAM_STMT.match(line)
-            if match:
+            param = self._match_one(self.PARAM_STMT, line)
+            if param:
                 yield ParamStmt()
                 continue
 
             # coord
-            matches = self.COORD_STMT.finditer(line)
-            if matches:
-                for match in matches:
+            coords = self._match_many(self.COORD_STMT, line)
+            if coords:
+                for coord in coords:
                     yield CoordStmt()
                 continue
 
             # aperture selection
-            match = self.APERTURE_STMT.match(line)
-            if match:
+            aperture = self._match_one(self.APERTURE_STMT, line)
+            if aperture:
                 yield ApertureStmt()
                 continue
 
             # comment
-            match = self.COMMENT_STMT.match(line)
-            if match:
-                yield CommentStmt(match.groupdict("comment"))
+            comment = self._match_one(self.COMMENT_STMT, line)
+            if comment:
+                yield CommentStmt(comment["comment"])
                 continue
 
             # eof
-            match = self.EOF_STMT.match(line)
-            if match:
+            eof = self._match_one(self.EOF_STMT, line)
+            if eof:
                 yield EofStmt()
                 continue
 
-            yield UnexpectedStmt(line)
+            yield UnknownStmt(line)
 
 if __name__ == "__main__":
     import sys
