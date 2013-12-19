@@ -9,9 +9,18 @@ def red(s):
     return '\033[1;31m{0}\033[0;m'.format(s)
 
 
-class Statement:
+class Statement(object):
     def __init__(self, type):
         self.type = type
+
+    def __str__(self):
+        s = "<{0} ".format(self.__class__.__name__)
+
+        for key, value in self.__dict__.items():
+            s += "{0}={1} ".format(key, value)
+
+        s = s.rstrip() + ">"
+        return s
 
 
 class ParamStmt(Statement):
@@ -124,8 +133,11 @@ LEVEL_POLARITY_CLEAR = 2
 NOTATION_ABSOLUTE = 1
 NOTATION_INCREMENTAL = 2
 
+UNIT_INCH = 1
+UNIT_MM = 2
 
-class GerberCoordFormat:
+
+class GerberCoordFormat(object):
 
     def __init__(self, zeroes, x, y):
         self.omit_leading_zeroes = True if zeroes == "L" else False
@@ -134,14 +146,36 @@ class GerberCoordFormat:
         self.y_int_digits, self.y_dec_digits = [int(d) for d in y]
 
     def resolve(self, x, y):
-        return x, y
+        new_x = x
+        new_y = y
+
+        if new_x is not None:
+            missing_zeroes = (self.x_int_digits + self.x_dec_digits) - len(new_x)
+
+            if missing_zeroes and self.omit_leading_zeroes:
+                new_x = (missing_zeroes*"0") + new_x
+            elif missing_zeroes and self.omit_trailing_zeroes:
+                new_x += missing_zeroes * "0"
+
+            new_x = float("{0}.{1}".format(new_x[:self.x_int_digits], new_x[self.x_int_digits:]))
+
+        if new_y is not None:
+            missing_zeroes = (self.y_int_digits + self.y_dec_digits) - len(new_y)
+
+            if missing_zeroes and self.omit_leading_zeroes:
+                new_y = (missing_zeroes*"0") + new_y
+            elif missing_zeroes and self.omit_trailing_zeroes:
+                new_y += missing_zeroes * "0"
+
+            new_y = float("{0}.{1}".format(new_y[:self.y_int_digits], new_y[self.y_int_digits:]))
+
+        return new_x, new_y
 
 
-class GerberContext:
+class GerberContext(object):
     coord_format = None
     coord_notation = NOTATION_ABSOLUTE
-
-    unit = None
+    coord_unit = None
 
     x = 0
     y = 0
@@ -149,39 +183,99 @@ class GerberContext:
     current_aperture = 0
     interpolation = None
 
-    region_mode = False
-    quadrant_mode = False
-
     image_polarity = IMAGE_POLARITY_POSITIVE
     level_polarity = LEVEL_POLARITY_DARK
-
-    steps = (1, 1)
-    repeat = (None, None)
 
     def __init__(self):
         pass
 
     def set_coord_format(self, zeroes, x, y):
+        # print "<coord-format/>"
         self.coord_format = GerberCoordFormat(zeroes, x, y)
 
     def set_coord_notation(self, notation):
+        # print "<coord-notation/>"
         self.coord_notation = NOTATION_ABSOLUTE if notation == "A" else NOTATION_INCREMENTAL
 
+    def set_coord_unit(self, unit):
+        # print "<coord-unit/>"
+        self.coord_unit = UNIT_INCH if unit == "IN" else UNIT_MM
+
     def set_image_polarity(self, polarity):
+        # print "<image-polarity/>"
         self.image_polarity = IMAGE_POLARITY_POSITIVE if polarity == "POS" else IMAGE_POLARITY_NEGATIVE
 
     def set_level_polarity(self, polarity):
+        # print "<level-polarity/>"
         self.level_polarity = LEVEL_POLARITY_DARK if polarity == "D" else LEVEL_POLARITY_CLEAR
 
-    def move(self, x, y):
-        self.x = x
-        self.y = y
-
-    def aperture(self, d):
+    def set_aperture(self, d):
+        # print "<aperture %s/>" % d
         self.current_aperture = d
 
+    def resolve(self, x, y):
+        x, y = self.coord_format.resolve(x, y)
+        return x or self.x, y or self.y
 
-class Gerber:
+    def move(self, x, y):
+        # print "<x=%s y=%s/>" % (x, y)
+        self.x, self.y = self.resolve(x, y)
+
+    def line(self):
+        # print "<line/>"
+        pass
+
+    def arc(self):
+        # print "<arc/>"
+        pass
+
+    def flash(self):
+        # print "<flash/>"
+        pass
+
+
+class SvgContext(GerberContext):
+    def __init__(self):
+        GerberContext.__init__(self)
+
+        self.header = "<svg width=\"1280\" height=\"720\">"
+        self.footer = "</svg>"
+
+        self.lines = []
+
+        self.path = []
+
+    def move(self, x, y):
+        super(SvgContext, self).move(x, y)
+        self.path.append((self.x, self.y))
+
+    def line(self):
+        super(SvgContext, self).line()
+
+        for i, path in enumerate(self.path):
+            if i > 0:
+                x1 = self.path[i-1]
+                x2 = self.path[i]
+                self.lines.append('<line x1="{0}" y1="{1}" x2="{2}" y2="{3}" stroke="rgb(0,145,21)" stroke-width="2"/>'.format(x1[0]*300, x1[1]*300, x2[0]*300, x2[1]*300))
+
+        self.path = []
+
+    def arc(self):
+        super(SvgContext, self).arc()
+        self.path = []
+
+    def flash(self):
+        super(SvgContext, self).flash()
+        self.path = []
+
+    def dump(self):
+        print self.header
+        for line in self.lines:
+            print line
+        print self.footer
+
+
+class Gerber(object):
     NUMBER = r"[\+-]?\d+"
     DECIMAL = r"[\+-]?\d+([.]?\d+)?"
     STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
@@ -224,7 +318,7 @@ class Gerber:
 
     def __init__(self):
         self.statements = []
-        self.ctx = GerberContext()
+        self.ctx = SvgContext()
 
     def parse(self, filename):
         fp = open(filename, "r")
@@ -234,9 +328,18 @@ class Gerber:
             self.statements.append(stmt)
             self._evaluate(stmt)
 
-    def dump(self):
+    def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
         return json.dumps(stmts)
+
+    def dump_str(self):
+        s = ""
+        for stmt in self.statements:
+            s += str(stmt) + "\n"
+        return s
+
+    def dump(self):
+        self.ctx.dump()
 
     def _parse(self, data):
         multiline = None
@@ -368,12 +471,25 @@ class Gerber:
         if stmt.param == "FS":
             self.ctx.set_coord_format(stmt.zero, stmt.x, stmt.y)
             self.ctx.set_coord_notation(stmt.notation)
+        elif stmt.param == "MO:":
+            self.ctx.set_coord_unit(stmt.mo)
+        elif stmt.param == "IP:":
+            self.ctx.set_image_polarity(stmt.ip)
+        elif stmt.param == "LP:":
+            self.ctx.set_level_polarity(stmt.lp)
 
     def _evaluate_coord(self, stmt):
-        self.ctx.move(stmt.x, stmt.y)
+        if stmt.op == "D01":
+            self.ctx.move(stmt.x, stmt.y)
+            self.ctx.line()
+        elif stmt.op == "D02":
+            self.ctx.move(stmt.x, stmt.y)
+        elif stmt.op == "D03":
+            self.ctx.move(stmt.x, stmt.y)
+            self.ctx.flash()
 
     def _evaluate_aperture(self, stmt):
-        self.ctx.aperture(stmt.d)
+        self.ctx.set_aperture(stmt.d)
 
 
 if __name__ == "__main__":
@@ -382,4 +498,4 @@ if __name__ == "__main__":
     for f in sys.argv[1:]:
         g = Gerber()
         g.parse(f)
-        print g.dump()
+        g.dump()
