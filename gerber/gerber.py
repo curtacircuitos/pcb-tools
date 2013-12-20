@@ -3,6 +3,9 @@
 
 import re
 import json
+import copy
+
+import svgwrite
 
 
 def red(s):
@@ -64,10 +67,10 @@ class LPParamStmt(ParamStmt):
 
 
 class ADParamStmt(ParamStmt):
-    def __init__(self, param, d, aperture, modifiers):
+    def __init__(self, param, d, shape, modifiers):
         ParamStmt.__init__(self, param)
         self.d = d
-        self.aperture = aperture
+        self.shape = shape
         self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",")]
 
 
@@ -136,9 +139,11 @@ NOTATION_INCREMENTAL = 2
 UNIT_INCH = 1
 UNIT_MM = 2
 
+INTERPOLATION_LINEAR = 1
+INTERPOLATION_ARC = 2
+
 
 class GerberCoordFormat(object):
-
     def __init__(self, zeroes, x, y):
         self.omit_leading_zeroes = True if zeroes == "L" else False
         self.omit_trailing_zeroes = True if zeroes == "T" else False
@@ -153,7 +158,7 @@ class GerberCoordFormat(object):
             missing_zeroes = (self.x_int_digits + self.x_dec_digits) - len(new_x)
 
             if missing_zeroes and self.omit_leading_zeroes:
-                new_x = (missing_zeroes*"0") + new_x
+                new_x = (missing_zeroes * "0") + new_x
             elif missing_zeroes and self.omit_trailing_zeroes:
                 new_x += missing_zeroes * "0"
 
@@ -163,7 +168,7 @@ class GerberCoordFormat(object):
             missing_zeroes = (self.y_int_digits + self.y_dec_digits) - len(new_y)
 
             if missing_zeroes and self.omit_leading_zeroes:
-                new_y = (missing_zeroes*"0") + new_y
+                new_y = (missing_zeroes * "0") + new_y
             elif missing_zeroes and self.omit_trailing_zeroes:
                 new_y += missing_zeroes * "0"
 
@@ -180,8 +185,8 @@ class GerberContext(object):
     x = 0
     y = 0
 
-    current_aperture = 0
-    interpolation = None
+    aperture = 0
+    interpolation = INTERPOLATION_LINEAR
 
     image_polarity = IMAGE_POLARITY_POSITIVE
     level_polarity = LEVEL_POLARITY_DARK
@@ -190,89 +195,136 @@ class GerberContext(object):
         pass
 
     def set_coord_format(self, zeroes, x, y):
-        # print "<coord-format/>"
         self.coord_format = GerberCoordFormat(zeroes, x, y)
 
     def set_coord_notation(self, notation):
-        # print "<coord-notation/>"
         self.coord_notation = NOTATION_ABSOLUTE if notation == "A" else NOTATION_INCREMENTAL
 
     def set_coord_unit(self, unit):
-        # print "<coord-unit/>"
         self.coord_unit = UNIT_INCH if unit == "IN" else UNIT_MM
 
     def set_image_polarity(self, polarity):
-        # print "<image-polarity/>"
         self.image_polarity = IMAGE_POLARITY_POSITIVE if polarity == "POS" else IMAGE_POLARITY_NEGATIVE
 
     def set_level_polarity(self, polarity):
-        # print "<level-polarity/>"
         self.level_polarity = LEVEL_POLARITY_DARK if polarity == "D" else LEVEL_POLARITY_CLEAR
 
+    def set_interpolation(self, interpolation):
+        self.interpolation = INTERPOLATION_LINEAR if interpolation in ("G01", "G1") else INTERPOLATION_ARC
+
     def set_aperture(self, d):
-        # print "<aperture %s/>" % d
-        self.current_aperture = d
+        self.aperture = d
 
     def resolve(self, x, y):
         x, y = self.coord_format.resolve(x, y)
         return x or self.x, y or self.y
 
-    def move(self, x, y):
-        # print "<x=%s y=%s/>" % (x, y)
-        self.x, self.y = self.resolve(x, y)
-
-    def line(self):
-        # print "<line/>"
+    def define_aperture(self, d, shape, modifiers):
         pass
 
-    def arc(self):
-        # print "<arc/>"
+    def move(self, x, y, resolve=True):
+        if resolve:
+            self.x, self.y = self.resolve(x, y)
+        else:
+            self.x, self.y = x, y
+
+    def stroke(self, x, y):
         pass
 
-    def flash(self):
-        # print "<flash/>"
+    def line(self, x, y):
         pass
+
+    def arc(self, x, y):
+        pass
+
+    def flash(self, x, y):
+        pass
+
+
+class Shape(object):
+    pass
+
+
+class Circle(Shape):
+    def __init__(self, diameter=0):
+        self.diameter = diameter
+
+    def draw(self, ctx, x, y):
+        return ctx.dwg.line(start=(ctx.x*300, ctx.y*300), end=(x*300, y*300), stroke="rgb(184, 115, 51)", stroke_width=2,
+                            stroke_linecap="round")
+
+    def flash(self, ctx, x, y):
+        return ctx.dwg.circle(center=(x*300, y*300), r=300*(self.diameter/2.0), fill="rgb(184, 115, 51)")
+
+
+class Rect(Shape):
+    def __init__(self, size=0):
+        self.size = size
+
+    def draw(self, ctx, x, y):
+        return ctx.dwg.line(start=(ctx.x*300, ctx.y*300), end=(x*300, y*300), stroke="rgb(184, 115, 51)", stroke_width=2,
+                            stroke_linecap="butt")
+
+    def flash(self, ctx, x, y):
+        return ctx.dwg.rect(insert=(300*x, 300*y), size=(300*float(self.size[0]), 300*float(self.size[1])), fill="rgb(184, 115, 51)")
 
 
 class SvgContext(GerberContext):
     def __init__(self):
         GerberContext.__init__(self)
 
-        self.header = "<svg width=\"1280\" height=\"720\">"
-        self.footer = "</svg>"
+        self.apertures = {}
+        self.dwg = svgwrite.Drawing()
+        self.dwg.add(self.dwg.rect(insert=(0, 0), size=(2000, 2000), fill="black"))
 
-        self.lines = []
+    def define_aperture(self, d, shape, modifiers):
+        aperture = None
+        if shape == "C":
+            aperture = Circle(diameter=float(modifiers[0][0]))
+        elif shape == "R":
+            aperture = Rect(size=modifiers[0][0:2])
 
-        self.path = []
+        self.apertures[d] = aperture
 
-    def move(self, x, y):
-        super(SvgContext, self).move(x, y)
-        self.path.append((self.x, self.y))
+    def stroke(self, x, y):
+        super(SvgContext, self).stroke(x, y)
 
-    def line(self):
-        super(SvgContext, self).line()
+        if self.interpolation == INTERPOLATION_LINEAR:
+            self.line(x, y)
+        elif self.interpolation == INTERPOLATION_ARC:
+            self.arc(x, y)
 
-        for i, path in enumerate(self.path):
-            if i > 0:
-                x1 = self.path[i-1]
-                x2 = self.path[i]
-                self.lines.append('<line x1="{0}" y1="{1}" x2="{2}" y2="{3}" stroke="rgb(0,145,21)" stroke-width="2"/>'.format(x1[0]*300, x1[1]*300, x2[0]*300, x2[1]*300))
+    def line(self, x, y):
+        super(SvgContext, self).line(x, y)
 
-        self.path = []
+        x, y = self.resolve(x, y)
 
-    def arc(self):
-        super(SvgContext, self).arc()
-        self.path = []
+        ap = self.apertures.get(str(self.aperture), None)
+        if ap is None:
+            return
 
-    def flash(self):
-        super(SvgContext, self).flash()
-        self.path = []
+        self.dwg.add(ap.draw(self, x, y))
+
+        self.move(x, y, resolve=False)
+
+    def arc(self, x, y):
+        super(SvgContext, self).arc(x, y)
+
+    def flash(self, x, y):
+        super(SvgContext, self).flash(x, y)
+
+        x, y = self.resolve(x, y)
+
+        ap = self.apertures.get(str(self.aperture), None)
+        if ap is None:
+            return
+
+        self.dwg.add(ap.flash(self, x, y))
+
+        self.move(x, y, resolve=False)
 
     def dump(self):
-        print self.header
-        for line in self.lines:
-            print line
-        print self.footer
+        self.dwg.saveas("teste.svg")
 
 
 class Gerber(object):
@@ -288,11 +340,11 @@ class Gerber(object):
     MO = r"(?P<param>MO)(?P<mo>(MM|IN))"
     IP = r"(?P<param>IP)(?P<ip>(POS|NEG))"
     LP = r"(?P<param>LP)(?P<lp>(D|C))"
-    AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>C)[,](?P<modifiers>[^,]*)"
-    AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>R)[,](?P<modifiers>[^,]*)"
-    AD_OBROUND = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>O)[,](?P<modifiers>[^,]*)"
-    AD_POLY = r"(?P<param>AD)D(?P<d>\d+)(?P<aperture>P)[,](?P<modifiers>[^,]*)"
-    AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)+(?P<aperture>{name})[,](?P<modifiers>[^,]*)".format(name=NAME)
+    AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>C)[,](?P<modifiers>[^,]*)"
+    AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>R)[,](?P<modifiers>[^,]*)"
+    AD_OBROUND = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>O)[,](?P<modifiers>[^,]*)"
+    AD_POLY = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>P)[,](?P<modifiers>[^,]*)"
+    AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)+(?P<shape>{name})[,](?P<modifiers>[^,]*)".format(name=NAME)
     AM = r"(?P<param>AM)(?P<name>{name})\*(?P<macro>.*)".format(name=NAME)
 
     # begin deprecated
@@ -477,16 +529,20 @@ class Gerber(object):
             self.ctx.set_image_polarity(stmt.ip)
         elif stmt.param == "LP:":
             self.ctx.set_level_polarity(stmt.lp)
+        elif stmt.param == "AD":
+            self.ctx.define_aperture(stmt.d, stmt.shape, stmt.modifiers)
 
     def _evaluate_coord(self, stmt):
+
+        if stmt.function in ("G01", "G1", "G02", "G2", "G03", "G3"):
+            self.ctx.set_interpolation(stmt.function)
+
         if stmt.op == "D01":
-            self.ctx.move(stmt.x, stmt.y)
-            self.ctx.line()
+            self.ctx.stroke(stmt.x, stmt.y)
         elif stmt.op == "D02":
             self.ctx.move(stmt.x, stmt.y)
         elif stmt.op == "D03":
-            self.ctx.move(stmt.x, stmt.y)
-            self.ctx.flash()
+            self.ctx.flash(stmt.x, stmt.y)
 
     def _evaluate_aperture(self, stmt):
         self.ctx.set_aperture(stmt.d)
