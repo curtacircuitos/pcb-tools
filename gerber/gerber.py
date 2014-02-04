@@ -3,7 +3,7 @@
 
 import re
 import json
-import copy
+import traceback
 
 import svgwrite
 
@@ -155,6 +155,9 @@ class GerberCoordFormat(object):
         new_y = y
 
         if new_x is not None:
+            negative = "-" in new_x
+            new_x = new_x.replace("-", "")
+
             missing_zeroes = (self.x_int_digits + self.x_dec_digits) - len(new_x)
 
             if missing_zeroes and self.omit_leading_zeroes:
@@ -162,9 +165,12 @@ class GerberCoordFormat(object):
             elif missing_zeroes and self.omit_trailing_zeroes:
                 new_x += missing_zeroes * "0"
 
-            new_x = float("{0}.{1}".format(new_x[:self.x_int_digits], new_x[self.x_int_digits:]))
+            new_x = float("{0}{1}.{2}".format("-" if negative else "", new_x[:self.x_int_digits], new_x[self.x_int_digits:]))
 
         if new_y is not None:
+            negative = "-" in new_y
+            new_y = new_y.replace("-", "")
+
             missing_zeroes = (self.y_int_digits + self.y_dec_digits) - len(new_y)
 
             if missing_zeroes and self.omit_leading_zeroes:
@@ -172,7 +178,7 @@ class GerberCoordFormat(object):
             elif missing_zeroes and self.omit_trailing_zeroes:
                 new_y += missing_zeroes * "0"
 
-            new_y = float("{0}.{1}".format(new_y[:self.y_int_digits], new_y[self.y_int_digits:]))
+            new_y = float("{0}{1}.{2}".format("-" if negative else "", new_y[:self.y_int_digits], new_y[self.y_int_digits:]))
 
         return new_x, new_y
 
@@ -552,6 +558,10 @@ if __name__ == "__main__":
     import sys
 
     for f in sys.argv[1:]:
-        g = Gerber()
-        g.parse(f)
-        g.dump()
+        print "parsing: %s" % f
+        try:
+            g = Gerber()
+            g.parse(f)
+        except Exception, e:
+            traceback.print_exc()
+
