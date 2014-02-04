@@ -1,15 +1,22 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
+
+# Copyright 2013-2014 Paulo Henrique Silva <ph.silva@gmail.com>
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 import re
 import json
-import traceback
-
-import svgwrite
-
-
-def red(s):
-    return '\033[1;31m{0}\033[0;m'.format(s)
 
 
 class Statement(object):
@@ -33,7 +40,7 @@ class ParamStmt(Statement):
 
 
 class FSParamStmt(ParamStmt):
-    def __init__(self, param, zero = "L", notation = "A", x = "24", y = "24"):
+    def __init__(self, param, zero="L", notation="A", x="24", y="24"):
         ParamStmt.__init__(self, param)
         self.zero = zero
         self.notation = notation
@@ -127,213 +134,7 @@ class UnknownStmt(Statement):
         self.line = line
 
 
-IMAGE_POLARITY_POSITIVE = 1
-IMAGE_POLARITY_NEGATIVE = 2
-
-LEVEL_POLARITY_DARK = 1
-LEVEL_POLARITY_CLEAR = 2
-
-NOTATION_ABSOLUTE = 1
-NOTATION_INCREMENTAL = 2
-
-UNIT_INCH = 1
-UNIT_MM = 2
-
-INTERPOLATION_LINEAR = 1
-INTERPOLATION_ARC = 2
-
-
-class GerberCoordFormat(object):
-    def __init__(self, zeroes, x, y):
-        self.omit_leading_zeroes = True if zeroes == "L" else False
-        self.omit_trailing_zeroes = True if zeroes == "T" else False
-        self.x_int_digits, self.x_dec_digits = [int(d) for d in x]
-        self.y_int_digits, self.y_dec_digits = [int(d) for d in y]
-
-    def resolve(self, x, y):
-        new_x = x
-        new_y = y
-
-        if new_x is not None:
-            negative = "-" in new_x
-            new_x = new_x.replace("-", "")
-
-            missing_zeroes = (self.x_int_digits + self.x_dec_digits) - len(new_x)
-
-            if missing_zeroes and self.omit_leading_zeroes:
-                new_x = (missing_zeroes * "0") + new_x
-            elif missing_zeroes and self.omit_trailing_zeroes:
-                new_x += missing_zeroes * "0"
-
-            new_x = float("{0}{1}.{2}".format("-" if negative else "", new_x[:self.x_int_digits], new_x[self.x_int_digits:]))
-
-        if new_y is not None:
-            negative = "-" in new_y
-            new_y = new_y.replace("-", "")
-
-            missing_zeroes = (self.y_int_digits + self.y_dec_digits) - len(new_y)
-
-            if missing_zeroes and self.omit_leading_zeroes:
-                new_y = (missing_zeroes * "0") + new_y
-            elif missing_zeroes and self.omit_trailing_zeroes:
-                new_y += missing_zeroes * "0"
-
-            new_y = float("{0}{1}.{2}".format("-" if negative else "", new_y[:self.y_int_digits], new_y[self.y_int_digits:]))
-
-        return new_x, new_y
-
-
-class GerberContext(object):
-    coord_format = None
-    coord_notation = NOTATION_ABSOLUTE
-    coord_unit = None
-
-    x = 0
-    y = 0
-
-    aperture = 0
-    interpolation = INTERPOLATION_LINEAR
-
-    image_polarity = IMAGE_POLARITY_POSITIVE
-    level_polarity = LEVEL_POLARITY_DARK
-
-    def __init__(self):
-        pass
-
-    def set_coord_format(self, zeroes, x, y):
-        self.coord_format = GerberCoordFormat(zeroes, x, y)
-
-    def set_coord_notation(self, notation):
-        self.coord_notation = NOTATION_ABSOLUTE if notation == "A" else NOTATION_INCREMENTAL
-
-    def set_coord_unit(self, unit):
-        self.coord_unit = UNIT_INCH if unit == "IN" else UNIT_MM
-
-    def set_image_polarity(self, polarity):
-        self.image_polarity = IMAGE_POLARITY_POSITIVE if polarity == "POS" else IMAGE_POLARITY_NEGATIVE
-
-    def set_level_polarity(self, polarity):
-        self.level_polarity = LEVEL_POLARITY_DARK if polarity == "D" else LEVEL_POLARITY_CLEAR
-
-    def set_interpolation(self, interpolation):
-        self.interpolation = INTERPOLATION_LINEAR if interpolation in ("G01", "G1") else INTERPOLATION_ARC
-
-    def set_aperture(self, d):
-        self.aperture = d
-
-    def resolve(self, x, y):
-        x, y = self.coord_format.resolve(x, y)
-        return x or self.x, y or self.y
-
-    def define_aperture(self, d, shape, modifiers):
-        pass
-
-    def move(self, x, y, resolve=True):
-        if resolve:
-            self.x, self.y = self.resolve(x, y)
-        else:
-            self.x, self.y = x, y
-
-    def stroke(self, x, y):
-        pass
-
-    def line(self, x, y):
-        pass
-
-    def arc(self, x, y):
-        pass
-
-    def flash(self, x, y):
-        pass
-
-
-class Shape(object):
-    pass
-
-
-class Circle(Shape):
-    def __init__(self, diameter=0):
-        self.diameter = diameter
-
-    def draw(self, ctx, x, y):
-        return ctx.dwg.line(start=(ctx.x*300, ctx.y*300), end=(x*300, y*300), stroke="rgb(184, 115, 51)", stroke_width=2,
-                            stroke_linecap="round")
-
-    def flash(self, ctx, x, y):
-        return ctx.dwg.circle(center=(x*300, y*300), r=300*(self.diameter/2.0), fill="rgb(184, 115, 51)")
-
-
-class Rect(Shape):
-    def __init__(self, size=0):
-        self.size = size
-
-    def draw(self, ctx, x, y):
-        return ctx.dwg.line(start=(ctx.x*300, ctx.y*300), end=(x*300, y*300), stroke="rgb(184, 115, 51)", stroke_width=2,
-                            stroke_linecap="butt")
-
-    def flash(self, ctx, x, y):
-        return ctx.dwg.rect(insert=(300*x, 300*y), size=(300*float(self.size[0]), 300*float(self.size[1])), fill="rgb(184, 115, 51)")
-
-
-class SvgContext(GerberContext):
-    def __init__(self):
-        GerberContext.__init__(self)
-
-        self.apertures = {}
-        self.dwg = svgwrite.Drawing()
-        self.dwg.add(self.dwg.rect(insert=(0, 0), size=(2000, 2000), fill="black"))
-
-    def define_aperture(self, d, shape, modifiers):
-        aperture = None
-        if shape == "C":
-            aperture = Circle(diameter=float(modifiers[0][0]))
-        elif shape == "R":
-            aperture = Rect(size=modifiers[0][0:2])
-
-        self.apertures[d] = aperture
-
-    def stroke(self, x, y):
-        super(SvgContext, self).stroke(x, y)
-
-        if self.interpolation == INTERPOLATION_LINEAR:
-            self.line(x, y)
-        elif self.interpolation == INTERPOLATION_ARC:
-            self.arc(x, y)
-
-    def line(self, x, y):
-        super(SvgContext, self).line(x, y)
-
-        x, y = self.resolve(x, y)
-
-        ap = self.apertures.get(str(self.aperture), None)
-        if ap is None:
-            return
-
-        self.dwg.add(ap.draw(self, x, y))
-
-        self.move(x, y, resolve=False)
-
-    def arc(self, x, y):
-        super(SvgContext, self).arc(x, y)
-
-    def flash(self, x, y):
-        super(SvgContext, self).flash(x, y)
-
-        x, y = self.resolve(x, y)
-
-        ap = self.apertures.get(str(self.aperture), None)
-        if ap is None:
-            return
-
-        self.dwg.add(ap.flash(self, x, y))
-
-        self.move(x, y, resolve=False)
-
-    def dump(self):
-        self.dwg.saveas("teste.svg")
-
-
-class Gerber(object):
+class GerberParser(object):
     NUMBER = r"[\+-]?\d+"
     DECIMAL = r"[\+-]?\d+([.]?\d+)?"
     STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
@@ -374,9 +175,9 @@ class Gerber(object):
 
     EOF_STMT = re.compile(r"(?P<eof>M02)\*")
 
-    def __init__(self):
+    def __init__(self, ctx):
         self.statements = []
-        self.ctx = SvgContext()
+        self.ctx = ctx
 
     def parse(self, filename):
         fp = open(filename, "r")
@@ -552,16 +353,3 @@ class Gerber(object):
 
     def _evaluate_aperture(self, stmt):
         self.ctx.set_aperture(stmt.d)
-
-
-if __name__ == "__main__":
-    import sys
-
-    for f in sys.argv[1:]:
-        print "parsing: %s" % f
-        try:
-            g = Gerber()
-            g.parse(f)
-        except Exception, e:
-            traceback.print_exc()
-

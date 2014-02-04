@@ -14,3 +14,18 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+if __name__ == '__main__':
+    from .parser import GerberParser
+    from .render import GerberContext
+
+    import sys
+
+    if len(sys.argv) < 2:
+        print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."
+        sys.exit(1)
+
+    for filename in sys.argv[1:]:
+        print "parsing %s" % filename
+        g = GerberParser(GerberContext())
+        g.parse(filename)
