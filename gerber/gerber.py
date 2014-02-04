@@ -33,7 +33,7 @@ class ParamStmt(Statement):
 
 
 class FSParamStmt(ParamStmt):
-    def __init__(self, param, zero, notation, x, y):
+    def __init__(self, param, zero = "L", notation = "A", x = "24", y = "24"):
         ParamStmt.__init__(self, param)
         self.zero = zero
         self.notation = notation
@@ -342,7 +342,7 @@ class Gerber(object):
 
     COORD_OP = r"D[0]?[123]"
 
-    FS = r"(?P<param>FS)(?P<zero>(L|T))(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
+    FS = r"(?P<param>FS)(?P<zero>(L|T))?(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
     MO = r"(?P<param>MO)(?P<mo>(MM|IN))"
     IP = r"(?P<param>IP)(?P<ip>(POS|NEG))"
     LP = r"(?P<param>LP)(?P<lp>(D|C))"
