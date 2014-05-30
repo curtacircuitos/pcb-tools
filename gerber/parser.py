@@ -39,6 +39,7 @@ class ParamStmt(Statement):
         self.param = param
 
 
+
 class FSParamStmt(ParamStmt):
     def __init__(self, param, zero="L", notation="A", x="24", y="24"):
         ParamStmt.__init__(self, param)
@@ -47,17 +48,25 @@ class FSParamStmt(ParamStmt):
         self.x = x
         self.y = y
 
+    def to_gerber(self):
+        return '%FS{0}{1}X{2}Y{3}*%'.format(self.zero, self.notation,
+                                            self.x, self.y)
 
 class MOParamStmt(ParamStmt):
     def __init__(self, param, mo):
         ParamStmt.__init__(self, param)
         self.mo = mo
 
+    def to_gerber(self):
+        return '%MO{0}*%'.format(self.mo)
 
 class IPParamStmt(ParamStmt):
     def __init__(self, param, ip):
         ParamStmt.__init__(self, param)
         self.ip = ip
+
+    def to_gerber(self):
+        return '%IP{0}*%'.format(self.ip)
 
 
 class OFParamStmt(ParamStmt):
@@ -66,11 +75,22 @@ class OFParamStmt(ParamStmt):
         self.a = a
         self.b = b
 
+    def to_gerber(self):
+        ret = '%OF'
+        if self.a:
+            ret += 'A' + self.a
+        if self.b:
+            ret += 'B' + self.b
+        return ret + '*%'
+
 
 class LPParamStmt(ParamStmt):
     def __init__(self, param, lp):
         ParamStmt.__init__(self, param)
         self.lp = lp
+
+    def to_gerber(self):
+        return '%LP{0}*%'.format(self.lp)
 
 
 class ADParamStmt(ParamStmt):
@@ -80,6 +100,9 @@ class ADParamStmt(ParamStmt):
         self.shape = shape
         self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",")]
 
+    def to_gerber(self):
+        return '%ADD{0}{1},{2}*%'.format(self.d, self.shape,
+                                         ','.join(['X'.join(e) for e in self.modifiers]))
 
 class AMParamStmt(ParamStmt):
     def __init__(self, param, name, macro):
@@ -87,11 +110,17 @@ class AMParamStmt(ParamStmt):
         self.name = name
         self.macro = macro
 
+    def to_gerber(self):
+        #think this is right...
+        return '%AM{0}*{1}*%'.format(self.name, self.macro)
 
 class INParamStmt(ParamStmt):
     def __init__(self, param, name):
         ParamStmt.__init__(self, param)
         self.name = name
+
+    def to_gerber(self):
+        return '%IN{0}*%'.format(self.name)
 
 
 class LNParamStmt(ParamStmt):
@@ -99,6 +128,8 @@ class LNParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.name = name
 
+    def to_gerber(self):
+        return '%LN{0}*%'.format(self.name)
 
 class CoordStmt(Statement):
     def __init__(self, function, x, y, i, j, op):
@@ -110,23 +141,45 @@ class CoordStmt(Statement):
         self.j = j
         self.op = op
 
+    def to_gerber(self):
+        ret = ''
+        if self.function:
+            ret += self.function
+        if self.x:
+            ret += 'X{0}'.format(self.x)
+        if self.y:
+            ret += 'Y{0}'.format(self.y)
+        if self.i:
+            ret += 'I{0}'.format(self.i)
+        if self.j:
+            ret += 'J{0}'.format(self.j)
+        if self.op:
+            ret += self.op
+        return ret + '*'
+
 
 class ApertureStmt(Statement):
     def __init__(self, d):
         Statement.__init__(self, "APERTURE")
         self.d = int(d)
 
+    def to_gerber(self):
+        return 'G54D{0}*'.format(self.d)
 
 class CommentStmt(Statement):
     def __init__(self, comment):
         Statement.__init__(self, "COMMENT")
         self.comment = comment
 
+    def to_gerber(self):
+        return 'G04{0}*'.format(self.comment)
 
 class EofStmt(Statement):
     def __init__(self):
         Statement.__init__(self, "EOF")
 
+    def to_gerber(self):
+        return 'M02*'
 
 class UnknownStmt(Statement):
     def __init__(self, line):
@@ -171,11 +224,14 @@ class GerberParser(object):
 
     APERTURE_STMT = re.compile(r"(G54)?D(?P<d>\d+)\*")
 
-    COMMENT_STMT = re.compile(r"G04(?P<comment>{string})(\*)?".format(string=STRING))
+    #COMMENT_STMT = re.compile(r"G04(?P<comment>{string})(\*)?".format(string=STRING))
+    #spec is unclear on whether all chars allowed in comment string -
+    #seems reasonable to be more permissive.
+    COMMENT_STMT = re.compile(r"G04(?P<comment>[^*]*)(\*)?")
 
     EOF_STMT = re.compile(r"(?P<eof>M02)\*")
 
-    def __init__(self, ctx):
+    def __init__(self, ctx=None):
         self.statements = []
         self.ctx = ctx
 
@@ -185,7 +241,8 @@ class GerberParser(object):
 
         for stmt in self._parse(data):
             self.statements.append(stmt)
-            self._evaluate(stmt)
+            if self.ctx:
+                self._evaluate(stmt)
 
     def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
@@ -201,115 +258,112 @@ class GerberParser(object):
         self.ctx.dump()
 
     def _parse(self, data):
-        multiline = None
+        oldline = ''
 
         for i, line in enumerate(data):
-            # remove EOL
-            if multiline:
-                line = multiline + line.strip()
-            else:
-                line = line.strip()
-
+            line = oldline + line.strip()
+        
             # skip empty lines
             if not len(line):
                 continue
 
             # deal with multi-line parameters
             if line.startswith("%") and not line.endswith("%"):
-                multiline = line
+                oldline = line
                 continue
-            else:
-                multiline = None
 
-            # coord
-            coords = self._match_many(self.COORD_STMT, line)
-            if coords:
-                for coord in coords:
+            did_something = True # make sure we do at least one loop
+            while did_something and len(line) > 0:
+                did_something = False
+                # coord
+                (coord, r) = self._match_one(self.COORD_STMT, line)
+                if coord:
                     yield CoordStmt(**coord)
-                continue
+                    line = r
+                    did_something = True
+                    continue
 
-            # aperture selection
-            aperture = self._match_one(self.APERTURE_STMT, line)
-            if aperture:
-                yield ApertureStmt(**aperture)
-                continue
+                # aperture selection
+                (aperture, r) = self._match_one(self.APERTURE_STMT, line)
+                if aperture:
+                    yield ApertureStmt(**aperture)
+                    
+                    did_something = True
+                    line = r
+                    continue
 
-            # comment
-            comment = self._match_one(self.COMMENT_STMT, line)
-            if comment:
-                yield CommentStmt(comment["comment"])
-                continue
+                # comment
+                (comment, r) = self._match_one(self.COMMENT_STMT, line)
+                if comment:
+                    yield CommentStmt(comment["comment"])
+                    did_something = True
+                    line = r
+                    continue
 
-            # parameter
-            param = self._match_one_from_many(self.PARAM_STMT, line)
-            if param:
-                if param["param"] == "FS":
-                    yield FSParamStmt(**param)
-                elif param["param"] == "MO":
-                    yield MOParamStmt(**param)
-                elif param["param"] == "IP":
-                    yield IPParamStmt(**param)
-                elif param["param"] == "LP":
-                    yield LPParamStmt(**param)
-                elif param["param"] == "AD":
-                    yield ADParamStmt(**param)
-                elif param["param"] == "AM":
-                    yield AMParamStmt(**param)
-                elif param["param"] == "OF":
-                    yield OFParamStmt(**param)
-                elif param["param"] == "IN":
-                    yield INParamStmt(**param)
-                elif param["param"] == "LN":
-                    yield LNParamStmt(**param)
-                else:
+                # parameter
+                (param, r) = self._match_one_from_many(self.PARAM_STMT, line)
+                if param:
+                    if param["param"] == "FS":
+                        yield FSParamStmt(**param)
+                    elif param["param"] == "MO":
+                        yield MOParamStmt(**param)
+                    elif param["param"] == "IP":
+                        yield IPParamStmt(**param)
+                    elif param["param"] == "LP":
+                        yield LPParamStmt(**param)
+                    elif param["param"] == "AD":
+                        yield ADParamStmt(**param)
+                    elif param["param"] == "AM":
+                        yield AMParamStmt(**param)
+                    elif param["param"] == "OF":
+                        yield OFParamStmt(**param)
+                    elif param["param"] == "IN":
+                        yield INParamStmt(**param)
+                    elif param["param"] == "LN":
+                        yield LNParamStmt(**param)
+                    else:
+                        yield UnknownStmt(line)
+                    did_something = True
+                    line = r
+                    continue
+
+                # eof
+                (eof, r) = self._match_one(self.EOF_STMT, line)
+                if eof:
+                    yield EofStmt()
+                    did_something = True
+                    line = r
+                    continue
+                
+                if False:
+                    print self.COORD_STMT.pattern
+                    print self.APERTURE_STMT.pattern
+                    print self.COMMENT_STMT.pattern
+                    print self.EOF_STMT.pattern
+                    for i in self.PARAM_STMT:
+                        print i.pattern
+
+                if line.find('*') > 0:
                     yield UnknownStmt(line)
-
-                continue
-
-            # eof
-            eof = self._match_one(self.EOF_STMT, line)
-            if eof:
-                yield EofStmt()
-                continue
-
-            if False:
-                print self.COORD_STMT.pattern
-                print self.APERTURE_STMT.pattern
-                print self.COMMENT_STMT.pattern
-                print self.EOF_STMT.pattern
-                for i in self.PARAM_STMT:
-                    print i.pattern
-
-            yield UnknownStmt(line)
+            oldline = line
 
     def _match_one(self, expr, data):
         match = expr.match(data)
         if match is None:
-            return {}
+            return ({}, None)
         else:
-            return match.groupdict()
+            return (match.groupdict(), data[match.end(0):])
 
     def _match_one_from_many(self, exprs, data):
         for expr in exprs:
             match = expr.match(data)
             if match:
-                return match.groupdict()
+                return (match.groupdict(), data[match.end(0):])
 
-        return {}
+        return ({}, None)
 
-    def _match_many(self, expr, data):
-        result = []
-        pos = 0
-        while True:
-            match = expr.match(data, pos)
-            if match:
-                result.append(match.groupdict())
-                pos = match.endpos
-            else:
-                break
 
-        return result
-
+    # really this all belongs in another class - the GerberContext class
     def _evaluate(self, stmt):
         if isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
             return
