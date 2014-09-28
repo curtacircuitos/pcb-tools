@@ -242,7 +242,7 @@ class GerberParser(object):
         for stmt in self._parse(data):
             self.statements.append(stmt)
             if self.ctx:
-                self._evaluate(stmt)
+                self.ctx.evaluate(stmt)
 
     def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
@@ -361,49 +361,3 @@ class GerberParser(object):
                 return (match.groupdict(), data[match.end(0):])
 
         return ({}, None)
-
-
-    # really this all belongs in another class - the GerberContext class
-    def _evaluate(self, stmt):
-        if isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
-            return
-
-        elif isinstance(stmt, ParamStmt):
-            self._evaluate_param(stmt)
-
-        elif isinstance(stmt, CoordStmt):
-            self._evaluate_coord(stmt)
-
-        elif isinstance(stmt, ApertureStmt):
-            self._evaluate_aperture(stmt)
-
-        else:
-            raise Exception("Invalid statement to evaluate")
-
-    def _evaluate_param(self, stmt):
-        if stmt.param == "FS":
-            self.ctx.set_coord_format(stmt.zero, stmt.x, stmt.y)
-            self.ctx.set_coord_notation(stmt.notation)
-        elif stmt.param == "MO:":
-            self.ctx.set_coord_unit(stmt.mo)
-        elif stmt.param == "IP:":
-            self.ctx.set_image_polarity(stmt.ip)
-        elif stmt.param == "LP:":
-            self.ctx.set_level_polarity(stmt.lp)
-        elif stmt.param == "AD":
-            self.ctx.define_aperture(stmt.d, stmt.shape, stmt.modifiers)
-
-    def _evaluate_coord(self, stmt):
-
-        if stmt.function in ("G01", "G1", "G02", "G2", "G03", "G3"):
-            self.ctx.set_interpolation(stmt.function)
-
-        if stmt.op == "D01":
-            self.ctx.stroke(stmt.x, stmt.y)
-        elif stmt.op == "D02":
-            self.ctx.move(stmt.x, stmt.y)
-        elif stmt.op == "D03":
-            self.ctx.flash(stmt.x, stmt.y)
-
-    def _evaluate_aperture(self, stmt):
-        self.ctx.set_aperture(stmt.d)

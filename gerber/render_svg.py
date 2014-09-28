@@ -44,6 +44,9 @@ class Rect(Shape):
                             stroke_width=2, stroke_linecap="butt")
 
     def flash(self, ctx, x, y):
+        # Center the rectange on x,y
+        x -= (self.size[0] / 2.0)
+        y -= (self.size[0] / 2.0)
         return ctx.dwg.rect(insert=(300*x, 300*y), size=(300*float(self.size[0]), 300*float(self.size[1])),
                             fill="rgb(184, 115, 51)")
 
@@ -102,5 +105,10 @@ class GerberSvgContext(GerberContext):
 
         self.move(x, y, resolve=False)
 
-    def dump(self):
-        self.dwg.saveas("teste.svg")
+    def drill(self, x, y, diameter):
+        hit = self.dwg.circle(center=(x*300, y*300), r=300*(diameter/2.0), fill="gray")
+        self.dwg.add(hit)
+        
+        
+    def dump(self,filename='teste.svg'):
+        self.dwg.saveas(filename)
