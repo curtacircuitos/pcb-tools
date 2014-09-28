@@ -1,8 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2013-2014 Paulo Henrique Silva <ph.silva@gmail.com>
-
+# copyright 2014 Hamilton Kibbe <ham@hamiltonkib.be>
+# Modified from parser.py by Paulo Henrique Silva <ph.silva@gmail.com>
+# 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -17,177 +18,117 @@
 
 import re
 import json
-
-
-class Statement(object):
-    def __init__(self, type):
-        self.type = type
-
-    def __str__(self):
-        s = "<{0} ".format(self.__class__.__name__)
-
-        for key, value in self.__dict__.items():
-            s += "{0}={1} ".format(key, value)
-
-        s = s.rstrip() + ">"
-        return s
-
-
-class ParamStmt(Statement):
-    def __init__(self, param):
-        Statement.__init__(self, "PARAM")
-        self.param = param
+from .statements import *
 
 
 
-class FSParamStmt(ParamStmt):
-    def __init__(self, param, zero="L", notation="A", x="24", y="24"):
-        ParamStmt.__init__(self, param)
-        self.zero = zero
-        self.notation = notation
-        self.x = x
-        self.y = y
 
-    def to_gerber(self):
-        return '%FS{0}{1}X{2}Y{3}*%'.format(self.zero, self.notation,
-                                            self.x, self.y)
+class GerberFile(object):
+    """ A class representing a single gerber file
+    
+    The GerberFile class represents a single gerber file. 
+        
+    Parameters
+    ----------
+    filename : string
+        Parameter.
+        
+    zero_suppression : string
+        Zero-suppression mode. May be either 'leading' or 'trailing'
 
-class MOParamStmt(ParamStmt):
-    def __init__(self, param, mo):
-        ParamStmt.__init__(self, param)
-        self.mo = mo
+    notation : string
+        Notation mode. May be either 'absolute' or 'incremental'
+        
+    format : tuple (int, int)
+        Gerber precision format expressed as a tuple containing: 
+        (number of integer-part digits, number of decimal-part digits)
 
-    def to_gerber(self):
-        return '%MO{0}*%'.format(self.mo)
+    Attributes
+    ----------
+    comments: list of strings
+        List of comments contained in the gerber file.
 
-class IPParamStmt(ParamStmt):
-    def __init__(self, param, ip):
-        ParamStmt.__init__(self, param)
-        self.ip = ip
+    units : string
+        either 'inch' or 'metric'.
+        
+    size : tuple, (<float>, <float>)
+        Size in [self.units] of the layer described by the gerber file.
 
-    def to_gerber(self):
-        return '%IP{0}*%'.format(self.ip)
+    bounds: tuple, ((<float>, <float>), (<float>, <float>))
+        boundaries of the layer described by the gerber file.
+        `bounds` is stored as ((min x, max x), (min y, max y))
 
+    """
+    
+    @classmethod
+    def read(cls, filename):
+        """ Read data from filename and return a GerberFile
+        """
+        return GerberParser().parse(filename)
+    
+    def __init__(self, statements, settings, filename=None):
+        self.filename = filename
+        self.statements = statements
+        self.settings = settings
+        
+    @property
+    def comments(self):
+        return [comment.comment for comment in self.statements
+                if isinstance(comment, CommentStmt)]
+    
+    @property
+    def units(self):
+        return self.settings['units']
+    
+    @property
+    def size(self):
+        xbounds, ybounds = self.bounds
+        return (xbounds[1] - xbounds[0], ybounds[1] - ybounds[0])
+    
+    @property
+    def bounds(self):
+        xbounds = [0.0, 0.0]
+        ybounds = [0.0, 0.0]
+        for stmt in [stmt for stmt in self.statements if isinstance(stmt, CoordStmt)]:
+            if stmt.x is not None and stmt.x < xbounds[0]:
+                xbounds[0] = stmt.x
+            if stmt.x is not None and stmt.x > xbounds[1]:
+                xbounds[1] = stmt.x
+            if stmt.i is not None and stmt.i < xbounds[0]:
+                xbounds[0] = stmt.i
+            if stmt.i is not None and stmt.i > xbounds[1]:
+                xbounds[1] = stmt.i
+            if stmt.y is not None and stmt.y < ybounds[0]:
+                ybounds[0] = stmt.y
+            if stmt.y is not None and stmt.y > ybounds[1]:
+                ybounds[1] = stmt.y
+            if stmt.j is not None and stmt.j < ybounds[0]:
+                ybounds[0] = stmt.j
+            if stmt.j is not None and stmt.j > ybounds[1]:
+                ybounds[1] = stmt.j
+                
+        return (xbounds, ybounds) 
+    
+    def write(self, filename):
+        """ Write data out to a gerber file
+        """
+        with open(filename, 'w') as f:
+            for statement in self.statements:
+                f.write(statement.to_gerber())
 
-class OFParamStmt(ParamStmt):
-    def __init__(self, param, a, b):
-        ParamStmt.__init__(self, param)
-        self.a = a
-        self.b = b
-
-    def to_gerber(self):
-        ret = '%OF'
-        if self.a:
-            ret += 'A' + self.a
-        if self.b:
-            ret += 'B' + self.b
-        return ret + '*%'
-
-
-class LPParamStmt(ParamStmt):
-    def __init__(self, param, lp):
-        ParamStmt.__init__(self, param)
-        self.lp = lp
-
-    def to_gerber(self):
-        return '%LP{0}*%'.format(self.lp)
-
-
-class ADParamStmt(ParamStmt):
-    def __init__(self, param, d, shape, modifiers):
-        ParamStmt.__init__(self, param)
-        self.d = d
-        self.shape = shape
-        self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",")]
-
-    def to_gerber(self):
-        return '%ADD{0}{1},{2}*%'.format(self.d, self.shape,
-                                         ','.join(['X'.join(e) for e in self.modifiers]))
-
-class AMParamStmt(ParamStmt):
-    def __init__(self, param, name, macro):
-        ParamStmt.__init__(self, param)
-        self.name = name
-        self.macro = macro
-
-    def to_gerber(self):
-        #think this is right...
-        return '%AM{0}*{1}*%'.format(self.name, self.macro)
-
-class INParamStmt(ParamStmt):
-    def __init__(self, param, name):
-        ParamStmt.__init__(self, param)
-        self.name = name
-
-    def to_gerber(self):
-        return '%IN{0}*%'.format(self.name)
-
-
-class LNParamStmt(ParamStmt):
-    def __init__(self, param, name):
-        ParamStmt.__init__(self, param)
-        self.name = name
-
-    def to_gerber(self):
-        return '%LN{0}*%'.format(self.name)
-
-class CoordStmt(Statement):
-    def __init__(self, function, x, y, i, j, op):
-        Statement.__init__(self, "COORD")
-        self.function = function
-        self.x = x
-        self.y = y
-        self.i = i
-        self.j = j
-        self.op = op
-
-    def to_gerber(self):
-        ret = ''
-        if self.function:
-            ret += self.function
-        if self.x:
-            ret += 'X{0}'.format(self.x)
-        if self.y:
-            ret += 'Y{0}'.format(self.y)
-        if self.i:
-            ret += 'I{0}'.format(self.i)
-        if self.j:
-            ret += 'J{0}'.format(self.j)
-        if self.op:
-            ret += self.op
-        return ret + '*'
-
-
-class ApertureStmt(Statement):
-    def __init__(self, d):
-        Statement.__init__(self, "APERTURE")
-        self.d = int(d)
-
-    def to_gerber(self):
-        return 'G54D{0}*'.format(self.d)
-
-class CommentStmt(Statement):
-    def __init__(self, comment):
-        Statement.__init__(self, "COMMENT")
-        self.comment = comment
-
-    def to_gerber(self):
-        return 'G04{0}*'.format(self.comment)
-
-class EofStmt(Statement):
-    def __init__(self):
-        Statement.__init__(self, "EOF")
-
-    def to_gerber(self):
-        return 'M02*'
-
-class UnknownStmt(Statement):
-    def __init__(self, line):
-        Statement.__init__(self, "UNKNOWN")
-        self.line = line
-
+    def render(self, filename, ctx):
+        """ Generate image of layer.
+        """
+        ctx.set_bounds(self.bounds)
+        for statement in self.statements:
+            ctx.evaluate(statement)
+        ctx.dump(filename)
+        
+        
 
 class GerberParser(object):
+    """ GerberParser
+    """
     NUMBER = r"[\+-]?\d+"
     DECIMAL = r"[\+-]?\d+([.]?\d+)?"
     STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
@@ -224,16 +165,13 @@ class GerberParser(object):
 
     APERTURE_STMT = re.compile(r"(G54)?D(?P<d>\d+)\*")
 
-    #COMMENT_STMT = re.compile(r"G04(?P<comment>{string})(\*)?".format(string=STRING))
-    #spec is unclear on whether all chars allowed in comment string -
-    #seems reasonable to be more permissive.
     COMMENT_STMT = re.compile(r"G04(?P<comment>[^*]*)(\*)?")
 
     EOF_STMT = re.compile(r"(?P<eof>M02)\*")
 
-    def __init__(self, ctx=None):
+    def __init__(self):
+        self.settings = {}
         self.statements = []
-        self.ctx = ctx
 
     def parse(self, filename):
         fp = open(filename, "r")
@@ -241,8 +179,8 @@ class GerberParser(object):
 
         for stmt in self._parse(data):
             self.statements.append(stmt)
-            if self.ctx:
-                self.ctx.evaluate(stmt)
+                
+        return GerberFile(self.statements, self.settings, filename)
 
     def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
@@ -253,9 +191,6 @@ class GerberParser(object):
         for stmt in self.statements:
             s += str(stmt) + "\n"
         return s
-
-    def dump(self):
-        self.ctx.dump()
 
     def _parse(self, data):
         oldline = ''
@@ -275,10 +210,11 @@ class GerberParser(object):
             did_something = True # make sure we do at least one loop
             while did_something and len(line) > 0:
                 did_something = False
+                
                 # coord
                 (coord, r) = self._match_one(self.COORD_STMT, line)
                 if coord:
-                    yield CoordStmt(**coord)
+                    yield CoordStmt.from_dict(coord, self.settings)
                     line = r
                     did_something = True
                     continue
@@ -304,23 +240,29 @@ class GerberParser(object):
                 (param, r) = self._match_one_from_many(self.PARAM_STMT, line)
                 if param:
                     if param["param"] == "FS":
-                        yield FSParamStmt(**param)
+                        stmt =  FSParamStmt.from_dict(param)
+                        self.settings = {'zero_suppression': stmt.zero_suppression,
+                                         'format': stmt.format,
+                                         'notation': stmt.notation}
+                        yield stmt
                     elif param["param"] == "MO":
-                        yield MOParamStmt(**param)
+                        stmt = MOParamStmt.from_dict(param)
+                        self.settings['units'] = stmt.mode
+                        yield stmt
                     elif param["param"] == "IP":
-                        yield IPParamStmt(**param)
+                        yield IPParamStmt.from_dict(param)
                     elif param["param"] == "LP":
-                        yield LPParamStmt(**param)
+                        yield LPParamStmt.from_dict(param)
                     elif param["param"] == "AD":
-                        yield ADParamStmt(**param)
+                        yield ADParamStmt.from_dict(param)
                     elif param["param"] == "AM":
-                        yield AMParamStmt(**param)
+                        yield AMParamStmt.from_dict(param)
                     elif param["param"] == "OF":
-                        yield OFParamStmt(**param)
+                        yield OFParamStmt.from_dict(param)
                     elif param["param"] == "IN":
-                        yield INParamStmt(**param)
+                        yield INParamStmt.from_dict(param)
                     elif param["param"] == "LN":
-                        yield LNParamStmt(**param)
+                        yield LNParamStmtfrom_dict(param)
                     else:
                         yield UnknownStmt(line)
                     did_something = True

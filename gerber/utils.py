@@ -10,7 +10,7 @@ files.
 """
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
-# License: MIT
+# License: 
 
 def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     """ Convert gerber/excellon formatted string to floating-point number
@@ -54,6 +54,7 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
         raise ValueError('Parser only supports precision up to 6:7 format')
 
     # Remove extraneous information
+    value = value.strip()
     value = value.strip(' +')
     negative = '-' in value
     if negative:
@@ -67,7 +68,8 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     offset = 0 if zero_suppression == 'trailing' else (MAX_DIGITS - len(value))
     for i, digit in enumerate(value):
         digits[i + offset] = digit
-            
+    
+    
     result = float(''.join(digits[:integer_digits] + ['.'] + digits[integer_digits:]))
     return -1.0 * result if negative else result
     
@@ -128,3 +130,37 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
         
     return ''.join(digits) if not negative else ''.join(['-'] + digits)
     
+
+
+def decimal_string(value, precision=6):
+    """ Convert float to string with limited precision
+    
+    Parameters
+    ----------
+    value : float
+        A floating point value.
+
+    precision :  
+        Maximum number of decimal places to print
+
+    Returns
+    -------
+    value : string
+        The specified value as a  string.
+    
+    """
+    floatstr = '%0.20g' % value
+    integer = None
+    decimal = None
+    if '.' in floatstr:
+        integer, decimal = floatstr.split('.') 
+    elif ',' in floatstr:
+        integer, decimal = floatstr.split(',') 
+    if len(decimal) > precision:
+        decimal = decimal[:precision]
+    if integer or decimal:
+        return ''.join([integer, '.', decimal])
+    else:
+        return int(floatstr)
+    
+

@@ -37,3 +37,10 @@ nosetests.xml
 .idea/workspace.xml
 .idea/misc.xml
 .idea
+
+# Komodo
+*.komodoproject
+
+# OS
+.DS_Store
+Thumbs.db

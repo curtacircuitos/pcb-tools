@@ -16,16 +16,23 @@
 # limitations under the License.
 
 if __name__ == '__main__':
-    from .parser import GerberParser
-    from .render import GerberContext
+    from .gerber import GerberFile
+    from .excellon import ExcellonParser
+    from .render import GerberSvgContext
 
-    import sys
+    #import sys
+    #
+    #if len(sys.argv) < 2:
+    #    print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."
+    #    sys.exit(1)
+    #
+    ##for filename in sys.argv[1]:
+    ##    print "parsing %s" % filename
+    ctx = GerberSvgContext()
+    g = GerberFile.read('SCB.GTL')
+    g.render('test.svg', ctx)
+    p = ExcellonParser(ctx)
+    p.parse('ncdrill.txt')
+    p.dump('testwithdrill.svg')
 
-    if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."
-        sys.exit(1)
-
-    for filename in sys.argv[1:]:
-        print "parsing %s" % filename
-        g = GerberParser(GerberContext())
-        g.parse(filename)
+   
