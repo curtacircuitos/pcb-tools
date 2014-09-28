@@ -140,6 +140,9 @@ class GerberContext(object):
     def flash(self, x, y):
         pass
 
+    def drill(self, x, y, diameter):
+        pass
+
     def evaluate(self, stmt):
         if isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
             return

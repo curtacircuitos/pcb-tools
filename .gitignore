@@ -37,3 +37,7 @@ nosetests.xml
 .idea/workspace.xml
 .idea/misc.xml
 .idea
+
+# OS Files
+.DS_Store
+Thumbs.db
