@@ -29,7 +29,7 @@ class Aperture(object):
     """
     def draw(self, ctx, x, y):
         raise NotImplementedError('The draw method must be implemented in an Aperture subclass.')
-    
+
     def flash(self, ctx, x, y):
         raise NotImplementedError('The flash method must be implemented in an Aperture subclass.')
 
@@ -40,18 +40,21 @@ class Circle(Aperture):
     def __init__(self, diameter=0.0):
         self.diameter = diameter
 
+
 class Rect(Aperture):
     """ Rectangular Aperture base class
     """
     def __init__(self, size=(0, 0)):
         self.size = size
 
+
 class Obround(Aperture):
     """ Obround Aperture base class
     """
     def __init__(self, size=(0, 0)):
         self.size = size
-    
+
+
 class Polygon(Aperture):
     """ Polygon Aperture base class
     """

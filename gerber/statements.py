@@ -3,17 +3,17 @@
 """
 gerber.statements
 =================
-**Gerber file statement classes **
+**Gerber file statement classes**
 
 """
 from .utils import parse_gerber_value, write_gerber_value, decimal_string
 
 
-
-__all__ = ['FSParamStmt', 'MOParamStmt','IPParamStmt', 'OFParamStmt',
+__all__ = ['FSParamStmt', 'MOParamStmt', 'IPParamStmt', 'OFParamStmt',
            'LPParamStmt', 'ADParamStmt', 'AMParamStmt', 'INParamStmt',
            'LNParamStmt', 'CoordStmt', 'ApertureStmt', 'CommentStmt',
            'EofStmt', 'UnknownStmt']
+
 
 class Statement(object):
     def __init__(self, type):
@@ -38,15 +38,15 @@ class ParamStmt(Statement):
 class FSParamStmt(ParamStmt):
     """ FS - Gerber Format Specification Statement
     """
-    
+
     @classmethod
     def from_dict(cls, stmt_dict):
-        """ 
+        """
         """
         param = stmt_dict.get('param').strip()
         zeros = 'leading' if stmt_dict.get('zero') == 'L' else 'trailing'
         notation = 'absolute' if stmt_dict.get('notation') == 'A' else 'incremental'
-        x = map(int,stmt_dict.get('x').strip())
+        x = map(int, stmt_dict.get('x').strip())
         format = (x[0], x[1])
         if notation == 'incremental':
             print('This file uses incremental notation. To quote the gerber \
@@ -54,36 +54,36 @@ class FSParamStmt(ParamStmt):
                   endless confusion. Always use absolute notation.\n\nYou \
                   have been warned')
         return cls(param, zeros, notation, format)
-    
+
     def __init__(self, param, zero_suppression='leading',
-                 notation='absolute', format=(2,4)):
+                 notation='absolute', format=(2, 4)):
         """ Initialize FSParamStmt class
-        
+
         .. note::
             The FS command specifies the format of the coordinate data. It
             must only be used once at the beginning of a file. It must be
             specified before the first use of coordinate data.
-            
+
         Parameters
         ----------
         param : string
             Parameter.
-            
+
         zero_suppression : string
             Zero-suppression mode. May be either 'leading' or 'trailing'
 
         notation : string
             Notation mode. May be either 'absolute' or 'incremental'
-            
+
         format : tuple (int, int)
-            Gerber precision format expressed as a tuple containing: 
+            Gerber precision format expressed as a tuple containing:
             (number of integer-part digits, number of decimal-part digits)
 
         Returns
         -------
         ParamStmt : FSParamStmt
             Initialized FSParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.zero_suppression = zero_suppression
@@ -93,7 +93,7 @@ class FSParamStmt(ParamStmt):
     def to_gerber(self):
         zero_suppression = 'L' if self.zero_suppression == 'leading' else 'T'
         notation = 'A' if self.notation == 'absolute' else 'I'
-        format = ''.join(map(str,self.format))
+        format = ''.join(map(str, self.format))
         return '%FS{0}{1}X{2}Y{3}*%'.format(zero_suppression, notation,
                                             format, format)
 
@@ -104,23 +104,23 @@ class FSParamStmt(ParamStmt):
 
 
 class MOParamStmt(ParamStmt):
-    """ MO - Gerber Mode (measurement units) Statement. 
+    """ MO - Gerber Mode (measurement units) Statement.
     """
-    
+
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
         mo = 'inch' if stmt_dict.get('mo') == 'IN' else 'metric'
         return cls(param, mo)
-    
+
     def __init__(self, param, mo):
         """ Initialize MOParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter.
-            
+
         mo : string
             Measurement units. May be either 'inch' or 'metric'
 
@@ -128,11 +128,11 @@ class MOParamStmt(ParamStmt):
         -------
         ParamStmt : MOParamStmt
             Initialized MOParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.mode = mo
-        
+
     def to_gerber(self):
         mode = 'MM' if self.mode == 'metric' else 'IN'
         return '%MO{0}*%'.format(mode)
@@ -140,7 +140,7 @@ class MOParamStmt(ParamStmt):
     def __str__(self):
         mode_str = 'millimeters' if self.mode == 'metric' else 'inches'
         return ('<Mode: %s>' % mode_str)
-        
+
 
 class IPParamStmt(ParamStmt):
     """ IP - Gerber Image Polarity Statement. (Deprecated)
@@ -150,15 +150,15 @@ class IPParamStmt(ParamStmt):
         param = stmt_dict.get('param')
         ip = 'positive' if stmt_dict.get('ip') == 'POS' else 'negative'
         return cls(param, ip)
-    
+
     def __init__(self, param, ip):
         """ Initialize IPParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter string.
-            
+
         ip : string
             Image polarity. May be either'positive' or 'negative'
 
@@ -166,11 +166,10 @@ class IPParamStmt(ParamStmt):
         -------
         ParamStmt : IPParamStmt
             Initialized IPParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.ip = ip
-
 
     def to_gerber(self):
         ip = 'POS' if self.ip == 'positive' else 'negative'
@@ -183,33 +182,33 @@ class IPParamStmt(ParamStmt):
 class OFParamStmt(ParamStmt):
     """ OF - Gerber Offset statement (Deprecated)
     """
-    
+
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
         a = float(stmt_dict.get('a'))
         b = float(stmt_dict.get('b'))
         return cls(param, a, b)
-    
+
     def __init__(self, param, a, b):
         """ Initialize OFParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter
-            
+
         a : float
             Offset along the output device A axis
 
         b : float
             Offset along the output device B axis
-        
+
         Returns
         -------
         ParamStmt : OFParamStmt
             Initialized OFParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.a = a
@@ -231,24 +230,25 @@ class OFParamStmt(ParamStmt):
             offset_str += ('Y: %f' % self.b)
         return ('<Offset: %s>' % offset_str)
 
+
 class LPParamStmt(ParamStmt):
     """ LP - Gerber Level Polarity statement
     """
-    
+
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('lp')
-        lp = 'clear' if  stmt_dict.get('lp') == 'C' else 'dark'
+        lp = 'clear' if stmt_dict.get('lp') == 'C' else 'dark'
         return cls(param, lp)
-        
+
     def __init__(self, param, lp):
         """ Initialize LPParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter
-            
+
         lp : string
             Level polarity. May be either 'clear' or 'dark'
 
@@ -256,11 +256,10 @@ class LPParamStmt(ParamStmt):
         -------
         ParamStmt : LPParamStmt
             Initialized LPParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.lp = lp
-
 
     def to_gerber(self, settings):
         lp = 'C' if self.lp == 'clear' else 'dark'
@@ -273,7 +272,7 @@ class LPParamStmt(ParamStmt):
 class ADParamStmt(ParamStmt):
     """ AD - Gerber Aperture Definition Statement
     """
-    
+
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
@@ -282,38 +281,36 @@ class ADParamStmt(ParamStmt):
         modifiers = stmt_dict.get('modifiers')
         if modifiers is not None:
             modifiers = [[float(x) for x in m.split('X')]
-                for m in modifiers.split(',')]
+                         for m in modifiers.split(',')]
         return cls(param, d, shape, modifiers)
-        
-        
+
     def __init__(self, param, d, shape, modifiers):
         """ Initialize ADParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter code
-            
+
         d : int
             Aperture D-code
 
         shape : string
             aperture name
-            
+
         modifiers : list of lists of floats
             Shape modifiers
-            
+
         Returns
         -------
         ParamStmt : LPParamStmt
             Initialized LPParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.d = d
         self.shape = shape
-        self.modifiers = modifiers 
-
+        self.modifiers = modifiers
 
     def to_gerber(self, settings):
         return '%ADD{0}{1},{2}*%'.format(self.d, self.shape,
@@ -328,72 +325,72 @@ class ADParamStmt(ParamStmt):
             shape = 'oblong'
         else:
             shape = self.shape
-            
+
         return '<Aperture Definition: %d: %s>' % (self.d, shape)
 
 
 class AMParamStmt(ParamStmt):
     """ AM - Aperture Macro Statement
     """
-    
+
     @classmethod
     def from_dict(cls, stmt_dict):
         return cls(**stmt_dict)
-    
+
     def __init__(self, param, name, macro):
         """ Initialize AMParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter code
-            
+
         name : string
             Aperture macro name
 
         macro : string
             Aperture macro string
-            
+
         Returns
         -------
         ParamStmt : AMParamStmt
             Initialized AMParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.name = name
         self.macro = macro
-        
+
     def to_gerber(self):
         return '%AM{0}*{1}*%'.format(self.name, self.macro)
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, macro)
-    
-    
+
+
 class INParamStmt(ParamStmt):
     """ IN - Image Name Statement
     """
     @classmethod
     def from_dict(cls, stmt_dict):
         return cls(**stmt_dict)
-    
+
     def __init__(self, param, name):
         """ Initialize INParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter code
-            
+
         name : string
             Image name
-            
+
         Returns
         -------
         ParamStmt : INParamStmt
             Initialized INParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.name = name
@@ -404,29 +401,30 @@ class INParamStmt(ParamStmt):
     def __str__(self):
         return '<Image Name: %s>' % self.name
 
+
 class LNParamStmt(ParamStmt):
     """ LN - Level Name Statement (Deprecated)
     """
     @classmethod
     def from_dict(cls, stmt_dict):
         return cls(**stmt_dict)
-    
+
     def __init__(self, param, name):
         """ Initialize LNParamStmt class
-        
+
         Parameters
         ----------
         param : string
             Parameter code
-            
+
         name : string
             Level name
-            
+
         Returns
         -------
         ParamStmt : LNParamStmt
             Initialized LNParamStmt class.
-            
+
         """
         ParamStmt.__init__(self, param)
         self.name = name
@@ -437,10 +435,11 @@ class LNParamStmt(ParamStmt):
     def __str__(self):
         return '<Level Name: %s>' % self.name
 
+
 class CoordStmt(Statement):
     """ Coordinate Data Block
     """
-    
+
     @classmethod
     def from_dict(cls, stmt_dict, settings):
         zeros = settings['zero_suppression']
@@ -451,7 +450,7 @@ class CoordStmt(Statement):
         i = stmt_dict.get('i')
         j = stmt_dict.get('j')
         op = stmt_dict.get('op')
-        
+
         if x is not None:
             x = parse_gerber_value(stmt_dict.get('x'),
                                    format, zeros)
@@ -465,39 +464,38 @@ class CoordStmt(Statement):
             j = parse_gerber_value(stmt_dict.get('j'),
                                    format, zeros)
         return cls(function, x, y, i, j, op, settings)
-        
-        
+
     def __init__(self, function, x, y, i, j, op, settings):
         """ Initialize CoordStmt class
-        
+
         Parameters
         ----------
         function : string
             function
-            
+
         x : float
             X coordinate
-        
+
         y : float
-            Y coordinate 
-            
+            Y coordinate
+
         i : float
             Coordinate offset in the X direction
-        
+
         j : float
             Coordinate offset in the Y direction
-        
+
         op : string
             Operation code
-        
+
         settings : dict {'zero_suppression', 'format'}
-            Gerber file coordinate format 
-        
+            Gerber file coordinate format
+
         Returns
         -------
         Statement : CoordStmt
             Initialized CoordStmt class.
-            
+
         """
         Statement.__init__(self, "COORD")
         self.zero_suppression = settings['zero_suppression']
@@ -509,7 +507,6 @@ class CoordStmt(Statement):
         self.j = j
         self.op = op
 
-
     def to_gerber(self):
         ret = ''
         if self.function:
@@ -518,7 +515,7 @@ class CoordStmt(Statement):
             ret += 'X{0}'.format(write_gerber_value(self.x, self.zeros,
                                                     self.format))
         if self.y:
-            ret += 'Y{0}'.format(write_gerber_value(self.y,self. zeros,
+            ret += 'Y{0}'.format(write_gerber_value(self.y, self. zeros,
                                                     self.format))
         if self.i:
             ret += 'I{0}'.format(write_gerber_value(self.i, self.zeros,
@@ -552,7 +549,7 @@ class CoordStmt(Statement):
             else:
                 op = self.op
             coord_str += 'Op: %s' % op
-            
+
         return '<Coordinate Statement: %s>' % coord_str
 
 
@@ -562,12 +559,13 @@ class ApertureStmt(Statement):
     def __init__(self, d):
         Statement.__init__(self, "APERTURE")
         self.d = int(d)
-        
+
     def to_gerber(self):
         return 'G54D{0}*'.format(self.d)
 
     def __str__(self):
         return '<Aperture: %d>' % self.d
+
 
 class CommentStmt(Statement):
     """ Comment Statment
@@ -575,7 +573,7 @@ class CommentStmt(Statement):
     def __init__(self, comment):
         Statement.__init__(self, "COMMENT")
         self.comment = comment
-        
+
     def to_gerber(self):
         return 'G04{0}*'.format(self.comment)
 
@@ -594,12 +592,11 @@ class EofStmt(Statement):
 
     def __str__(self):
         return '<EOF Statement>'
-    
-    
+
+
 class UnknownStmt(Statement):
     """ Unknown Statement
     """
     def __init__(self, line):
         Statement.__init__(self, "UNKNOWN")
         self.line = line
-    

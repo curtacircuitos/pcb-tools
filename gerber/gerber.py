@@ -3,7 +3,7 @@
 
 # copyright 2014 Hamilton Kibbe <ham@hamiltonkib.be>
 # Modified from parser.py by Paulo Henrique Silva <ph.silva@gmail.com>
-# 
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -15,33 +15,41 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+gerber.gerber
+============
+**Gerber File module**
+
+This module provides an RS-274-X class and parser
+"""
+
 
 import re
 import json
 from .statements import *
 
 
+def read(filename):
+    """ Read data from filename and return a GerberFile
+    """
+    return GerberParser().parse(filename)
 
 
 class GerberFile(object):
     """ A class representing a single gerber file
-    
-    The GerberFile class represents a single gerber file. 
-        
+
+    The GerberFile class represents a single gerber file.
+
     Parameters
     ----------
-    filename : string
-        Parameter.
-        
-    zero_suppression : string
-        Zero-suppression mode. May be either 'leading' or 'trailing'
+    statements : list
+        list of gerber file statements
 
-    notation : string
-        Notation mode. May be either 'absolute' or 'incremental'
-        
-    format : tuple (int, int)
-        Gerber precision format expressed as a tuple containing: 
-        (number of integer-part digits, number of decimal-part digits)
+    settings : dict
+        Dictionary of gerber file settings
+
+    filename : string
+        Filename of the source gerber file
 
     Attributes
     ----------
@@ -50,7 +58,7 @@ class GerberFile(object):
 
     units : string
         either 'inch' or 'metric'.
-        
+
     size : tuple, (<float>, <float>)
         Size in [self.units] of the layer described by the gerber file.
 
@@ -59,32 +67,25 @@ class GerberFile(object):
         `bounds` is stored as ((min x, max x), (min y, max y))
 
     """
-    
-    @classmethod
-    def read(cls, filename):
-        """ Read data from filename and return a GerberFile
-        """
-        return GerberParser().parse(filename)
-    
     def __init__(self, statements, settings, filename=None):
         self.filename = filename
         self.statements = statements
         self.settings = settings
-        
+
     @property
     def comments(self):
         return [comment.comment for comment in self.statements
                 if isinstance(comment, CommentStmt)]
-    
+
     @property
     def units(self):
         return self.settings['units']
-    
+
     @property
     def size(self):
         xbounds, ybounds = self.bounds
         return (xbounds[1] - xbounds[0], ybounds[1] - ybounds[0])
-    
+
     @property
     def bounds(self):
         xbounds = [0.0, 0.0]
@@ -106,9 +107,8 @@ class GerberFile(object):
                 ybounds[0] = stmt.j
             if stmt.j is not None and stmt.j > ybounds[1]:
                 ybounds[1] = stmt.j
-                
-        return (xbounds, ybounds) 
-    
+        return (xbounds, ybounds)
+
     def write(self, filename):
         """ Write data out to a gerber file
         """
@@ -123,8 +123,7 @@ class GerberFile(object):
         for statement in self.statements:
             ctx.evaluate(statement)
         ctx.dump(filename)
-        
-        
+
 
 class GerberParser(object):
     """ GerberParser
@@ -179,7 +178,7 @@ class GerberParser(object):
 
         for stmt in self._parse(data):
             self.statements.append(stmt)
-                
+
         return GerberFile(self.statements, self.settings, filename)
 
     def dump_json(self):
@@ -197,7 +196,7 @@ class GerberParser(object):
 
         for i, line in enumerate(data):
             line = oldline + line.strip()
-        
+
             # skip empty lines
             if not len(line):
                 continue
@@ -207,10 +206,10 @@ class GerberParser(object):
                 oldline = line
                 continue
 
-            did_something = True # make sure we do at least one loop
+            did_something = True  # make sure we do at least one loop
             while did_something and len(line) > 0:
                 did_something = False
-                
+
                 # coord
                 (coord, r) = self._match_one(self.COORD_STMT, line)
                 if coord:
@@ -223,7 +222,7 @@ class GerberParser(object):
                 (aperture, r) = self._match_one(self.APERTURE_STMT, line)
                 if aperture:
                     yield ApertureStmt(**aperture)
-                    
+
                     did_something = True
                     line = r
                     continue
@@ -240,7 +239,7 @@ class GerberParser(object):
                 (param, r) = self._match_one_from_many(self.PARAM_STMT, line)
                 if param:
                     if param["param"] == "FS":
-                        stmt =  FSParamStmt.from_dict(param)
+                        stmt = FSParamStmt.from_dict(param)
                         self.settings = {'zero_suppression': stmt.zero_suppression,
                                          'format': stmt.format,
                                          'notation': stmt.notation}
@@ -276,7 +275,7 @@ class GerberParser(object):
                     did_something = True
                     line = r
                     continue
-                
+
                 if False:
                     print self.COORD_STMT.pattern
                     print self.APERTURE_STMT.pattern

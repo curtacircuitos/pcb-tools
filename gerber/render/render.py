@@ -34,11 +34,11 @@ class GerberContext(object):
     level_polarity = 'dark'
 
     def __init__(self):
-        pass 
+        pass
 
     def set_format(self, settings):
         self.settings = settings
-    
+
     def set_coord_format(self, zero_suppression, format, notation):
         self.settings['zero_suppression'] = zero_suppression
         self.settings['format'] = format
@@ -52,9 +52,9 @@ class GerberContext(object):
 
     def set_image_polarity(self, polarity):
         self.image_polarity = polarity
-        
+
     def set_level_polarity(self, polarity):
-        self.level_polarity =  polarity
+        self.level_polarity = polarity
 
     def set_interpolation(self, interpolation):
         self.interpolation = 'linear' if interpolation in ("G01", "G1") else 'arc'
@@ -63,8 +63,8 @@ class GerberContext(object):
         self.aperture = d
 
     def resolve(self, x, y):
-        return  x or self.x, y or self.y
-        
+        return x or self.x, y or self.y
+
     def define_aperture(self, d, shape, modifiers):
         pass
 
