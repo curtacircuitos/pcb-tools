@@ -2,6 +2,7 @@
 import re
 from itertools import tee, izip
 from .utils import parse_gerber_value
+from .cnc import CncFile, FileSettings
 
 
 def read(filename):
@@ -10,7 +11,7 @@ def read(filename):
     return ExcellonParser().parse(filename)
 
 
-class ExcellonFile(object):
+class ExcellonFile(CncFile):
     """ A class representing a single excellon file
 
     The ExcellonFile class represents a single excellon file.
@@ -34,11 +35,10 @@ class ExcellonFile(object):
         either 'inch' or 'metric'.
 
     """
-    def __init__(self, tools, hits, settings, filename):
+    def __init__(self, tools, hits, settings, filename=None):
+        super(ExcellonFile, self).__init__(settings, filename)
         self.tools = tools
         self.hits = hits
-        self.settings = settings
-        self.filename = filename
 
     def report(self):
         """ Print drill report
@@ -53,11 +53,67 @@ class ExcellonFile(object):
         ctx.dump(filename)
 
 
-class Tool(object):
+class ExcellonTool(object):
     """ Excellon Tool class
+
+    Parameters
+    ----------
+    settings : FileSettings (dict-like)
+        File-wide settings.
+
+    kwargs : dict-like
+        Tool settings from the excellon statement. Valid keys are:
+            diameter : Tool diameter [expressed in file units]
+            rpm : Tool RPM
+            feed_rate : Z-axis tool feed rate
+            retract_rate : Z-axis tool retraction rate
+            max_hit_count : Number of hits allowed before a tool change
+            depth_offset : Offset of tool depth from tip of tool.
+
+    Attributes
+    ----------
+    number : integer
+        Tool number from the excellon file
+
+    diameter : float
+        Tool diameter in file units
+
+    rpm : float
+        Tool RPM
+
+    feed_rate : float
+        Tool Z-axis feed rate.
+
+    retract_rate : float
+        Tool Z-axis retract rate
+
+    depth_offset : float
+        Offset of depth measurement from tip of tool
+
+    max_hit_count : integer
+        Maximum number of tool hits allowed before a tool change
+
+    hit_count : integer
+        Number of tool hits in excellon file.
     """
+
     @classmethod
     def from_line(cls, line, settings):
+        """ Create a Tool from an excellon gile tool definition line.
+
+        Parameters
+        ----------
+        line : string
+            Tool definition line from an excellon file.
+
+        settings : FileSettings (dict-like)
+            Excellon file-wide settings
+
+        Returns
+        -------
+        tool : Tool
+            An ExcellonTool representing the tool defined in `line`
+        """
         commands = re.split('([BCFHSTZ])', line)[1:]
         commands = [(command, value) for command, value in pairwise(commands)]
         args = {}
@@ -89,13 +145,19 @@ class Tool(object):
         self.max_hit_count = kwargs.get('max_hit_count')
         self.depth_offset = kwargs.get('depth_offset')
         self.units = settings.get('units', 'inch')
+        self.hit_count = 0
+
+    def _hit(self):
+        self.hit_count += 1
 
     def __repr__(self):
         unit = 'in.' if self.units == 'inch' else 'mm'
-        return '<Tool %d: %0.3f%s dia.>' % (self.number, self.diameter, unit)
+        return '<ExcellonTool %d: %0.3f%s dia.>' % (self.number, self.diameter, unit)
 
 
 class ExcellonParser(object):
+    """ Excellon File Parser
+    """
     def __init__(self, ctx=None):
         self.ctx = ctx
         self.notation = 'absolute'
@@ -115,13 +177,11 @@ class ExcellonParser(object):
         with open(filename, 'r') as f:
             for line in f:
                 self._parse(line)
-        settings = {'notation': self.notation, 'units': self.units,
-                    'zero_suppression': self.zero_suppression,
-                    'format': self.format}
-        return ExcellonFile(self.tools, self.hits, settings, filename)
+        return ExcellonFile(self.tools, self.hits, self._settings(), filename)
 
     def dump(self, filename):
-        self.ctx.dump(filename)
+        if self.ctx is not None:
+            self.ctx.dump(filename)
 
     def _parse(self, line):
         if 'M48' in line:
@@ -159,7 +219,7 @@ class ExcellonParser(object):
 
         # tool definition
         if line[0] == 'T' and self.state == 'HEADER':
-            tool = Tool.from_line(line, self._settings())
+            tool = ExcellonTool.from_line(line, self._settings())
             self.tools[tool.number] = tool
 
         elif line[0] == 'T' and self.state != 'HEADER':
@@ -187,13 +247,16 @@ class ExcellonParser(object):
                     self.pos[1] += y
             if self.state == 'DRILL':
                 self.hits.append((self.active_tool, self.pos))
+                self.active_tool._hit()
                 if self.ctx is not None:
                     self.ctx.drill(self.pos[0], self.pos[1],
                                    self.active_tool.diameter)
 
     def _settings(self):
-        return {'units': self.units, 'zero_suppression': self.zero_suppression,
-                'format': self.format}
+        return FileSettings(units=self.units, format=self.format,
+                            zero_suppression=self.zero_suppression,
+                            notation=self.notation)
+
 
 
 def pairwise(iterator):

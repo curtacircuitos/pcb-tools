@@ -27,6 +27,9 @@ This module provides an RS-274-X class and parser
 import re
 import json
 from .statements import *
+from .cnc import CncFile, FileSettings
+
+
 
 
 def read(filename):
@@ -35,7 +38,7 @@ def read(filename):
     return GerberParser().parse(filename)
 
 
-class GerberFile(object):
+class GerberFile(CncFile):
     """ A class representing a single gerber file
 
     The GerberFile class represents a single gerber file.
@@ -68,9 +71,8 @@ class GerberFile(object):
 
     """
     def __init__(self, statements, settings, filename=None):
-        self.filename = filename
+        super(GerberFile, self).__init__(settings, filename)
         self.statements = statements
-        self.settings = settings
 
     @property
     def comments(self):
@@ -90,7 +92,8 @@ class GerberFile(object):
     def bounds(self):
         xbounds = [0.0, 0.0]
         ybounds = [0.0, 0.0]
-        for stmt in [stmt for stmt in self.statements if isinstance(stmt, CoordStmt)]:
+        for stmt in [stmt for stmt in self.statements
+                     if isinstance(stmt, CoordStmt)]:
             if stmt.x is not None and stmt.x < xbounds[0]:
                 xbounds[0] = stmt.x
             if stmt.x is not None and stmt.x > xbounds[1]:
@@ -169,7 +172,7 @@ class GerberParser(object):
     EOF_STMT = re.compile(r"(?P<eof>M02)\*")
 
     def __init__(self):
-        self.settings = {}
+        self.settings = FileSettings()
         self.statements = []
 
     def parse(self, filename):
@@ -240,13 +243,13 @@ class GerberParser(object):
                 if param:
                     if param["param"] == "FS":
                         stmt = FSParamStmt.from_dict(param)
-                        self.settings = {'zero_suppression': stmt.zero_suppression,
-                                         'format': stmt.format,
-                                         'notation': stmt.notation}
+                        self.settings.zero_suppression = stmt.zero_suppression
+                        self.settings.format = stmt.format
+                        self.settings.notation = stmt.notation
                         yield stmt
                     elif param["param"] == "MO":
                         stmt = MOParamStmt.from_dict(param)
-                        self.settings['units'] = stmt.mode
+                        self.settings.units = stmt.mode
                         yield stmt
                     elif param["param"] == "IP":
                         yield IPParamStmt.from_dict(param)
