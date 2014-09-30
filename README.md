@@ -1,9 +1,7 @@
 gerber-tools
 ============
+![Travis CI Build Status](https://travis-ci.org/hamiltonkibbe/gerber-tools.svg?branch=master)
 
-This hopefully will be a useful set of tools to handle Gerber files in Python.
+Tools to handle Gerber and Excellon files in Python.
 
-Right now we have a working parser and I am working on simple Gerber to SVG converter.
-
-See gerber.md for some random information regardind Gerber format.
 
