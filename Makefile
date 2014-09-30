@@ -14,7 +14,7 @@ test:
 	
 test-coverage:
 	rm -rf coverage .coverage
-	$(NOSETESTS) -s -v --with-coverage gerber
+	$(NOSETESTS) -s -v --with-coverage --cover-package=gerber
 	
 doc-html:
 	(cd $(DOC_ROOT); make html)
