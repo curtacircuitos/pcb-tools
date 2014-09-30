@@ -1,6 +1,21 @@
-#!/usr/bin/env python
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# copyright 2014 Hamilton Kibbe <ham@hamiltonkib.be>
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import re
-from itertools import tee, izip
 from .utils import parse_gerber_value
 from .cnc import CncFile, FileSettings
 
@@ -165,7 +180,7 @@ class ExcellonParser(object):
         self.zero_suppression = 'trailing'
         self.format = (2, 5)
         self.state = 'INIT'
-        self.tools = []
+        self.tools = {}
         self.hits = []
         self.active_tool = None
         self.pos = [0., 0.]

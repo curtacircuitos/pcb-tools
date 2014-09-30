@@ -80,10 +80,6 @@ class GerberFile(CncFile):
                 if isinstance(comment, CommentStmt)]
 
     @property
-    def units(self):
-        return self.settings['units']
-
-    @property
     def size(self):
         xbounds, ybounds = self.bounds
         return (xbounds[1] - xbounds[0], ybounds[1] - ybounds[0])
