@@ -12,5 +12,5 @@ script:
   - make test-coverage
 
 # Coveralls
-after-success: 
+after_success: 
   - coveralls
