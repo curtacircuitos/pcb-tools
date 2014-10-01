@@ -48,11 +48,6 @@ class FSParamStmt(ParamStmt):
         notation = 'absolute' if stmt_dict.get('notation') == 'A' else 'incremental'
         x = map(int, stmt_dict.get('x').strip())
         format = (x[0], x[1])
-        if notation == 'incremental':
-            print('This file uses incremental notation. To quote the gerber \
-                  file specification:\nIncremental notation is a source of \
-                  endless confusion. Always use absolute notation.\n\nYou \
-                  have been warned')
         return cls(param, zeros, notation, format)
 
     def __init__(self, param, zero_suppression='leading',
@@ -172,7 +167,7 @@ class IPParamStmt(ParamStmt):
         self.ip = ip
 
     def to_gerber(self):
-        ip = 'POS' if self.ip == 'positive' else 'negative'
+        ip = 'POS' if self.ip == 'positive' else 'NEG'
         return '%IP{0}*%'.format(ip)
 
     def __str__(self):

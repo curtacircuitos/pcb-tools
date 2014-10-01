@@ -24,5 +24,5 @@ SVG is the only supported format.
 """
 
 
-from svg import GerberSvgContext
+from svgwrite_backend import GerberSvgContext
 

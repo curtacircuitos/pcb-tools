@@ -29,7 +29,7 @@ class FileSettings(object):
     Provides a common representation of gerber/excellon file settings
     """
     def __init__(self, notation='absolute', units='inch',
-                 zero_suppression='trailing', format=(2,5)):
+                 zero_suppression='trailing', format=(2, 5)):
         if notation not in ['absolute', 'incremental']:
             raise ValueError('Notation must be either absolute or incremental')
         self.notation = notation
@@ -43,7 +43,7 @@ class FileSettings(object):
                              trailling')
         self.zero_suppression = zero_suppression
 
-         if len(format) != 2:
+        if len(format) != 2:
             raise ValueError('Format must be a tuple(n=2) of integers')
         self.format = format
 
@@ -52,12 +52,13 @@ class FileSettings(object):
             return self.notation
         elif key == 'units':
             return self.units
-        elif key =='zero_suppression':
+        elif key == 'zero_suppression':
             return self.zero_suppression
         elif key == 'format':
             return self.format
         else:
             raise KeyError()
+
 
 class CncFile(object):
     """ Base class for Gerber/Excellon files.
@@ -101,7 +102,7 @@ class CncFile(object):
             self.notation = 'absolute'
             self.units = 'inch'
             self.zero_suppression = 'trailing'
-            self.format = (2,5)
+            self.format = (2, 5)
         self.filename = filename
 
     @property
