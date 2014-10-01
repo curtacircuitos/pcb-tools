@@ -85,3 +85,13 @@ def test_IPParamStmt_dump():
     stmt = {'param': 'IP', 'ip': 'NEG'}
     ip = IPParamStmt.from_dict(stmt)
     assert_equal(ip.to_gerber(), '%IPNEG*%')
+
+
+def test_OFParamStmt_dump():
+    """ Test OFParamStmt to_gerber()
+    """
+    stmt = {'param': 'OF', 'a': '0.1234567', 'b': '0.1234567'}
+    of = OFParamStmt.from_dict(stmt)
+    assert_equal(of.to_gerber(), '%OFA0.123456B0.123456*%')
+    
+

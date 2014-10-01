@@ -209,8 +209,8 @@ class OFParamStmt(ParamStmt):
         self.a = a
         self.b = b
 
-    def to_gerber(self, settings):
-        stmt = '%OF'
+    def to_gerber(self):
+        ret = '%OF'
         if self.a:
             ret += 'A' + decimal_string(self.a, precision=6)
         if self.b:
