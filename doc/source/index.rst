@@ -11,9 +11,18 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+.. automodule:: gerber
+    :members:
+   
 .. automodule:: gerber.gerber
     :members:
-    
+
+.. automodule:: gerber.excellon
+    :members:
+
+.. automodule:: gerber.cnc
+    :members:
+
 .. automodule:: gerber.statements
     :members:
 

@@ -14,7 +14,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Excellon module
+============
+**Excellon file classes**
 
+This module provides Excellon file classes and parsing utilities
+"""
 import re
 from .utils import parse_gerber_value
 from .cnc import CncFile, FileSettings

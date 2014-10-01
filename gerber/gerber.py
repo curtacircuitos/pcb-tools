@@ -59,9 +59,6 @@ class GerberFile(CncFile):
     comments: list of strings
         List of comments contained in the gerber file.
 
-    units : string
-        either 'inch' or 'metric'.
-
     size : tuple, (<float>, <float>)
         Size in [self.units] of the layer described by the gerber file.
 
