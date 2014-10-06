@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..statements import (
+from ..gerber_statements import (
     CommentStmt, UnknownStmt, EofStmt, ParamStmt, CoordStmt, ApertureStmt
 )
 
