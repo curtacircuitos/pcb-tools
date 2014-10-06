@@ -26,7 +26,7 @@ This module provides an RS-274-X class and parser
 
 import re
 import json
-from .statements import *
+from .gerber_statements import *
 from .cnc import CncFile, FileSettings
 
 

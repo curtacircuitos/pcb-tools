@@ -4,7 +4,7 @@
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
 from .tests import *
-from ..statements import *
+from ..gerber_statements import *
 
 
 def test_FSParamStmt_factory():
@@ -93,5 +93,4 @@ def test_OFParamStmt_dump():
     stmt = {'param': 'OF', 'a': '0.1234567', 'b': '0.1234567'}
     of = OFParamStmt.from_dict(stmt)
     assert_equal(of.to_gerber(), '%OFA0.123456B0.123456*%')
-    
 
