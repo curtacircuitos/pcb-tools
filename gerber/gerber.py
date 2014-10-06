@@ -68,8 +68,7 @@ class GerberFile(CncFile):
 
     """
     def __init__(self, statements, settings, filename=None):
-        super(GerberFile, self).__init__(settings, filename)
-        self.statements = statements
+        super(GerberFile, self).__init__(statements, settings, filename)
 
     @property
     def comments(self):

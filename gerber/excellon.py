@@ -57,8 +57,8 @@ class ExcellonFile(CncFile):
         either 'inch' or 'metric'.
 
     """
-    def __init__(self, tools, hits, settings, filename=None):
-        super(ExcellonFile, self).__init__(settings, filename)
+    def __init__(self, statements, tools, hits, settings, filename=None):
+        super(ExcellonFile, self).__init__(statements, settings, filename)
         self.tools = tools
         self.hits = hits
 
@@ -98,14 +98,20 @@ class ExcellonParser(object):
         with open(filename, 'r') as f:
             for line in f:
                 self._parse(line)
-        return ExcellonFile(self.tools, self.hits, self._settings(), filename)
+        return ExcellonFile(self.statements, self.tools, self.hits, self._settings(), filename)
 
     def dump(self, filename):
         if self.ctx is not None:
             self.ctx.dump(filename)
 
     def _parse(self, line):
-        if 'M48' in line:
+        zs = self._settings()['zero_suppression']
+        fmt = self._settings()['format']
+        
+        if line[0] == ';':
+            self.statements.append(CommentStmt.from_excellon(line))
+    
+        elif line[:3] == 'M48':
             self.statements.append(HeaderBeginStmt())
             self.state = 'HEADER'
 
@@ -114,56 +120,59 @@ class ExcellonParser(object):
             if self.state == 'HEADER':
                 self.state = 'DRILL'
 
-        elif 'M95' in line:
+        elif line[:3] == 'M95':
             self.statements.append(HeaderEndStmt())
             if self.state == 'HEADER':
                 self.state = 'DRILL'
 
-        elif 'G00' in line:
+        elif line[:3] == 'G00':
             self.state = 'ROUT'
 
-        elif 'G05' in line:
+        elif line[:3] == 'G05':
             self.state = 'DRILL'
-
-        if 'INCH' in line or line.strip() == 'M72':
-            self.units = 'inch'
-
-        elif 'METRIC' in line or line.strip() == 'M71':
-            self.units = 'metric'
-
-        if 'LZ' in line:
-            self.zeros = 'L'
-
-        elif 'TZ' in line:
-            self.zeros = 'T'
-
-        if 'ICI' in line and 'ON' in line or line.strip() == 'G91':
-            self.notation = 'incremental'
-
-        if 'ICI' in line and 'OFF' in line or line.strip() == 'G90':
-            self.notation = 'incremental'
-
-        zs = self._settings()['zero_suppression']
-        fmt = self._settings()['format']
+        
+        elif ('INCH' in line or 'METRIC' in line) and ('LZ' in line or 'TZ' in line):
+            stmt = UnitStmt.from_excellon(line)
+            self.units = stmt.units
+            self.zero_suppression = stmt.zero_suppression
+            self.statements.append(stmt)
+        
+        elif line[:3] == 'M71' or line [:3] == 'M72':
+            stmt = MeasuringModeStmt.from_excellon(line)
+            self.units = stmt.units
+            self.statements.append(stmt)
+        
+        elif line[:3] == 'ICI':
+            stmt = IncrementalModeStmt.from_excellon(line)
+            self.notation = 'incremental' if stmt.mode == 'on' else 'absolute'
+            self.statements.append(stmt)
 
         # tool definition
-        if line[0] == 'T' and self.state == 'HEADER':
-            tool = ExcellonTool.from_line(line, self._settings())
+        elif line[0] == 'T' and self.state == 'HEADER':
+            tool = ExcellonTool.from_excellon(line, self._settings())
             self.tools[tool.number] = tool
+            self.statements.append(tool)
 
         elif line[0] == 'T' and self.state != 'HEADER':
-            self.active_tool = self.tools[int(line.strip().split('T')[1])]
-
-        if line[0] in ['X', 'Y']:
-            x = None
-            y = None
-            if line[0] == 'X':
-                splitline = line.strip('X').split('Y')
-                x = parse_gerber_value(splitline[0].strip(), fmt, zs)
-                if len(splitline) == 2:
-                    y = parse_gerber_value(splitline[1].strip(), fmt, zs)
-            else:
-                y = parse_gerber_value(line.strip(' Y'), fmt, zs)
+            stmt = ToolSelectionStmt.from_excellon(line)
+            self.active_tool self.tools[stmt.tool]
+            #self.active_tool = self.tools[int(line.strip().split('T')[1])]
+            self.statements.append(statement)
+            
+        elif line[0] in ['X', 'Y']:
+            stmt = CoordinateStmt.from_excellon(line, fmt, zs)
+            x = stmt.x
+            y = stmt.y
+            self.statements.append(stmt)
+            #x = None
+            #y = None
+            #if line[0] == 'X':
+            #    splitline = line.strip('X').split('Y')
+            #    x = parse_gerber_value(splitline[0].strip(), fmt, zs)
+            #    if len(splitline) == 2:
+            #        y = parse_gerber_value(splitline[1].strip(), fmt, zs)
+            #else:
+            #    y = parse_gerber_value(line.strip(' Y'), fmt, zs)
             if self.notation == 'absolute':
                 if x is not None:
                     self.pos[0] = x
@@ -180,6 +189,9 @@ class ExcellonParser(object):
                 if self.ctx is not None:
                     self.ctx.drill(self.pos[0], self.pos[1],
                                    self.active_tool.diameter)
+        
+        else:
+            self.statements.append(UnknownStmt.from_excellon(line))
 
     def _settings(self):
         return FileSettings(units=self.units, format=self.format,

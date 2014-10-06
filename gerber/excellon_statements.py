@@ -18,13 +18,21 @@
 from .utils import write_gerber_value
 
 
-__all__ = ['ExcellonTool', 'CommentStmt', 'HeaderBeginStmt', 'HeaderEndStmt',
+__all__ = ['ExcellonTool', 'ToolSelectionStatment', 'CoordinateStmt',
+           'CommentStmt', 'HeaderBeginStmt', 'HeaderEndStmt',
+           'RewindStopStmt', 'EndOfProgramStmt', 'UnitStmt',
+           'IncrementalModeStmt', 'VersionStmt', 'FormatStmt', 'LinkToolStmt',
+           'MeasuringModeStmt', 'UnknownStmt',
            ]
 
 
 class ExcellonStatement(object):
     """ Excellon Statement abstract base class
     """
+    @classmethod
+    def from_excellon(cls, line):
+        pass
+
     def to_excellon(self):
         pass
 
@@ -74,7 +82,7 @@ class ExcellonTool(ExcellonStatement):
     """
 
     @classmethod
-    def from_line(cls, line, settings):
+    def from_excellon(cls, line, settings):
         """ Create a Tool from an excellon file tool definition line.
 
         Parameters
@@ -155,7 +163,62 @@ class ExcellonTool(ExcellonStatement):
         return '<ExcellonTool %d: %0.3f%s dia.>' % (self.number, self.diameter, unit)
 
 
+class ToolSelectionStatment(ExcellonStatement):
+
+    @classmethod
+    def from_excellon(cls, line):
+        line = line.strip()[1:]
+        compensation_index = None
+        tool = int(line[:2])
+        if len(line) > 2:
+            compensation_index = int(line[2:])
+        return cls(tool, compensation_index)
+
+    def __init__(self, tool, compensation_index=None):
+        tool = int(tool)
+        compensation_index = int(compensation_index) if compensation_index else None
+        self.tool = tool
+        self.compensation_index = compensation_index
+
+    def to_excellon(self):
+        stmt = 'T%02d' % self.tool
+        if self.compensation_index is not None:
+            stmt += '%02d' % self.compensation_index
+        return stmt
+
+
+class CoordinateStmt(ExcellonStatement):
+
+    def from_excellon(cls, line, format=(2, 5), zero_suppression='trailing'):
+        x = None
+        y = None
+        if line[0] == 'X':
+            splitline = line.strip('X').split('Y')
+            x = parse_gerber_value(splitline[0].strip(), format, zero_suppression)
+            if len(splitline) == 2:
+                y = parse_gerber_value(splitline[1].strip(), format, zero_suppression)
+        else:
+            y = parse_gerber_value(line.strip(' Y'), format, zero_suppression)
+        return cls(x, y)
+
+    def __init__(self, x=None, y=None):
+        self.x = x
+        self.y = y
+
+    def to_excellon(self):
+        stmt = ''
+        if self.x is not None:
+            stmt.append('X%s' % write_gerber_value(self.x))
+        if self.y is not None:
+            stmt.append('Y%s' % write_gerber_value(self.y))
+        return stmt
+
+
 class CommentStmt(ExcellonStatement):
+
+    def from_excellon(self, line):
+        return cls(line.strip().lstrip(';'))
+
     def __init__(self, comment):
         self.comment = comment
 
@@ -206,6 +269,12 @@ class EndOfProgramStmt(ExcellonStatement):
 
 class UnitStmt(ExcellonStatement):
 
+    @classmethod
+    def from_excellon(cls, line):
+        units = 'inch' if 'INCH' in line else 'metric'
+        zero_suppression = 'trailing' if 'LZ' in line else 'leading'
+        return cls(units, zero_suppression)
+
     def __init__(self, units='inch', zero_suppression='trailing'):
         self.units = units.lower()
         self.zero_suppression = zero_suppression
@@ -216,6 +285,10 @@ class UnitStmt(ExcellonStatement):
 
 
 class IncrementalModeStmt(ExcellonStatement):
+
+    @classmethod
+    def from_excellon(cls, line):
+        return cls('off') if 'OFF' in line else cls('on')
 
     def __init__(self, mode='off'):
         if mode.lower() not in ['on', 'off']:
@@ -228,22 +301,44 @@ class IncrementalModeStmt(ExcellonStatement):
 
 class VersionStmt(ExcellonStatement):
 
+    @classmethod
+    def from_excellon(cls, line):
+        version = int(line.split(',')[1])
+        return cls(version)
+
     def __init__(self, version=1):
-        self.version = int(version)
+        version = int(version)
+        if version not in [1, 2]:
+            raise ValueError('Valid versions are  1 or 2'
+        self.version = version
 
     def to_excellon(self):
         return 'VER,%d' % self.version
 
 
 class FormatStmt(ExcellonStatement):
+
+    @classmethod
+    def from_excellon(cls, line):
+        fmt = int(line.split(',')[1])
+        return cls(fmt)
+
     def __init__(self, format=1):
-        self.format = int(format)
+        format = int(format)
+        if format not in [1, 2]:
+            raise ValueError('Valid formats are 1 or 2')
+        self.format = format
 
     def to_excellon(self):
         return 'FMAT,%d' % self.format
 
 
 class LinkToolStmt(ExcellonStatement):
+
+    @classmethod
+    def from_excellon(cls, line):
+        linked = [int(tool) for tool in line.strip().split('/')]
+        return cls(linked)
 
     def __init__(self, linked_tools):
         self.linked_tools = [int(x) for x in linked_tools]
@@ -253,14 +348,29 @@ class LinkToolStmt(ExcellonStatement):
 
 
 class MeasuringModeStmt(ExcellonStatement):
-    
+
+    @classmethod
+    def from_excellon(cls, line):
+        return cls('inch') if 'M72' in line else cls('metric')
+
     def __init__(self, units='inch'):
         units = units.lower()
         if units not in ['inch', 'metric']:
             raise ValueError('units must be "inch" or "metric"')
         self.units = units
-        
+
     def to_excellon(self):
         return 'M72' if self.units == 'inch' else 'M71'
 
 
+class UnknownStmt(ExcellonStatement):
+
+    @classmethod
+    def from_excellon(cls, line):
+        return cls(line)
+
+    def __init__(self, stmt):
+        self.stmt = stmt
+
+    def to_excellon(self):
+        return self.stmt

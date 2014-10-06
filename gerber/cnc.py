@@ -92,7 +92,7 @@ class CncFile(object):
         decimal digits)
     """
 
-    def __init__(self, settings=None, filename=None):
+    def __init__(self, statements=None, settings=None, filename=None):
         if settings is not None:
             self.notation = settings['notation']
             self.units = settings['units']
@@ -103,6 +103,7 @@ class CncFile(object):
             self.units = 'inch'
             self.zero_suppression = 'trailing'
             self.format = (2, 5)
+        self.statements = statements if statements is not None else []
         self.filename = filename
 
     @property
