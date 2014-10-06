@@ -110,6 +110,10 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     if MAX_DIGITS > 13 or integer_digits > 6 or decimal_digits > 7:
         raise ValueError('Parser only supports precision up to 6:7 format')
 
+    # Edge case...
+    if value == 0:
+        return '00'
+        
     # negative sign affects padding, so deal with it at the end...
     negative = value < 0.0
     if negative:
@@ -117,7 +121,6 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
 
     # Format string for padding out in both directions
     fmtstring = '%%0%d.0%df' % (MAX_DIGITS + 1, decimal_digits)
-
     digits = [val for val in fmtstring % value if val != '.']
 
     # Suppression...
@@ -131,7 +134,7 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     return ''.join(digits) if not negative else ''.join(['-'] + digits)
 
 
-def decimal_string(value, precision=6):
+def decimal_string(value, precision=6, padding=False):
     """ Convert float to string with limited precision
 
     Parameters
@@ -148,7 +151,7 @@ def decimal_string(value, precision=6):
         The specified value as a  string.
 
     """
-    floatstr = '%0.20g' % value
+    floatstr = '%0.10g' % value
     integer = None
     decimal = None
     if '.' in floatstr:
@@ -157,6 +160,8 @@ def decimal_string(value, precision=6):
         integer, decimal = floatstr.split(',')
     if len(decimal) > precision:
         decimal = decimal[:precision]
+    elif padding:
+        decimal = decimal + (precision - len(decimal)) * '0'
     if integer or decimal:
         return ''.join([integer, '.', decimal])
     else:

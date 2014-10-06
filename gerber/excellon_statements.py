@@ -15,10 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .utils import write_gerber_value
 
+from .utils import parse_gerber_value, write_gerber_value, decimal_string
+import re
 
-__all__ = ['ExcellonTool', 'ToolSelectionStatment', 'CoordinateStmt',
+__all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'CommentStmt', 'HeaderBeginStmt', 'HeaderEndStmt',
            'RewindStopStmt', 'EndOfProgramStmt', 'UnitStmt',
            'IncrementalModeStmt', 'VersionStmt', 'FormatStmt', 'LinkToolStmt',
@@ -138,20 +139,20 @@ class ExcellonTool(ExcellonStatement):
         fmt = self.settings['format']
         zs = self.settings['zero_suppression']
         stmt = 'T%d' % self.number
-        if self.retract_rate:
+        if self.retract_rate is not None:
             stmt += 'B%s' % write_gerber_value(self.retract_rate, fmt, zs)
-        if self.diameter:
-            stmt += 'C%s' % write_gerber_value(self.diameter, fmt, zs)
-        if self.feed_rate:
+        if self.feed_rate is not None:
             stmt += 'F%s' % write_gerber_value(self.feed_rate, fmt, zs)
-        if self.max_hit_count:
+        if self.max_hit_count is not None:
             stmt += 'H%s' % write_gerber_value(self.max_hit_count, fmt, zs)
-        if self.rpm:
+        if self.rpm is not None:
             if self.rpm < 100000.:
                 stmt += 'S%s' % write_gerber_value(self.rpm / 1000., fmt, zs)
             else:
                 stmt += 'S%g' % self.rpm / 1000.
-        if self.depth_offset:
+        if self.diameter is not None:
+            stmt += 'C%s' % decimal_string(self.diameter, 5, True)
+        if self.depth_offset is not None:
             stmt += 'Z%s' % write_gerber_value(self.depth_offset, fmt, zs)
         return stmt
 
@@ -163,7 +164,7 @@ class ExcellonTool(ExcellonStatement):
         return '<ExcellonTool %d: %0.3f%s dia.>' % (self.number, self.diameter, unit)
 
 
-class ToolSelectionStatment(ExcellonStatement):
+class ToolSelectionStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line):
@@ -189,6 +190,7 @@ class ToolSelectionStatment(ExcellonStatement):
 
 class CoordinateStmt(ExcellonStatement):
 
+    @classmethod
     def from_excellon(cls, line, format=(2, 5), zero_suppression='trailing'):
         x = None
         y = None
@@ -208,22 +210,23 @@ class CoordinateStmt(ExcellonStatement):
     def to_excellon(self):
         stmt = ''
         if self.x is not None:
-            stmt.append('X%s' % write_gerber_value(self.x))
+            stmt += 'X%s' % write_gerber_value(self.x)
         if self.y is not None:
-            stmt.append('Y%s' % write_gerber_value(self.y))
+            stmt += 'Y%s' % write_gerber_value(self.y)
         return stmt
 
 
 class CommentStmt(ExcellonStatement):
 
-    def from_excellon(self, line):
+    @classmethod
+    def from_excellon(cls, line):
         return cls(line.strip().lstrip(';'))
 
     def __init__(self, comment):
         self.comment = comment
 
     def to_excellon(self):
-        return ';%s' % comment
+        return ';%s' % self.comment
 
 
 class HeaderBeginStmt(ExcellonStatement):
@@ -265,7 +268,7 @@ class EndOfProgramStmt(ExcellonStatement):
             stmt += 'X%s' % write_gerber_value(self.x)
         if self.y is not None:
             stmt += 'Y%s' % write_gerber_value(self.y)
-
+        return stmt
 
 class UnitStmt(ExcellonStatement):
 
@@ -281,8 +284,9 @@ class UnitStmt(ExcellonStatement):
 
     def to_excellon(self):
         stmt = '%s,%s' % ('INCH' if self.units == 'inch' else 'METRIC',
-                          'LZ' if self.zero_suppression == 'trailing' else 'TZ')
-
+                          'LZ' if self.zero_suppression == 'trailing' 
+                          else 'TZ')
+        return stmt
 
 class IncrementalModeStmt(ExcellonStatement):
 
@@ -292,7 +296,7 @@ class IncrementalModeStmt(ExcellonStatement):
 
     def __init__(self, mode='off'):
         if mode.lower() not in ['on', 'off']:
-            raise ValueError('Mode may be "on" or "off")
+            raise ValueError('Mode may be "on" or "off"')
         self.mode = 'off'
 
     def to_excellon(self):
@@ -309,7 +313,7 @@ class VersionStmt(ExcellonStatement):
     def __init__(self, version=1):
         version = int(version)
         if version not in [1, 2]:
-            raise ValueError('Valid versions are  1 or 2'
+            raise ValueError('Valid versions are  1 or 2')
         self.version = version
 
     def to_excellon(self):
@@ -374,3 +378,15 @@ class UnknownStmt(ExcellonStatement):
 
     def to_excellon(self):
         return self.stmt
+
+        
+        
+        
+def pairwise(iterator):
+    """ Iterate over list taking two elements at a time.
+
+    e.g. [1, 2, 3, 4, 5, 6] ==> [(1, 2), (3, 4), (5, 6)]
+    """
+    itr = iter(iterator)
+    while True:
+        yield tuple([itr.next() for i in range(2)])

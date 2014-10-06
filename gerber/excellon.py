@@ -74,6 +74,11 @@ class ExcellonFile(CncFile):
             ctx.drill(pos[0], pos[1], tool.diameter)
         ctx.dump(filename)
 
+    def write(self, filename):
+        with open(filename, 'w') as f:
+            for statement in self.statements:
+                f.write(statement.to_excellon() + '\n')
+                
 
 class ExcellonParser(object):
     """ Excellon File Parser
@@ -155,9 +160,9 @@ class ExcellonParser(object):
 
         elif line[0] == 'T' and self.state != 'HEADER':
             stmt = ToolSelectionStmt.from_excellon(line)
-            self.active_tool self.tools[stmt.tool]
+            self.active_tool = self.tools[stmt.tool]
             #self.active_tool = self.tools[int(line.strip().split('T')[1])]
-            self.statements.append(statement)
+            self.statements.append(stmt)
             
         elif line[0] in ['X', 'Y']:
             stmt = CoordinateStmt.from_excellon(line, fmt, zs)
@@ -197,18 +202,8 @@ class ExcellonParser(object):
         return FileSettings(units=self.units, format=self.format,
                             zero_suppression=self.zero_suppression,
                             notation=self.notation)
-
-
-def pairwise(iterator):
-    """ Iterate over list taking two elements at a time.
-
-    e.g. [1, 2, 3, 4, 5, 6] ==> [(1, 2), (3, 4), (5, 6)]
-    """
-    itr = iter(iterator)
-    while True:
-        yield tuple([itr.next() for i in range(2)])
         
 
 if __name__ == '__main__':
-    p = parser()
-    p.parse('examples/ncdrill.txt')
+    p = ExcellonParser()
+    parsed = p.parse('examples/ncdrill.txt')
