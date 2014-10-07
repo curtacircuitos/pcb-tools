@@ -108,3 +108,122 @@ def test_commentstmt_dump():
         stmt = CommentStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
 
+
+def test_unitstmt_factory():
+    line = 'INCH,LZ'
+    stmt = UnitStmt.from_excellon(line)
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.zero_suppression, 'trailing')
+
+    line = 'METRIC,TZ'
+    stmt = UnitStmt.from_excellon(line)
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.zero_suppression, 'leading')
+
+
+def test_unitstmt_dump():
+    lines = ['INCH,LZ', 'INCH,TZ', 'METRIC,LZ', 'METRIC,TZ', ]
+    for line in lines:
+        stmt = UnitStmt.from_excellon(line)
+        assert_equal(stmt.to_excellon(), line)
+
+
+def test_incrementalmode_factory():
+    line = 'ICI,ON'
+    stmt = IncrementalModeStmt.from_excellon(line)
+    assert_equal(stmt.mode, 'on')
+
+    line = 'ICI,OFF'
+    stmt = IncrementalModeStmt.from_excellon(line)
+    assert_equal(stmt.mode, 'off')
+
+
+def test_incrementalmode_dump():
+    lines = ['ICI,ON', 'ICI,OFF', ]
+    for line in lines:
+        stmt = IncrementalModeStmt.from_excellon(line)
+        assert_equal(stmt.to_excellon(), line)
+
+
+def test_incrementalmode_validation():
+    assert_raises(ValueError, IncrementalModeStmt, 'OFF-ISH')
+
+
+def test_versionstmt_factory():
+    line = 'VER,1'
+    stmt = VersionStmt.from_excellon(line)
+    assert_equal(stmt.version, 1)
+
+    line = 'VER,2'
+    stmt = VersionStmt.from_excellon(line)
+    assert_equal(stmt.version, 2)
+
+
+def test_versionstmt_dump():
+    lines = ['VER,1', 'VER,2', ]
+    for line in lines:
+        stmt = VersionStmt.from_excellon(line)
+        assert_equal(stmt.to_excellon(), line)
+
+def test_versionstmt_validation():
+    assert_raises(ValueError, VersionStmt, 3)
+
+
+def test_formatstmt_factory():
+    line = 'FMAT,1'
+    stmt = FormatStmt.from_excellon(line)
+    assert_equal(stmt.format, 1)
+
+    line = 'FMAT,2'
+    stmt = FormatStmt.from_excellon(line)
+    assert_equal(stmt.format, 2)
+
+
+def test_formatstmt_dump():
+    lines = ['FMAT,1', 'FMAT,2', ]
+    for line in lines:
+        stmt = FormatStmt.from_excellon(line)
+        assert_equal(stmt.to_excellon(), line)
+
+
+def test_formatstmt_validation():
+    assert_raises(ValueError, FormatStmt, 3)
+
+
+def test_linktoolstmt_factory():
+    line = '1/2/3/4'
+    stmt = LinkToolStmt.from_excellon(line)
+    assert_equal(stmt.linked_tools, [1, 2, 3, 4])
+
+    line = '01/02/03/04'
+    stmt = LinkToolStmt.from_excellon(line)
+    assert_equal(stmt.linked_tools, [1, 2, 3, 4])
+
+
+def test_linktoolstmt_dump():
+    lines = ['1/2/3/4', '5/6/7', ]
+    for line in lines:
+        stmt = LinkToolStmt.from_excellon(line)
+        assert_equal(stmt.to_excellon(), line)
+
+
+def test_measuringmodestmt_factory():
+    line = 'M72'
+    stmt = MeasuringModeStmt.from_excellon(line)
+    assert_equal(stmt.units, 'inch')
+
+    line = 'M71'
+    stmt = MeasuringModeStmt.from_excellon(line)
+    assert_equal(stmt.units, 'metric')
+
+
+def test_measuringmodestmt_dump():
+    lines = ['M71', 'M72', ]
+    for line in lines:
+        stmt = MeasuringModeStmt.from_excellon(line)
+        assert_equal(stmt.to_excellon(), line)
+
+
+def test_measuringmodestmt_validation():
+    assert_raises(ValueError, MeasuringModeStmt.from_excellon, 'M70')
+    assert_raises(ValueError, MeasuringModeStmt, 'millimeters')

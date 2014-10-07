@@ -331,10 +331,10 @@ class IncrementalModeStmt(ExcellonStatement):
     def __init__(self, mode='off'):
         if mode.lower() not in ['on', 'off']:
             raise ValueError('Mode may be "on" or "off"')
-        self.mode = 'off'
+        self.mode = mode
 
     def to_excellon(self):
-        return 'ICI,%s' % 'OFF' if self.mode == 'off' else 'ON'
+        return 'ICI,%s' % ('OFF' if self.mode == 'off' else 'ON')
 
 
 class VersionStmt(ExcellonStatement):
@@ -361,14 +361,14 @@ class FormatStmt(ExcellonStatement):
         fmt = int(line.split(',')[1])
         return cls(fmt)
 
-    def __init__(self, nformat=1):
-        nformat = int(nformat)
-        if nformat not in [1, 2]:
+    def __init__(self, format=1):
+        format = int(format)
+        if format not in [1, 2]:
             raise ValueError('Valid formats are 1 or 2')
-        self.nformat = nformat
+        self.format = format
 
     def to_excellon(self):
-        return 'FMAT,%d' % self.n
+        return 'FMAT,%d' % self.format
 
 
 class LinkToolStmt(ExcellonStatement):
@@ -389,6 +389,8 @@ class MeasuringModeStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line):
+        if not ('M71' in line or 'M72' in line):
+            raise ValueError('Not a measuring mode statement')
         return cls('inch') if 'M72' in line else cls('metric')
 
     def __init__(self, units='inch'):
