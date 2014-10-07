@@ -87,6 +87,15 @@ def test_IPParamStmt_dump():
     assert_equal(ip.to_gerber(), '%IPNEG*%')
 
 
+def test_OFParamStmt_factory():
+    """ Test OFParamStmt factory correctly handles parameters
+    """
+    stmt = {'param': 'OF', 'a': '0.1234567', 'b':'0.1234567'}
+    of = OFParamStmt.from_dict(stmt)
+    assert_equal(of.a, 0.1234567)
+    assert_equal(of.b, 0.1234567)
+
+
 def test_OFParamStmt_dump():
     """ Test OFParamStmt to_gerber()
     """

@@ -151,7 +151,7 @@ class ExcellonTool(ExcellonStatement):
             else:
                 stmt += 'S%g' % self.rpm / 1000.
         if self.diameter is not None:
-            stmt += 'C%s' % decimal_string(self.diameter, 5, True)
+            stmt += 'C%s' % decimal_string(self.diameter, fmt[1], True)
         if self.depth_offset is not None:
             stmt += 'Z%s' % write_gerber_value(self.depth_offset, fmt, zs)
         return stmt

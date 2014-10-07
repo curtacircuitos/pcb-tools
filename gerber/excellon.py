@@ -163,7 +163,7 @@ class ExcellonParser(object):
             self.active_tool = self.tools[stmt.tool]
             #self.active_tool = self.tools[int(line.strip().split('T')[1])]
             self.statements.append(stmt)
-            
+
         elif line[0] in ['X', 'Y']:
             stmt = CoordinateStmt.from_excellon(line, fmt, zs)
             x = stmt.x
@@ -194,7 +194,6 @@ class ExcellonParser(object):
                 if self.ctx is not None:
                     self.ctx.drill(self.pos[0], self.pos[1],
                                    self.active_tool.diameter)
-        
         else:
             self.statements.append(UnknownStmt.from_excellon(line))
 
