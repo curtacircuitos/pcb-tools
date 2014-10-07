@@ -221,16 +221,19 @@ class CoordinateStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line, nformat=(2, 5), zero_suppression='trailing'):
-        x = None
-        y = None
+        x_coord = None
+        y_coord = None
         if line[0] == 'X':
             splitline = line.strip('X').split('Y')
-            x = parse_gerber_value(splitline[0].strip(), nformat, zero_suppression)
+            x_coord = parse_gerber_value(splitline[0].strip(), nformat,
+                                         zero_suppression)
             if len(splitline) == 2:
-                y = parse_gerber_value(splitline[1].strip(), nformat, zero_suppression)
+                y_coord = parse_gerber_value(splitline[1].strip(), nformat,
+                                             zero_suppression)
         else:
-            y = parse_gerber_value(line.strip(' Y'), nformat, zero_suppression)
-        return cls(x, y)
+            y_coord = parse_gerber_value(line.strip(' Y'), nformat,
+                                         zero_suppression)
+        return cls(x_coord, y_coord)
 
     def __init__(self, x=None, y=None):
         self.x = x
