@@ -102,26 +102,42 @@ class ExcellonTool(ExcellonStatement):
         commands = re.split('([BCFHSTZ])', line)[1:]
         commands = [(command, value) for command, value in pairwise(commands)]
         args = {}
-        format = settings['format']
+        nformat = settings['format']
         zero_suppression = settings['zero_suppression']
         for cmd, val in commands:
             if cmd == 'B':
-                args['retract_rate'] = parse_gerber_value(val, format, zero_suppression)
+                args['retract_rate'] = parse_gerber_value(val, nformat, zero_suppression)
             elif cmd == 'C':
-                args['diameter'] = parse_gerber_value(val, format, zero_suppression)
+                args['diameter'] = parse_gerber_value(val, nformat, zero_suppression)
             elif cmd == 'F':
-                args['feed_rate'] = parse_gerber_value(val, format, zero_suppression)
+                args['feed_rate'] = parse_gerber_value(val, nformat, zero_suppression)
             elif cmd == 'H':
-                args['max_hit_count'] = parse_gerber_value(val, format, zero_suppression)
+                args['max_hit_count'] = parse_gerber_value(val, nformat, zero_suppression)
             elif cmd == 'S':
-                args['rpm'] = 1000 * parse_gerber_value(val, format, zero_suppression)
+                args['rpm'] = 1000 * parse_gerber_value(val, nformat, zero_suppression)
             elif cmd == 'T':
                 args['number'] = int(val)
             elif cmd == 'Z':
-                args['depth_offset'] = parse_gerber_value(val, format, zero_suppression)
+                args['depth_offset'] = parse_gerber_value(val, nformat, zero_suppression)
         return cls(settings, **args)
 
+    @classmethod
     def from_dict(cls, settings, tool_dict):
+        """ Create an ExcellonTool from a dict.
+
+        Parameters
+        ----------
+        settings : FileSettings (dict-like)
+            Excellon File-wide settings
+
+        tool_dict : dict
+            Excellon tool parameters as a dict
+
+        Returns
+        -------
+        tool : ExcellonTool
+            An ExcellonTool initialized with the parameters in tool_dict.
+        """
         return cls(settings, tool_dict)
 
     def __init__(self, settings, **kwargs):
@@ -168,6 +184,18 @@ class ToolSelectionStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line):
+        """ Create a ToolSelectionStmt from an excellon file line.
+
+        Parameters
+        ----------
+        line : string
+            Line from an Excellon file
+
+        Returns
+        -------
+        tool_statement : ToolSelectionStmt
+            ToolSelectionStmt representation of `line.`
+        """
         line = line.strip()[1:]
         compensation_index = None
         tool = int(line[:2])
@@ -177,7 +205,8 @@ class ToolSelectionStmt(ExcellonStatement):
 
     def __init__(self, tool, compensation_index=None):
         tool = int(tool)
-        compensation_index = int(compensation_index) if compensation_index else None
+        compensation_index = (int(compensation_index) if compensation_index
+                              is not None else None)
         self.tool = tool
         self.compensation_index = compensation_index
 
@@ -191,16 +220,16 @@ class ToolSelectionStmt(ExcellonStatement):
 class CoordinateStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line, format=(2, 5), zero_suppression='trailing'):
+    def from_excellon(cls, line, nformat=(2, 5), zero_suppression='trailing'):
         x = None
         y = None
         if line[0] == 'X':
             splitline = line.strip('X').split('Y')
-            x = parse_gerber_value(splitline[0].strip(), format, zero_suppression)
+            x = parse_gerber_value(splitline[0].strip(), nformat, zero_suppression)
             if len(splitline) == 2:
-                y = parse_gerber_value(splitline[1].strip(), format, zero_suppression)
+                y = parse_gerber_value(splitline[1].strip(), nformat, zero_suppression)
         else:
-            y = parse_gerber_value(line.strip(' Y'), format, zero_suppression)
+            y = parse_gerber_value(line.strip(' Y'), nformat, zero_suppression)
         return cls(x, y)
 
     def __init__(self, x=None, y=None):
@@ -270,6 +299,7 @@ class EndOfProgramStmt(ExcellonStatement):
             stmt += 'Y%s' % write_gerber_value(self.y)
         return stmt
 
+
 class UnitStmt(ExcellonStatement):
 
     @classmethod
@@ -284,9 +314,10 @@ class UnitStmt(ExcellonStatement):
 
     def to_excellon(self):
         stmt = '%s,%s' % ('INCH' if self.units == 'inch' else 'METRIC',
-                          'LZ' if self.zero_suppression == 'trailing' 
+                          'LZ' if self.zero_suppression == 'trailing'
                           else 'TZ')
         return stmt
+
 
 class IncrementalModeStmt(ExcellonStatement):
 
@@ -327,14 +358,14 @@ class FormatStmt(ExcellonStatement):
         fmt = int(line.split(',')[1])
         return cls(fmt)
 
-    def __init__(self, format=1):
-        format = int(format)
-        if format not in [1, 2]:
+    def __init__(self, nformat=1):
+        nformat = int(nformat)
+        if nformat not in [1, 2]:
             raise ValueError('Valid formats are 1 or 2')
-        self.format = format
+        self.nformat = nformat
 
     def to_excellon(self):
-        return 'FMAT,%d' % self.format
+        return 'FMAT,%d' % self.n
 
 
 class LinkToolStmt(ExcellonStatement):
@@ -379,9 +410,7 @@ class UnknownStmt(ExcellonStatement):
     def to_excellon(self):
         return self.stmt
 
-        
-        
-        
+
 def pairwise(iterator):
     """ Iterate over list taking two elements at a time.
 
