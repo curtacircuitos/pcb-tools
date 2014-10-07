@@ -63,7 +63,9 @@ class GerberContext(object):
         self.aperture = d
 
     def resolve(self, x, y):
-        return x or self.x, y or self.y
+        x = x if x is not None else self.x
+        y = y if y is not None else self.y
+        return x, y
 
     def define_aperture(self, d, shape, modifiers):
         pass
