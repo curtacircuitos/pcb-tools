@@ -113,7 +113,7 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     # Edge case...
     if value == 0:
         return '00'
-        
+
     # negative sign affects padding, so deal with it at the end...
     negative = value < 0.0
     if negative:

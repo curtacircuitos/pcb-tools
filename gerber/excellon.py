@@ -21,9 +21,9 @@ Excellon module
 
 This module provides Excellon file classes and parsing utilities
 """
-import re
+
+
 from .excellon_statements import *
-from .utils import parse_gerber_value
 from .cnc import CncFile, FileSettings
 
 
@@ -70,15 +70,18 @@ class ExcellonFile(CncFile):
     def render(self, filename, ctx):
         """ Generate image of file
         """
+        count = 0
         for tool, pos in self.hits:
             ctx.drill(pos[0], pos[1], tool.diameter)
+            count += 1
+        print('Drilled %d  hits' % count)
         ctx.dump(filename)
 
     def write(self, filename):
         with open(filename, 'w') as f:
             for statement in self.statements:
                 f.write(statement.to_excellon() + '\n')
-                
+
 
 class ExcellonParser(object):
     """ Excellon File Parser
@@ -95,27 +98,21 @@ class ExcellonParser(object):
         self.hits = []
         self.active_tool = None
         self.pos = [0., 0.]
-        if ctx is not None:
-            self.ctx.set_coord_format(zero_suppression='trailing',
-                                      format=(2, 5), notation='absolute')
 
     def parse(self, filename):
         with open(filename, 'r') as f:
             for line in f:
                 self._parse(line)
-        return ExcellonFile(self.statements, self.tools, self.hits, self._settings(), filename)
-
-    def dump(self, filename):
-        if self.ctx is not None:
-            self.ctx.dump(filename)
+        return ExcellonFile(self.statements, self.tools, self.hits,
+                            self._settings(), filename)
 
     def _parse(self, line):
+        line = line.strip()
         zs = self._settings()['zero_suppression']
         fmt = self._settings()['format']
-        
         if line[0] == ';':
             self.statements.append(CommentStmt.from_excellon(line))
-    
+
         elif line[:3] == 'M48':
             self.statements.append(HeaderBeginStmt())
             self.state = 'HEADER'
@@ -130,29 +127,41 @@ class ExcellonParser(object):
             if self.state == 'HEADER':
                 self.state = 'DRILL'
 
+        elif line[:3] == 'M30':
+            stmt = EndOfProgramStmt.from_excellon(line)
+            self.statements.append(stmt)
+
         elif line[:3] == 'G00':
             self.state = 'ROUT'
 
         elif line[:3] == 'G05':
             self.state = 'DRILL'
-        
-        elif ('INCH' in line or 'METRIC' in line) and ('LZ' in line or 'TZ' in line):
+
+        elif (('INCH' in line or 'METRIC' in line) and
+              ('LZ' in line or 'TZ' in line)):
             stmt = UnitStmt.from_excellon(line)
             self.units = stmt.units
             self.zero_suppression = stmt.zero_suppression
             self.statements.append(stmt)
-        
+
         elif line[:3] == 'M71' or line [:3] == 'M72':
             stmt = MeasuringModeStmt.from_excellon(line)
             self.units = stmt.units
             self.statements.append(stmt)
-        
+
         elif line[:3] == 'ICI':
             stmt = IncrementalModeStmt.from_excellon(line)
             self.notation = 'incremental' if stmt.mode == 'on' else 'absolute'
             self.statements.append(stmt)
 
-        # tool definition
+        elif line[:3] == 'VER':
+            stmt = VersionStmt.from_excellon(line)
+            self.statements.append(stmt)
+
+        elif line[:4] == 'FMAT':
+            stmt = FormatStmt.from_excellon(line)
+            self.statements.append(stmt)
+
         elif line[0] == 'T' and self.state == 'HEADER':
             tool = ExcellonTool.from_excellon(line, self._settings())
             self.tools[tool.number] = tool
@@ -161,7 +170,6 @@ class ExcellonParser(object):
         elif line[0] == 'T' and self.state != 'HEADER':
             stmt = ToolSelectionStmt.from_excellon(line)
             self.active_tool = self.tools[stmt.tool]
-            #self.active_tool = self.tools[int(line.strip().split('T')[1])]
             self.statements.append(stmt)
 
         elif line[0] in ['X', 'Y']:
@@ -169,15 +177,6 @@ class ExcellonParser(object):
             x = stmt.x
             y = stmt.y
             self.statements.append(stmt)
-            #x = None
-            #y = None
-            #if line[0] == 'X':
-            #    splitline = line.strip('X').split('Y')
-            #    x = parse_gerber_value(splitline[0].strip(), fmt, zs)
-            #    if len(splitline) == 2:
-            #        y = parse_gerber_value(splitline[1].strip(), fmt, zs)
-            #else:
-            #    y = parse_gerber_value(line.strip(' Y'), fmt, zs)
             if self.notation == 'absolute':
                 if x is not None:
                     self.pos[0] = x
@@ -189,11 +188,8 @@ class ExcellonParser(object):
                 if y is not None:
                     self.pos[1] += y
             if self.state == 'DRILL':
-                self.hits.append((self.active_tool, self.pos))
+                self.hits.append((self.active_tool, tuple(self.pos)))
                 self.active_tool._hit()
-                if self.ctx is not None:
-                    self.ctx.drill(self.pos[0], self.pos[1],
-                                   self.active_tool.diameter)
         else:
             self.statements.append(UnknownStmt.from_excellon(line))
 
@@ -201,7 +197,7 @@ class ExcellonParser(object):
         return FileSettings(units=self.units, format=self.format,
                             zero_suppression=self.zero_suppression,
                             notation=self.notation)
-        
+
 
 if __name__ == '__main__':
     p = ExcellonParser()

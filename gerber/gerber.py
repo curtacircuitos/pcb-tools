@@ -256,7 +256,7 @@ class GerberParser(object):
                     elif param["param"] == "IN":
                         yield INParamStmt.from_dict(param)
                     elif param["param"] == "LN":
-                        yield LNParamStmtfrom_dict(param)
+                        yield LNParamStmt.from_dict(param)
                     else:
                         yield UnknownStmt(line)
                     did_something = True

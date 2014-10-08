@@ -3,7 +3,7 @@
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
-from .tests import *
+from .tests import assert_equal, assert_raises
 from ..excellon_statements import *
 
 
@@ -65,6 +65,8 @@ def test_toolselection_dump():
 
 
 def test_coordinatestmt_factory():
+    """ Test CoordinateStmt factory method
+    """
     line = 'X0278207Y0065293'
     stmt = CoordinateStmt.from_excellon(line)
     assert_equal(stmt.x, 2.78207)
@@ -80,6 +82,8 @@ def test_coordinatestmt_factory():
 
 
 def test_coordinatestmt_dump():
+    """ Test CoordinateStmt to_excellon()
+    """
     lines = ['X0278207Y0065293', 'X0243795', 'Y0082528', 'Y0086028',
              'X0251295Y0081528', 'X02525Y0078', 'X0255Y00575', 'Y0052',
              'X02675', 'Y00575', 'X02425', 'Y0052', 'X023', ]
@@ -89,6 +93,8 @@ def test_coordinatestmt_dump():
 
 
 def test_commentstmt_factory():
+    """ Test CommentStmt factory method
+    """
     line = ';Layer_Color=9474304'
     stmt = CommentStmt.from_excellon(line)
     assert_equal(stmt.comment, line[1:])
@@ -103,6 +109,8 @@ def test_commentstmt_factory():
 
 
 def test_commentstmt_dump():
+    """ Test CommentStmt to_excellon()
+    """
     lines = [';Layer_Color=9474304', ';FILE_FORMAT=2:5', ';TYPE=PLATED', ]
     for line in lines:
         stmt = CommentStmt.from_excellon(line)
@@ -110,6 +118,8 @@ def test_commentstmt_dump():
 
 
 def test_unitstmt_factory():
+    """ Test UnitStmt factory method
+    """
     line = 'INCH,LZ'
     stmt = UnitStmt.from_excellon(line)
     assert_equal(stmt.units, 'inch')
@@ -122,6 +132,8 @@ def test_unitstmt_factory():
 
 
 def test_unitstmt_dump():
+    """ Test UnitStmt to_excellon()
+    """
     lines = ['INCH,LZ', 'INCH,TZ', 'METRIC,LZ', 'METRIC,TZ', ]
     for line in lines:
         stmt = UnitStmt.from_excellon(line)
@@ -129,6 +141,8 @@ def test_unitstmt_dump():
 
 
 def test_incrementalmode_factory():
+    """ Test IncrementalModeStmt factory method
+    """
     line = 'ICI,ON'
     stmt = IncrementalModeStmt.from_excellon(line)
     assert_equal(stmt.mode, 'on')
@@ -139,6 +153,8 @@ def test_incrementalmode_factory():
 
 
 def test_incrementalmode_dump():
+    """ Test IncrementalModeStmt to_excellon()
+    """
     lines = ['ICI,ON', 'ICI,OFF', ]
     for line in lines:
         stmt = IncrementalModeStmt.from_excellon(line)
@@ -146,10 +162,14 @@ def test_incrementalmode_dump():
 
 
 def test_incrementalmode_validation():
+    """ Test IncrementalModeStmt input validation
+    """
     assert_raises(ValueError, IncrementalModeStmt, 'OFF-ISH')
 
 
 def test_versionstmt_factory():
+    """ Test VersionStmt factory method
+    """
     line = 'VER,1'
     stmt = VersionStmt.from_excellon(line)
     assert_equal(stmt.version, 1)
@@ -160,16 +180,22 @@ def test_versionstmt_factory():
 
 
 def test_versionstmt_dump():
+    """ Test VersionStmt to_excellon()
+    """
     lines = ['VER,1', 'VER,2', ]
     for line in lines:
         stmt = VersionStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
 
 def test_versionstmt_validation():
+    """ Test VersionStmt input validation
+    """
     assert_raises(ValueError, VersionStmt, 3)
 
 
 def test_formatstmt_factory():
+    """ Test FormatStmt factory method
+    """
     line = 'FMAT,1'
     stmt = FormatStmt.from_excellon(line)
     assert_equal(stmt.format, 1)
@@ -180,6 +206,8 @@ def test_formatstmt_factory():
 
 
 def test_formatstmt_dump():
+    """ Test FormatStmt to_excellon()
+    """
     lines = ['FMAT,1', 'FMAT,2', ]
     for line in lines:
         stmt = FormatStmt.from_excellon(line)
@@ -187,10 +215,14 @@ def test_formatstmt_dump():
 
 
 def test_formatstmt_validation():
+    """ Test FormatStmt input validation
+    """
     assert_raises(ValueError, FormatStmt, 3)
 
 
 def test_linktoolstmt_factory():
+    """ Test LinkToolStmt factory method
+    """
     line = '1/2/3/4'
     stmt = LinkToolStmt.from_excellon(line)
     assert_equal(stmt.linked_tools, [1, 2, 3, 4])
@@ -201,13 +233,17 @@ def test_linktoolstmt_factory():
 
 
 def test_linktoolstmt_dump():
+    """ Test LinkToolStmt to_excellon()
+    """
     lines = ['1/2/3/4', '5/6/7', ]
     for line in lines:
         stmt = LinkToolStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
 
 
-def test_measuringmodestmt_factory():
+def test_measmodestmt_factory():
+    """ Test MeasuringModeStmt factory method
+    """
     line = 'M72'
     stmt = MeasuringModeStmt.from_excellon(line)
     assert_equal(stmt.units, 'inch')
@@ -217,13 +253,17 @@ def test_measuringmodestmt_factory():
     assert_equal(stmt.units, 'metric')
 
 
-def test_measuringmodestmt_dump():
+def test_measmodestmt_dump():
+    """ Test MeasuringModeStmt to_excellon()
+    """
     lines = ['M71', 'M72', ]
     for line in lines:
         stmt = MeasuringModeStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
 
 
-def test_measuringmodestmt_validation():
+def test_measmodestmt_validation():
+    """ Test MeasuringModeStmt input validation
+    """
     assert_raises(ValueError, MeasuringModeStmt.from_excellon, 'M70')
     assert_raises(ValueError, MeasuringModeStmt, 'millimeters')

@@ -16,8 +16,8 @@ __all__ = ['FSParamStmt', 'MOParamStmt', 'IPParamStmt', 'OFParamStmt',
 
 
 class Statement(object):
-    def __init__(self, type):
-        self.type = type
+    def __init__(self, stype):
+        self.type = stype
 
     def __str__(self):
         s = "<{0} ".format(self.__class__.__name__)
@@ -47,8 +47,8 @@ class FSParamStmt(ParamStmt):
         zeros = 'leading' if stmt_dict.get('zero') == 'L' else 'trailing'
         notation = 'absolute' if stmt_dict.get('notation') == 'A' else 'incremental'
         x = map(int, stmt_dict.get('x').strip())
-        format = (x[0], x[1])
-        return cls(param, zeros, notation, format)
+        fmt = (x[0], x[1])
+        return cls(param, zeros, notation, fmt)
 
     def __init__(self, param, zero_suppression='leading',
                  notation='absolute', format=(2, 4)):
@@ -88,9 +88,9 @@ class FSParamStmt(ParamStmt):
     def to_gerber(self):
         zero_suppression = 'L' if self.zero_suppression == 'leading' else 'T'
         notation = 'A' if self.notation == 'absolute' else 'I'
-        format = ''.join(map(str, self.format))
+        fmt = ''.join(map(str, self.format))
         return '%FS{0}{1}X{2}Y{3}*%'.format(zero_suppression, notation,
-                                            format, format)
+                                            fmt, fmt)
 
     def __str__(self):
         return ('<Format Spec: %d:%d %s zero suppression %s notation>' %
@@ -587,6 +587,28 @@ class EofStmt(Statement):
 
     def __str__(self):
         return '<EOF Statement>'
+
+class QuadrantModeStmt(Statement):
+
+    @classmethod
+    def from_gerber(cls, line):
+        line = line.strip()
+        if 'G74' not in line and 'G75' not in line:
+            raise ValueError('%s is not a valid quadrant mode statement'
+                             % line)
+        return (cls('single-quadrant') if line[:3] == 'G74'
+                else cls('multi-quadrant'))
+
+    def __init__(self, mode):
+        super(QuadrantModeStmt, self).__init__('Quadrant Mode')
+        mode = mode.lower
+        if mode not in ['single-quadrant', 'multi-quadrant']:
+            raise ValueError('Quadrant mode must be "single-quadrant" \
+                             or "multi-quadrant"')
+        self.mode = mode
+
+    def to_gerber(self):
+        return 'G74*' if self.mode == 'single-quadrant' else 'G75*'
 
 
 class UnknownStmt(Statement):

@@ -16,21 +16,20 @@
 # the License.
 
 if __name__ == '__main__':
-    from .gerber import GerberFile
-    from .excellon import ExcellonParser
+    import gerber
+    import excellon
     from .render import GerberSvgContext
 
     #import sys
     #
-    #if len(sys.argv) < 2:
+    #if len(sys.argv) < 2:`
     #    print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."
     #    sys.exit(1)
     #
     ##for filename in sys.argv[1]:
     ##    print "parsing %s" % filename
     ctx = GerberSvgContext()
-    g = GerberFile.read('SCB.GTL')
+    g = gerber.read('examples/test.gtl')
     g.render('test.svg', ctx)
-    p = ExcellonParser(ctx)
-    p.parse('ncdrill.txt')
-    p.dump('testwithdrill.svg')
+    p = excellon.read('ncdrill.txt')
+    p.render('testwithdrill.svg', ctx)
