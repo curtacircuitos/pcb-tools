@@ -110,12 +110,14 @@ class GerberSvgContext(GerberContext):
 
         self.apertures = {}
         self.dwg = svgwrite.Drawing()
-        #self.dwg.add(self.dwg.rect(insert=(0, 0), size=(2000, 2000), fill="black"))
+        self.background = False
 
     def set_bounds(self, bounds):
         xbounds, ybounds = bounds
         size = (SCALE * (xbounds[1] - xbounds[0]), SCALE * (ybounds[1] - ybounds[0]))
-        self.dwg.add(self.dwg.rect(insert=(SCALE * xbounds[0], -SCALE * ybounds[1]), size=size, fill="black"))
+        if not self.background:
+            self.dwg.add(self.dwg.rect(insert=(SCALE * xbounds[0], -SCALE * ybounds[1]), size=size, fill="black"))
+            self.background = True
 
     def define_aperture(self, d, shape, modifiers):
         aperture = None

@@ -21,27 +21,3 @@ gerber module
 
 """
 
-def read(filename):
-    """ Read a gerber or excellon file and return a representative object.
-
-    Parameters
-    ----------
-    filename : string
-        Filename of the file to read.
-
-    Returns
-    -------
-    file : CncFile subclass
-        CncFile object representing the file, either GerberFile or
-        ExcellonFile. Returns None if file is not an Excellon or Gerber file.
-    """
-    import gerber
-    import excellon
-    from utils import detect_file_format
-    fmt = detect_file_format(filename)
-    if fmt == 'rs274x':
-        return gerber.read(filename)
-    elif fmt == 'excellon':
-        return excellon.read(filename)
-    else:
-        return None

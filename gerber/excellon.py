@@ -67,15 +67,13 @@ class ExcellonFile(CncFile):
         """
         pass
 
-    def render(self, filename, ctx):
+    def render(self, ctx, filename=None):
         """ Generate image of file
         """
-        count = 0
         for tool, pos in self.hits:
             ctx.drill(pos[0], pos[1], tool.diameter)
-            count += 1
-        print('Drilled %d  hits' % count)
-        ctx.dump(filename)
+        if filename is not None:
+            ctx.dump(filename)
 
     def write(self, filename):
         with open(filename, 'w') as f:
@@ -86,8 +84,7 @@ class ExcellonFile(CncFile):
 class ExcellonParser(object):
     """ Excellon File Parser
     """
-    def __init__(self, ctx=None):
-        self.ctx = ctx
+    def __init__(self):
         self.notation = 'absolute'
         self.units = 'inch'
         self.zero_suppression = 'trailing'
@@ -197,8 +194,3 @@ class ExcellonParser(object):
         return FileSettings(units=self.units, format=self.format,
                             zero_suppression=self.zero_suppression,
                             notation=self.notation)
-
-
-if __name__ == '__main__':
-    p = ExcellonParser()
-    parsed = p.parse('examples/ncdrill.txt')

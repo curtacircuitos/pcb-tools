@@ -15,10 +15,8 @@ Example:
     nc_drill = gerber.read('example.txt')
 
     # Rendering context
-    ctx = GerberSvgContext
+    ctx = GerberSvgContext()
 
     # Create SVG image
-    top_copper.render('top_copper.svg', ctx)
-    nc_drill.render('composite.svg', ctx)
-
-
+    top_copper.render(ctx)
+    nc_drill.render(ctx, 'composite.svg')

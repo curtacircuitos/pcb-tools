@@ -111,13 +111,14 @@ class GerberFile(CncFile):
             for statement in self.statements:
                 f.write(statement.to_gerber())
 
-    def render(self, filename, ctx):
+    def render(self, ctx, filename=None):
         """ Generate image of layer.
         """
         ctx.set_bounds(self.bounds)
         for statement in self.statements:
             ctx.evaluate(statement)
-        ctx.dump(filename)
+        if filename is not None:
+            ctx.dump(filename)
 
 
 class GerberParser(object):
