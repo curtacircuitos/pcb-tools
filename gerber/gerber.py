@@ -206,6 +206,13 @@ class GerberParser(object):
             while did_something and len(line) > 0:
                 did_something = False
 
+                # region mode
+                #if 'G36' in line or 'G37' in line:
+                #    yield RegionModeStmt.from_gerber(line)
+                #    did_something = True
+                #    line = ''
+                #    continue
+
                 # coord
                 (coord, r) = self._match_one(self.COORD_STMT, line)
                 if coord:

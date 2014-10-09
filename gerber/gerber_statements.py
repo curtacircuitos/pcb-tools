@@ -12,7 +12,7 @@ from .utils import parse_gerber_value, write_gerber_value, decimal_string
 __all__ = ['FSParamStmt', 'MOParamStmt', 'IPParamStmt', 'OFParamStmt',
            'LPParamStmt', 'ADParamStmt', 'AMParamStmt', 'INParamStmt',
            'LNParamStmt', 'CoordStmt', 'ApertureStmt', 'CommentStmt',
-           'EofStmt', 'UnknownStmt']
+           'EofStmt', 'QuadrantModeStmt', 'RegionModeStmt', 'UnknownStmt']
 
 
 class Statement(object):
@@ -601,7 +601,7 @@ class QuadrantModeStmt(Statement):
 
     def __init__(self, mode):
         super(QuadrantModeStmt, self).__init__('Quadrant Mode')
-        mode = mode.lower
+        mode = mode.lower()
         if mode not in ['single-quadrant', 'multi-quadrant']:
             raise ValueError('Quadrant mode must be "single-quadrant" \
                              or "multi-quadrant"')
@@ -609,6 +609,25 @@ class QuadrantModeStmt(Statement):
 
     def to_gerber(self):
         return 'G74*' if self.mode == 'single-quadrant' else 'G75*'
+
+class RegionModeStmt(Statement):
+    
+    @classmethod
+    def from_gerber(cls, line):
+        line = line.strip()
+        if 'G36' not in line and 'G37' not in line:
+            raise ValueError('%s is not a valid region mode statement' % line)
+        return (cls('on') if line[:3] == 'G36' else cls('off'))
+
+    def __init__(self, mode):
+        super(RegionModeStmt, self).__init__('Region Mode')
+        mode = mode.lower()
+        if mode not in ['on', 'off']:
+            raise ValueError('Valid modes are "on" or "off"')
+        self.mode = mode
+
+    def to_gerber(self):
+        return 'G36*' if self.mode == 'on' else 'G37*'
 
 
 class UnknownStmt(Statement):

@@ -22,19 +22,20 @@ from ..gerber_statements import (
 
 
 class GerberContext(object):
-    settings = {}
-
-    x = 0
-    y = 0
-
-    aperture = 0
-    interpolation = 'linear'
-
-    image_polarity = 'positive'
-    level_polarity = 'dark'
 
     def __init__(self):
-        pass
+        self.settings = {}
+        self.x = 0
+        self.y = 0
+
+        self.aperture = 0
+        self.interpolation = 'linear'
+        self.direction = 'clockwise'
+        self.image_polarity = 'positive'
+        self.level_polarity = 'dark'
+        self.region_mode = 'off'
+        self.color = (0.7215, 0.451, 0.200)
+        self.drill_color = (0.25, 0.25, 0.25)
 
     def set_format(self, settings):
         self.settings = settings
@@ -62,6 +63,12 @@ class GerberContext(object):
     def set_aperture(self, d):
         self.aperture = d
 
+    def set_color(self, color):
+        self.color = color
+
+    def set_drill_color(self, color):
+        self.drill_color = color 
+
     def resolve(self, x, y):
         x = x if x is not None else self.x
         y = y if y is not None else self.y
@@ -76,13 +83,13 @@ class GerberContext(object):
         else:
             self.x, self.y = x, y
 
-    def stroke(self, x, y):
+    def stroke(self, x, y, i, j):
         pass
 
     def line(self, x, y):
         pass
 
-    def arc(self, x, y):
+    def arc(self, x, y, i, j):
         pass
 
     def flash(self, x, y):
@@ -109,7 +116,8 @@ class GerberContext(object):
 
     def _evaluate_param(self, stmt):
         if stmt.param == "FS":
-            self.set_coord_format(stmt.zero_suppression, stmt.format, stmt.notation)
+            self.set_coord_format(stmt.zero_suppression, stmt.format,
+                                  stmt.notation)
             self.set_coord_notation(stmt.notation)
         elif stmt.param == "MO:":
             self.set_coord_unit(stmt.mode)
@@ -123,9 +131,11 @@ class GerberContext(object):
     def _evaluate_coord(self, stmt):
         if stmt.function in ("G01", "G1", "G02", "G2", "G03", "G3"):
             self.set_interpolation(stmt.function)
-
+            if stmt.function not in ('G01', 'G1'):
+                self.direction = ('clockwise' if stmt.function in ('G02', 'G2')
+                                  else 'counterclockwise')
         if stmt.op == "D01":
-            self.stroke(stmt.x, stmt.y)
+            self.stroke(stmt.x, stmt.y, stmt.i, stmt.j)
         elif stmt.op == "D02":
             self.move(stmt.x, stmt.y)
         elif stmt.op == "D03":

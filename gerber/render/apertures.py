@@ -22,16 +22,31 @@ gerber.render.apertures
 This module provides base classes for gerber apertures. These are used by
 the rendering engine to draw the gerber file.
 """
-
+import math
 
 class Aperture(object):
     """ Gerber Aperture base class
     """
     def draw(self, ctx, x, y):
-        raise NotImplementedError('The draw method must be implemented in an Aperture subclass.')
+        raise NotImplementedError('The draw method must be implemented \
+                                  in an Aperture subclass.')
 
     def flash(self, ctx, x, y):
-        raise NotImplementedError('The flash method must be implemented in an Aperture subclass.')
+        raise NotImplementedError('The flash method must be implemented \
+                                  in an Aperture subclass.')
+
+    def _arc_params(self, startx,  starty, x, y, i, j):
+        center = (startx + i, starty + j)
+        radius = math.sqrt(math.pow(center[0] - x, 2) +
+                           math.pow(center[1] - y, 2))
+        delta_x0 = startx - center[0]
+        delta_y0 = center[1] - starty
+        delta_x1 = x - center[0]
+        delta_y1 = center[1] - y
+        start_angle = math.atan2(delta_y0, delta_x0)
+        end_angle = math.atan2(delta_y1, delta_x1)
+        return {'center': center, 'radius': radius,
+                'start_angle': start_angle, 'end_angle': end_angle}
 
 
 class Circle(Aperture):
