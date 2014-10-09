@@ -164,6 +164,9 @@ class GerberParser(object):
 
     EOF_STMT = re.compile(r"(?P<eof>M02)\*")
 
+    REGION_MODE_STMT = re.compile(r'(?P<mode>G3[67])\*')
+    QUAD_MODE_STMT = re.compile(r'(?P<mode>G7[45])\*')
+
     def __init__(self):
         self.settings = FileSettings()
         self.statements = []
@@ -206,12 +209,21 @@ class GerberParser(object):
             while did_something and len(line) > 0:
                 did_something = False
 
-                # region mode
-                #if 'G36' in line or 'G37' in line:
-                #    yield RegionModeStmt.from_gerber(line)
-                #    did_something = True
-                #    line = ''
-                #    continue
+                # Region Mode
+                (mode, r) = self._match_one(self.REGION_MODE_STMT, line)
+                if mode:
+                    yield RegionModeStmt.from_gerber(line)
+                    line = r
+                    did_something = True
+                    continue
+
+                # Quadrant Mode
+                (mode, r) = self._match_one(self.QUAD_MODE_STMT, line)
+                if mode:
+                    yield QuadrantModeStmt.from_gerber(line)
+                    line = r
+                    did_something = True
+                    continue
 
                 # coord
                 (coord, r) = self._match_one(self.COORD_STMT, line)

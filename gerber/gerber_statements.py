@@ -600,7 +600,7 @@ class QuadrantModeStmt(Statement):
                 else cls('multi-quadrant'))
 
     def __init__(self, mode):
-        super(QuadrantModeStmt, self).__init__('Quadrant Mode')
+        super(QuadrantModeStmt, self).__init__('QuadrantMode')
         mode = mode.lower()
         if mode not in ['single-quadrant', 'multi-quadrant']:
             raise ValueError('Quadrant mode must be "single-quadrant" \
@@ -611,7 +611,7 @@ class QuadrantModeStmt(Statement):
         return 'G74*' if self.mode == 'single-quadrant' else 'G75*'
 
 class RegionModeStmt(Statement):
-    
+
     @classmethod
     def from_gerber(cls, line):
         line = line.strip()
@@ -620,7 +620,7 @@ class RegionModeStmt(Statement):
         return (cls('on') if line[:3] == 'G36' else cls('off'))
 
     def __init__(self, mode):
-        super(RegionModeStmt, self).__init__('Region Mode')
+        super(RegionModeStmt, self).__init__('RegionMode')
         mode = mode.lower()
         if mode not in ['on', 'off']:
             raise ValueError('Valid modes are "on" or "off"')

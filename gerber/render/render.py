@@ -16,8 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ..gerber_statements import (
-    CommentStmt, UnknownStmt, EofStmt, ParamStmt, CoordStmt, ApertureStmt
+from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
+                                 CoordStmt, ApertureStmt, RegionModeStmt,
+                                 QuadrantModeStmt,
 )
 
 
@@ -111,8 +112,17 @@ class GerberContext(object):
         elif isinstance(stmt, ApertureStmt):
             self._evaluate_aperture(stmt)
 
+        elif isinstance(stmt, (RegionModeStmt, QuadrantModeStmt)):
+            self._evaluate_mode(stmt)
+
         else:
             raise Exception("Invalid statement to evaluate")
+
+    def _evaluate_mode(self, stmt):
+        if stmt.type == 'RegionMode':
+            self.region_mode = stmt.mode
+        elif stmt.type == 'QuadrantMode':
+            self.quadrant_mode = stmt.mode
 
     def _evaluate_param(self, stmt):
         if stmt.param == "FS":
