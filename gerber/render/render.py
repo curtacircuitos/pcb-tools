@@ -23,7 +23,60 @@ from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
 
 
 class GerberContext(object):
-
+    """ Gerber rendering context base class
+    
+    Provides basic functionality and API for rendering gerber files.  Medium-
+    specific renderers should subclass GerberContext and implement the drawing
+    functions. Colors are stored internally as 32-bit RGB and may need to be 
+    converted to a native format in the rendering subclass.
+    
+    Attributes
+    ----------
+    settings : FileSettings (dict-like)
+        Gerber file settings
+    
+    x : float
+        X-coordinate of the "photoplotter" head. 
+        
+    y : float
+        Y-coordinate of the "photoplotter" head
+        
+    aperture : int
+        The aperture that is currently in use
+        
+    interpolation : str
+        Current interpolation mode. may be 'linear' or 'arc'
+        
+    direction : string
+        Current arc direction. May be either 'clockwise' or 'counterclockwise'
+        
+    image_polarity : string
+        Current image polarity setting. May be 'positive' or 'negative'
+        
+    level_polarity : string
+        Level polarity. May be 'dark' or 'clear'. Dark polarity indicates the 
+        existance of copper/silkscreen/etc. in the exposed area, whereas clear 
+        polarity indicates material should be removed from the exposed area. 
+    
+    region_mode : string
+        Region mode. May be 'on' or 'off'. When region mode is set to 'on' the
+        following "contours" define the outline of a region. When region mode 
+        is subsequently turned 'off', the defined area is filled.
+        
+    quadrant_mode : string
+        Quadrant mode. May be 'single-quadrant' or 'multi-quadrant'. Defines
+        how arcs are specified.
+        
+    color : tuple (<float>, <float>, <float>)
+        Color used for rendering as a tuple of normalized (red, green, blue) values.
+    
+    drill_color : tuple (<float>, <float>, <float>)
+        Color used for rendering drill hits. Format is the same as for `color`.
+    
+    background_color : tuple (<float>, <float>, <float>)
+        Color of the background. Used when exposing areas in 'clear' level 
+        polarity mode. Format is the same as for `color`.
+    """
     def __init__(self):
         self.settings = {}
         self.x = 0
@@ -35,13 +88,36 @@ class GerberContext(object):
         self.image_polarity = 'positive'
         self.level_polarity = 'dark'
         self.region_mode = 'off'
+        self.quadrant_mode = 'multi-quadrant'
+        
         self.color = (0.7215, 0.451, 0.200)
         self.drill_color = (0.25, 0.25, 0.25)
+        self.background_color = (0.0, 0.0, 0.0)
 
     def set_format(self, settings):
+        """ Set source file format.
+        
+        Parameters
+        ----------
+        settings : FileSettings instance or dict-like
+            Gerber file settings used in source file.
+        """
         self.settings = settings
 
     def set_coord_format(self, zero_suppression, format, notation):
+        """ Set coordinate format used in source gerber file
+        
+        Parameters
+        ----------
+        zero_suppression : string
+            Zero suppression mode. may be 'leading' or 'trailling'
+            
+        format : tuple (<int>, <int>)
+            decimal precision format
+            
+        notation : string
+            notation mode. 'absolute' or 'incremental'
+        """
         self.settings['zero_suppression'] = zero_suppression
         self.settings['format'] = format
         self.settings['notation'] = notation
@@ -69,6 +145,9 @@ class GerberContext(object):
 
     def set_drill_color(self, color):
         self.drill_color = color 
+        
+    def set_background_color(self, color):
+        self.background_color = color
 
     def resolve(self, x, y):
         x = x if x is not None else self.x
@@ -120,6 +199,8 @@ class GerberContext(object):
 
     def _evaluate_mode(self, stmt):
         if stmt.type == 'RegionMode':
+            if self.region_mode == 'on' and stmt.mode == 'off':
+                self._fill_region()
             self.region_mode = stmt.mode
         elif stmt.type == 'QuadrantMode':
             self.quadrant_mode = stmt.mode
@@ -153,3 +234,6 @@ class GerberContext(object):
 
     def _evaluate_aperture(self, stmt):
         self.set_aperture(stmt.d)
+        
+    def _fill_region(self):
+        pass

@@ -16,6 +16,20 @@ __all__ = ['FSParamStmt', 'MOParamStmt', 'IPParamStmt', 'OFParamStmt',
 
 
 class Statement(object):
+    """ Gerber statement Base class
+    
+    The statement class provides a type attribute.
+    
+    Parameters
+    ----------
+    type : string
+        String identifying the statement type.
+
+    Attributes
+    ----------
+    type : string 
+        String identifying the statement type.
+    """
     def __init__(self, stype):
         self.type = stype
 
@@ -30,6 +44,20 @@ class Statement(object):
 
 
 class ParamStmt(Statement):
+    """ Gerber parameter statement Base class
+    
+    The parameter statement class provides a parameter type attribute.
+    
+    Parameters
+    ----------
+    param : string
+        two-character code identifying the parameter statement type.
+
+    Attributes
+    ----------
+    param : string 
+        Parameter type code
+    """
     def __init__(self, param):
         Statement.__init__(self, "PARAM")
         self.param = param

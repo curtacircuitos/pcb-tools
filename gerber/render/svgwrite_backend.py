@@ -152,7 +152,9 @@ class GerberSvgContext(GerberContext):
         ap = self.apertures.get(self.aperture, None)
         if ap is None:
             return
-        self.dwg.add(ap.line(self, x, y, convert_color(self.color)))
+        color = (convert_color(self.color) if self.level_polarity == 'dark' 
+                 else convert_color(self.background_color))
+        self.dwg.add(ap.line(self, x, y, color))
         self.move(x, y, resolve=False)
 
     def arc(self, x, y, i, j):
@@ -171,7 +173,9 @@ class GerberSvgContext(GerberContext):
         ap = self.apertures.get(self.aperture, None)
         if ap is None:
             return
-        for shape in ap.flash(self, x, y, convert_color(self.color)):
+        color = (convert_color(self.color) if self.level_polarity == 'dark' 
+                 else convert_color(self.background_color))
+        for shape in ap.flash(self, x, y, color):
             self.dwg.add(shape)
         self.move(x, y, resolve=False)
 
