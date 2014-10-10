@@ -15,9 +15,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-gerber module
+Gerber Tools
 ============
 **Gerber Tools**
 
+gerber-tools provides utilities for working with Gerber (RS-274X) and Excellon
+files in python.
 """
 

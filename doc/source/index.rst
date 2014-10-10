@@ -20,12 +20,18 @@ Contents:
 .. automodule:: gerber.excellon
     :members:
 
+.. automodule:: gerber.render.render
+    :members:
+
+.. automodule:: gerber.gerber_statements
+    :members:
+    
+.. automodule:: gerber.excellon_statements
+    :members:
+    
 .. automodule:: gerber.cnc
     :members:
-
-.. automodule:: gerber.statements
-    :members:
-
+    
 .. automodule:: gerber.utils
     :members:
 

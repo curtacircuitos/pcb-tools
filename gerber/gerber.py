@@ -16,8 +16,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-gerber.gerber
-============
+Gerber File module
+==================
 **Gerber File module**
 
 This module provides an RS-274-X class and parser

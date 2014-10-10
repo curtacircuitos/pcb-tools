@@ -15,8 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Excellon module
-============
+Excellon File module
+====================
 **Excellon file classes**
 
 This module provides Excellon file classes and parsing utilities

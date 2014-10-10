@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-gerber.statements
-=================
-**Gerber file statement classes**
+Gerber (RS-274X) Statements
+===========================
+**Gerber RS-274X file statement classes**
 
 """
 from .utils import parse_gerber_value, write_gerber_value, decimal_string
