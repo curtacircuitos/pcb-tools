@@ -4,11 +4,12 @@ NOSETESTS ?= nosetests
 
 DOC_ROOT = doc
 
-clean:
+clean: doc-clean
 	#$(PYTHON) setup.py clean
 	find . -name '*.pyc' -delete
 	rm -rf coverage .coverage
 	rm -rf *.egg-info
+
 test:
 	$(NOSETESTS) -s -v gerber
 	

@@ -20,7 +20,8 @@ Rendering
 ============
 **Gerber (RS-274X) and Excellon file rendering**
 
-Render Gerber and Excellon files to a variety of formats.
+Render Gerber and Excellon files to a variety of formats. The render module
+currently supports SVG rendering using the `svgwrite` library.
 """
 from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
                                  CoordStmt, ApertureStmt, RegionModeStmt,
@@ -316,21 +317,118 @@ class GerberContext(object):
             self.x, self.y = x, y
 
     def stroke(self, x, y, i, j):
+        """ Lights-on move. (draws a line or arc)
+
+        The stroke method is called when a Lights-on move statement is
+        encountered. This will call the `line` or `arc` method as necessary
+        based on the move statement's parameters. The `stroke` method should
+        be overridden in `GerberContext` subclasses.
+
+        Parameters
+        ----------
+        x : float
+            X coordinate of target position
+
+        y : float
+            Y coordinate of target position
+
+        i : float
+            Offset in X-direction from current position of arc center.
+
+        j : float
+            Offset in Y-direction from current position of arc center.
+        """
         pass
 
     def line(self, x, y):
+        """ Draw a line
+
+        Draws a line from the current position to  (x, y) using the currently
+        selected aperture. The `line` method should be overridden in
+        `GerberContext` subclasses.
+
+        Parameters
+        ----------
+        x : float
+            X coordinate of target position
+
+        y : float
+            Y coordinate of target position
+        """
         pass
 
     def arc(self, x, y, i, j):
+        """ Draw an arc
+
+        Draw an arc from the current position to (x, y) using the currently
+        selected aperture. `i` and `j` specify the offset from the starting
+        position to the center of the arc.The `arc` method should be
+        overridden in `GerberContext` subclasses.
+
+        Parameters
+        ----------
+        x : float
+            X coordinate of target position
+
+        y : float
+            Y coordinate of target position
+
+        i : float
+            Offset in X-direction from current position of arc center.
+
+        j : float
+            Offset in Y-direction from current position of arc center.
+        """
         pass
 
     def flash(self, x, y):
+        """ Flash the current aperture
+
+        Draw a filled shape defined by the currently selected aperture.
+
+        Parameters
+        ----------
+        x : float
+            X coordinate of the position at which to flash
+
+        y : float
+            Y coordinate of the position at which to flash
+        """
         pass
 
     def drill(self, x, y, diameter):
+        """ Draw a drill hit
+
+        Draw a filled circle representing a drill hit at the specified
+        position and with the specified diameter.
+
+        Parameters
+        ----------
+        x : float
+            X coordinate of the drill hit
+
+        y : float
+            Y coordinate of the drill hit
+
+        diameter : float
+            Finished hole diameter to draw.
+        """
         pass
 
     def evaluate(self, stmt):
+        """ Evaluate Gerber statement and update image accordingly.
+
+        This method is called once for each statement in a Gerber/Excellon
+        file when the file's `render` method is called. The evaluate method
+        should forward the statement on to the relevant handling method based
+        on the statement type.
+
+        Parameters
+        ----------
+        statement : Statement
+            Gerber/Excellon statement to evaluate.
+
+        """
         if isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
             return
 

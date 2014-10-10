@@ -53,12 +53,12 @@ class ExcellonTool(ExcellonStatement):
 
     kwargs : dict-like
         Tool settings from the excellon statement. Valid keys are:
-            diameter : Tool diameter [expressed in file units]
-            rpm : Tool RPM
-            feed_rate : Z-axis tool feed rate
-            retract_rate : Z-axis tool retraction rate
-            max_hit_count : Number of hits allowed before a tool change
-            depth_offset : Offset of tool depth from tip of tool.
+            - `diameter` : Tool diameter [expressed in file units]
+            - `rpm` : Tool RPM
+            - `feed_rate` : Z-axis tool feed rate
+            - `retract_rate` : Z-axis tool retraction rate
+            - `max_hit_count` : Number of hits allowed before a tool change
+            - `depth_offset` : Offset of tool depth from tip of tool.
 
     Attributes
     ----------
