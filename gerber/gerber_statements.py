@@ -284,9 +284,9 @@ class LPParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.lp = lp
 
-    def to_gerber(self, settings):
-        lp = 'C' if self.lp == 'clear' else 'dark'
-        return '%LP{0}*%'.format(self.lp)
+    def to_gerber(self):
+        lp = 'C' if self.lp == 'clear' else 'D'
+        return '%LP{0}*%'.format(lp)
 
     def __str__(self):
         return '<Level Polarity: %s>' % self.lp
@@ -593,6 +593,7 @@ class ApertureStmt(Statement):
 class CommentStmt(Statement):
     """ Comment Statment
     """
+
     def __init__(self, comment):
         Statement.__init__(self, "COMMENT")
         self.comment = comment
@@ -616,6 +617,7 @@ class EofStmt(Statement):
     def __str__(self):
         return '<EOF Statement>'
 
+
 class QuadrantModeStmt(Statement):
 
     @classmethod
@@ -637,6 +639,7 @@ class QuadrantModeStmt(Statement):
 
     def to_gerber(self):
         return 'G74*' if self.mode == 'single-quadrant' else 'G75*'
+
 
 class RegionModeStmt(Statement):
 
@@ -664,3 +667,6 @@ class UnknownStmt(Statement):
     def __init__(self, line):
         Statement.__init__(self, "UNKNOWN")
         self.line = line
+        
+    def to_gerber(self):
+        return self.line
