@@ -30,6 +30,7 @@ if __name__ == '__main__':
         print "parsing %s" % filename
         gerberfile = read(filename)
         gerberfile.render(ctx)
+        ctx.set_color(tuple([color * 0.4 for color in ctx.color]))
     print('Saving image to test.svg')
     ctx.dump('test.svg')
 

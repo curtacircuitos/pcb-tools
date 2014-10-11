@@ -30,6 +30,15 @@ import math
 
 def read(filename):
     """ Read data from filename and return an ExcellonFile
+    Parameters
+        ----------
+    filename : string
+        Filename of file to parse
+
+    Returns
+    -------
+    file : :class:`gerber.excellon.ExcellonFile`
+        An ExcellonFile created from the specified file.
     """
     detected_settings = detect_excellon_format(filename)
     settings = FileSettings(**detected_settings)
@@ -75,6 +84,14 @@ class ExcellonFile(CamFile):
 
     def render(self, ctx, filename=None):
         """ Generate image of file
+
+        Parameters
+        ----------
+        ctx : :class:`gerber.render.GerberContext`
+            GerberContext subclass used for rendering the image
+
+        filename : string <optional>
+            If provided, the rendered image will be saved to `filename`
         """
         for tool, pos in self.hits:
             ctx.drill(pos[0], pos[1], tool.diameter)
@@ -89,7 +106,7 @@ class ExcellonFile(CamFile):
 
 class ExcellonParser(object):
     """ Excellon File Parser
-    
+
     Parameters
     ----------
     settings : FileSettings or dict-like
@@ -129,15 +146,15 @@ class ExcellonParser(object):
                 ymin = y if y < ymin else ymin
                 ymax = y if y > ymax else ymax
         return ((xmin, xmax), (ymin, ymax))
-    
+
     @property
     def hole_sizes(self):
         return [stmt.diameter for stmt in self.statements if isinstance(stmt, ExcellonTool)]
-    
+
     @property
     def hole_count(self):
         return len(self.hits)
-    
+
     def parse(self, filename):
         with open(filename, 'r') as f:
             for line in f:
@@ -316,7 +333,7 @@ def detect_excellon_format(filename):
     # Bail out here if we got everything....
     if detected_format is not None and detected_zeros is not None:
         return {'format': detected_format, 'zero_suppression': detected_zeros}
-    
+
     # Otherwise score each option and pick the best candidate
     else:
         scores = {}
@@ -338,4 +355,3 @@ def _layer_size_score(size, hole_count, hole_area):
     hole_score = (hole_percentage - 0.25) ** 2
     size_score = (board_area - 8) **2
     return hole_score * size_score
-    

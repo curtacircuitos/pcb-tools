@@ -15,12 +15,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Gerber File module
-==================
-**Gerber File module**
-
-This module provides an RS-274-X class and parser
+""" This module provides an RS-274-X class and parser.
 """
 
 
@@ -34,6 +29,16 @@ from .cam import CamFile, FileSettings
 
 def read(filename):
     """ Read data from filename and return a GerberFile
+
+    Parameters
+    ----------
+    filename : string
+        Filename of file to parse
+
+    Returns
+    -------
+    file : :class:`gerber.gerber.GerberFile`
+        A GerberFile created from the specified file.
     """
     return GerberParser().parse(filename)
 
@@ -113,6 +118,14 @@ class GerberFile(CamFile):
 
     def render(self, ctx, filename=None):
         """ Generate image of layer.
+
+        Parameters
+        ----------
+        ctx : :class:`GerberContext`
+            GerberContext subclass used for rendering the image
+
+        filename : string <optional>
+            If provided, the rendered image will be saved to `filename`
         """
         ctx.set_bounds(self.bounds)
         for statement in self.statements:

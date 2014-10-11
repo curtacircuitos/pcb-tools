@@ -20,3 +20,8 @@ Example:
     # Create SVG image
     top_copper.render(ctx)
     nc_drill.render(ctx, 'composite.svg')
+
+
+Rendering:
+![Composite Top Image](examples/composite_top.png)
+![Composite Bottom Image](examples/composite_bottom.png)
