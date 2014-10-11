@@ -118,6 +118,7 @@ class GerberSvgContext(GerberContext):
         self.apertures = {}
         self.dwg = svgwrite.Drawing()
         self.background = False
+        self.region_path = None
 
     def set_bounds(self, bounds):
         xbounds, ybounds = bounds
@@ -125,7 +126,7 @@ class GerberSvgContext(GerberContext):
         if not self.background:
             self.dwg.add(self.dwg.rect(insert=(SCALE * xbounds[0],
                                                -SCALE * ybounds[1]),
-                                       size=size, fill="black"))
+                                       size=size, fill=convert_color(self.background_color)))
             self.background = True
 
     def define_aperture(self, d, shape, modifiers):
@@ -173,7 +174,8 @@ class GerberSvgContext(GerberContext):
         ap = self.apertures.get(self.aperture, None)
         if ap is None:
             return
-        color = (convert_color(self.color) if self.level_polarity == 'dark' 
+        
+        color = (convert_color(self.color) if self.level_polarity == 'dark'
                  else convert_color(self.background_color))
         for shape in ap.flash(self, x, y, color):
             self.dwg.add(shape)
@@ -184,6 +186,22 @@ class GerberSvgContext(GerberContext):
                               r=SCALE*(diameter/2.0),
                               fill=convert_color(self.drill_color))
         self.dwg.add(hit)
+
+    def region_contour(self, x, y):
+        super(GerberSvgContext, self).region_contour(x, y)
+        x, y = self.resolve(x, y)
+        color = (convert_color(self.color) if self.level_polarity == 'dark'
+                 else convert_color(self.background_color))
+        if self.region_path is None:
+            self.region_path = self.dwg.path(d = 'M %f, %f' %
+                                             (self.x*SCALE, -self.y*SCALE),
+                                             fill = color, stroke = 'none')
+        self.region_path.push('L %f, %f' % (x*SCALE, -y*SCALE))
+        self.move(x, y, resolve=False)
+
+    def fill_region(self):
+        self.dwg.add(self.region_path)
+        self.region_path = None
 
     def dump(self, filename):
         self.dwg.saveas(filename)
