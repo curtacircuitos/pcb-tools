@@ -5,8 +5,8 @@ gerber-tools
 
 Tools to handle Gerber and Excellon files in Python.
 
-Example:
-
+Useage Example:
+---------------
     import gerber
     from gerber.render import GerberSvgContext
 
@@ -22,6 +22,10 @@ Example:
     nc_drill.render(ctx, 'composite.svg')
 
 
-Rendering:
+Rendering Examples:
+-------------------
+###Top Composite rendering
 ![Composite Top Image](examples/composite_top.png)
+
+###Bottom Composite rendering
 ![Composite Bottom Image](examples/composite_bottom.png)
