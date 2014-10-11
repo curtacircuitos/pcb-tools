@@ -133,7 +133,12 @@ class MOParamStmt(ParamStmt):
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
-        mo = 'inch' if stmt_dict.get('mo') == 'IN' else 'metric'
+        if stmt_dict.get('mo').lower() == 'in':
+            mo = 'inch'
+        elif stmt_dict.get('mo').lower() == 'mm':
+            mo = 'metric'
+        else:
+            mo = None
         return cls(param, mo)
 
     def __init__(self, param, mo):

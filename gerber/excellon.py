@@ -24,16 +24,22 @@ This module provides Excellon file classes and parsing utilities
 
 
 from .excellon_statements import *
-from .cnc import CncFile, FileSettings
+from .cam import CamFile, FileSettings
 
+import math
 
 def read(filename):
     """ Read data from filename and return an ExcellonFile
     """
-    return ExcellonParser().parse(filename)
+    detected_settings = detect_excellon_format(filename)
+    settings = FileSettings(**detected_settings)
+    zeros = ''
+    print('Detected %d:%d format with %s zero suppression' %
+          (settings.format[0], settings.format[1], settings.zero_suppression))
+    return ExcellonParser(settings).parse(filename)
 
 
-class ExcellonFile(CncFile):
+class ExcellonFile(CamFile):
     """ A class representing a single excellon file
 
     The ExcellonFile class represents a single excellon file.
@@ -83,8 +89,13 @@ class ExcellonFile(CncFile):
 
 class ExcellonParser(object):
     """ Excellon File Parser
+    
+    Parameters
+    ----------
+    settings : FileSettings or dict-like
+        Excellon file settings to use when interpreting the excellon file.
     """
-    def __init__(self):
+    def __init__(self, settings=None):
         self.notation = 'absolute'
         self.units = 'inch'
         self.zero_suppression = 'trailing'
@@ -95,7 +106,38 @@ class ExcellonParser(object):
         self.hits = []
         self.active_tool = None
         self.pos = [0., 0.]
+        if settings is not None:
+            self.units = settings['units']
+            self.zero_suppression = settings['zero_suppression']
+            self.notation = settings['notation']
+            self.format = settings['format']
 
+
+    @property
+    def coordinates(self):
+        return [(stmt.x, stmt.y) for stmt in self.statements if isinstance(stmt, CoordinateStmt)]
+
+    @property
+    def bounds(self):
+        xmin = ymin = 100000000000
+        xmax = ymax = -100000000000
+        for x, y in self.coordinates:
+            if x is not None:
+                xmin = x if x < xmin else xmin
+                xmax = x if x > xmax else xmax
+            if y is not None:
+                ymin = y if y < ymin else ymin
+                ymax = y if y > ymax else ymax
+        return ((xmin, xmax), (ymin, ymax))
+    
+    @property
+    def hole_sizes(self):
+        return [stmt.diameter for stmt in self.statements if isinstance(stmt, ExcellonTool)]
+    
+    @property
+    def hole_count(self):
+        return len(self.hits)
+    
     def parse(self, filename):
         with open(filename, 'r') as f:
             for line in f:
@@ -194,3 +236,106 @@ class ExcellonParser(object):
         return FileSettings(units=self.units, format=self.format,
                             zero_suppression=self.zero_suppression,
                             notation=self.notation)
+
+
+def detect_excellon_format(filename):
+    """ Detect excellon file decimal format and zero-suppression settings.
+
+    Parameters
+    ----------
+    filename : string
+        Name of the file to parse. This does not check if the file is actually
+        an Excellon file, so do that before calling this.
+
+    Returns
+    -------
+    settings : dict
+        Detected excellon file settings. Keys are
+            - `format`: decimal format as tuple (<int part>, <decimal part>)
+            - `zero_suppression`: zero suppression, 'leading' or 'trailing'
+    """
+    results = {}
+    detected_zeros = None
+    detected_format = None
+    zs_options = ('leading', 'trailing', )
+    format_options = ((2, 4), (2, 5), (3, 3),)
+
+    # Check for obvious clues:
+    p = ExcellonParser()
+    p.parse(filename)
+
+    # Get zero_suppression from a unit statement
+    zero_statements = [stmt.zero_suppression for stmt in p.statements
+                       if isinstance(stmt, UnitStmt)]
+
+    # get format from altium comment
+    format_comment = [stmt.comment for stmt in p.statements
+                      if isinstance(stmt, CommentStmt)
+                      and 'FILE_FORMAT' in stmt.comment]
+
+    detected_format = (tuple([int(val) for val in
+                             format_comment[0].split('=')[1].split(':')])
+                       if len(format_comment) == 1 else None)
+    detected_zeros = zero_statements[0] if len(zero_statements) == 1 else None
+
+    # Bail out here if possible
+    if detected_format is not None and detected_zeros is not None:
+        return {'format': detected_format, 'zero_suppression': detected_zeros}
+
+    # Only look at remaining options
+    if detected_format is not None:
+        format_options = (detected_format,)
+    if detected_zeros is not None:
+        zs_options = (detected_zeros,)
+
+    # Brute force all remaining options, and pick the best looking one...
+    for zs in zs_options:
+        for fmt in format_options:
+            key = (fmt, zs)
+            settings = FileSettings(zero_suppression=zs, format=fmt)
+            try:
+                p = ExcellonParser(settings)
+                p.parse(filename)
+                size = tuple([t[1] - t[0] for t in p.bounds])
+                hole_area = 0.0
+                for hit in p.hits:
+                    tool = hit[0]
+                    hole_area += math.pow(math.pi * tool.diameter, 2)
+                results[key] = (size, p.hole_count, hole_area)
+            except:
+                pass
+
+    # See if any of the dimensions are left with only a single option
+    formats = set(key[0] for key in results.iterkeys())
+    zeros = set(key[1] for key in results.iterkeys())
+    if len(formats) == 1:
+        detected_format = formats.pop()
+    if len(zeros) == 1:
+        detected_zeros = zeros.pop()
+
+    # Bail out here if we got everything....
+    if detected_format is not None and detected_zeros is not None:
+        return {'format': detected_format, 'zero_suppression': detected_zeros}
+    
+    # Otherwise score each option and pick the best candidate
+    else:
+        scores = {}
+        for key in results.keys():
+            size, count, diameter = results[key]
+            scores[key] = _layer_size_score(size, count, diameter)
+        minscore = min(scores.values())
+        for key in scores.iterkeys():
+            if scores[key] == minscore:
+                return {'format': key[0], 'zero_suppression': key[1]}
+
+
+def _layer_size_score(size, hole_count, hole_area):
+    """ Heuristic used for determining the correct file number interpretation.
+    Lower is better.
+    """
+    board_area = size[0] * size[1]
+    hole_percentage = hole_area / board_area
+    hole_score = (hole_percentage - 0.25) ** 2
+    size_score = (board_area - 8) **2
+    return hole_score * size_score
+    

@@ -8,7 +8,7 @@ from ..gerber_statements import *
 
 
 def test_FSParamStmt_factory():
-    """ Test FSParamStruct factory correctly handles parameters
+    """ Test FSParamStruct factory
     """
     stmt = {'param': 'FS', 'zero': 'L', 'notation': 'A', 'x': '27'}
     fs = FSParamStmt.from_dict(stmt)
@@ -24,6 +24,18 @@ def test_FSParamStmt_factory():
     assert_equal(fs.notation, 'incremental')
     assert_equal(fs.format, (2, 7))
 
+def test_FSParamStmt():
+    """ Test FSParamStmt initialization
+    """
+    param = 'FS'
+    zeros = 'trailing'
+    notation = 'absolute'
+    fmt = (2, 5)
+    stmt = FSParamStmt(param, zeros, notation, fmt)
+    assert_equal(stmt.param, param)
+    assert_equal(stmt.zero_suppression, zeros)
+    assert_equal(stmt.notation, notation)
+    assert_equal(stmt.format, fmt)
 
 def test_FSParamStmt_dump():
     """ Test FSParamStmt to_gerber()
@@ -38,17 +50,31 @@ def test_FSParamStmt_dump():
 
 
 def test_MOParamStmt_factory():
-    """ Test MOParamStruct factory correctly handles parameters
+    """ Test MOParamStruct factory
     """
-    stmt = {'param': 'MO', 'mo': 'IN'}
-    mo = MOParamStmt.from_dict(stmt)
-    assert_equal(mo.param, 'MO')
-    assert_equal(mo.mode, 'inch')
+    stmts = [{'param': 'MO', 'mo': 'IN'}, {'param': 'MO', 'mo': 'in'}, ]
+    for stmt in stmts:
+        mo = MOParamStmt.from_dict(stmt)
+        assert_equal(mo.param, 'MO')
+        assert_equal(mo.mode, 'inch')
 
-    stmt = {'param': 'MO', 'mo': 'MM'}
-    mo = MOParamStmt.from_dict(stmt)
-    assert_equal(mo.param, 'MO')
-    assert_equal(mo.mode, 'metric')
+    stmts = [{'param': 'MO', 'mo': 'MM'}, {'param': 'MO', 'mo': 'mm'}, ]
+    for stmt in stmts:
+        mo = MOParamStmt.from_dict(stmt)
+        assert_equal(mo.param, 'MO')
+        assert_equal(mo.mode, 'metric')
+
+def test_MOParamStmt():
+    """ Test MOParamStmt initialization
+    """
+    param = 'MO'
+    mode = 'inch'
+    stmt = MOParamStmt(param, mode)
+    assert_equal(stmt.param, param)
+
+    for mode in ['inch', 'metric']:
+        stmt = MOParamStmt(param, mode)
+        assert_equal(stmt.mode, mode)
 
 
 def test_MOParamStmt_dump():
@@ -64,7 +90,7 @@ def test_MOParamStmt_dump():
 
 
 def test_IPParamStmt_factory():
-    """ Test IPParamStruct factory correctly handles parameters
+    """ Test IPParamStruct factory
     """
     stmt = {'param': 'IP', 'ip': 'POS'}
     ip = IPParamStmt.from_dict(stmt)
@@ -73,6 +99,15 @@ def test_IPParamStmt_factory():
     stmt = {'param': 'IP', 'ip': 'NEG'}
     ip = IPParamStmt.from_dict(stmt)
     assert_equal(ip.ip, 'negative')
+
+def test_IPParamStmt():
+    """ Test IPParamStmt initialization
+    """
+    param = 'IP'
+    for ip in ['positive', 'negative']:
+        stmt = IPParamStmt(param, ip)
+        assert_equal(stmt.param, param)
+        assert_equal(stmt.ip, ip)
 
 
 def test_IPParamStmt_dump():
@@ -88,14 +123,23 @@ def test_IPParamStmt_dump():
 
 
 def test_OFParamStmt_factory():
-    """ Test OFParamStmt factory correctly handles parameters
+    """ Test OFParamStmt factory 
     """
     stmt = {'param': 'OF', 'a': '0.1234567', 'b': '0.1234567'}
     of = OFParamStmt.from_dict(stmt)
     assert_equal(of.a, 0.1234567)
     assert_equal(of.b, 0.1234567)
 
-
+def test_OFParamStmt():
+    """ Test IPParamStmt initialization
+    """
+    param = 'OF'
+    for val in [0.0, -3.4567]:
+        stmt = OFParamStmt(param, val, val)
+        assert_equal(stmt.param, param)
+        assert_equal(stmt.a, val)
+        assert_equal(stmt.b, val)
+    
 def test_OFParamStmt_dump():
     """ Test OFParamStmt to_gerber()
     """
@@ -105,7 +149,7 @@ def test_OFParamStmt_dump():
 
 
 def test_LPParamStmt_factory():
-    """ Test LPParamStmt factory correctly handles parameters
+    """ Test LPParamStmt factory
     """
     stmt = {'param': 'LP', 'lp': 'C'}
     lp = LPParamStmt.from_dict(stmt)
@@ -128,7 +172,7 @@ def test_LPParamStmt_dump():
 
 
 def test_INParamStmt_factory():
-    """ Test INParamStmt factory correctly handles parameters
+    """ Test INParamStmt factory
     """
     stmt = {'param': 'IN', 'name': 'test'}
     inp = INParamStmt.from_dict(stmt)
@@ -143,7 +187,7 @@ def test_INParamStmt_dump():
 
 
 def test_LNParamStmt_factory():
-    """ Test LNParamStmt factory correctly handles parameters
+    """ Test LNParamStmt factory
     """
     stmt = {'param': 'LN', 'name': 'test'}
     lnp = LNParamStmt.from_dict(stmt)

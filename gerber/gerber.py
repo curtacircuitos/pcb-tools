@@ -27,7 +27,7 @@ This module provides an RS-274-X class and parser
 import re
 import json
 from .gerber_statements import *
-from .cnc import CncFile, FileSettings
+from .cam import CamFile, FileSettings
 
 
 
@@ -38,7 +38,7 @@ def read(filename):
     return GerberParser().parse(filename)
 
 
-class GerberFile(CncFile):
+class GerberFile(CamFile):
     """ A class representing a single gerber file
 
     The GerberFile class represents a single gerber file.
