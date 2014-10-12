@@ -30,12 +30,12 @@ def read(filename):
         CncFile object representing the file, either GerberFile or
         ExcellonFile. Returns None if file is not an Excellon or Gerber file.
     """
-    import gerber
+    import rs274x
     import excellon
     from utils import detect_file_format
     fmt = detect_file_format(filename)
     if fmt == 'rs274x':
-        return gerber.read(filename)
+        return rs274x.read(filename)
     elif fmt == 'excellon':
         return excellon.read(filename)
     else:

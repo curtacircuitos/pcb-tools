@@ -83,6 +83,9 @@ class GerberContext(object):
     background_color : tuple (<float>, <float>, <float>)
         Color of the background. Used when exposing areas in 'clear' level
         polarity mode. Format is the same as for `color`.
+
+    alpha : float
+        Rendering opacity. Between 0.0 (transparent) and 1.0 (opaque.)
     """
     def __init__(self):
         self.settings = {}
@@ -100,7 +103,8 @@ class GerberContext(object):
         self.color = (0.7215, 0.451, 0.200)
         self.drill_color = (0.25, 0.25, 0.25)
         self.background_color = (0.0, 0.0, 0.0)
-
+        self.alpha = 1.0
+        
     def set_format(self, settings):
         """ Set source file format.
 
@@ -259,6 +263,19 @@ class GerberContext(object):
             represented as a float value in (0, 1)
         """
         self.background_color = color
+
+    def set_alpha(self, alpha):
+        """ Set layer rendering opacity
+
+        .. note::
+            Not all backends/rendering devices support this parameter.
+
+        Parameters
+        ----------
+        alpha : float
+            Rendering opacity. must be between 0.0 (transparent) and 1.0 (opaque)
+        """
+        self.alpha = alpha
 
     def resolve(self, x, y):
         """ Resolve missing x or y coordinates in a coordinate command.

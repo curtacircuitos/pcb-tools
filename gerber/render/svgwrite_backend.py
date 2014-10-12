@@ -117,6 +117,7 @@ class GerberSvgContext(GerberContext):
 
         self.apertures = {}
         self.dwg = svgwrite.Drawing()
+        self.dwg.transform = 'scale 1 -1'
         self.background = False
         self.region_path = None
 
@@ -124,10 +125,16 @@ class GerberSvgContext(GerberContext):
         xbounds, ybounds = bounds
         size = (SCALE * (xbounds[1] - xbounds[0]), SCALE * (ybounds[1] - ybounds[0]))
         if not self.background:
+            self.dwg = svgwrite.Drawing(viewBox='%f, %f, %f, %f' % (SCALE*xbounds[0], -SCALE*ybounds[1],size[0], size[1]))
             self.dwg.add(self.dwg.rect(insert=(SCALE * xbounds[0],
                                                -SCALE * ybounds[1]),
                                        size=size, fill=convert_color(self.background_color)))
             self.background = True
+
+    def set_alpha(self, alpha):
+        super(GerberSvgContext, self).set_alpha(alpha)
+        import warnings
+        warnings.warn('SVG output does not support transparency')
 
     def define_aperture(self, d, shape, modifiers):
         aperture = None

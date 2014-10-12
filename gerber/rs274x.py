@@ -37,7 +37,7 @@ def read(filename):
 
     Returns
     -------
-    file : :class:`gerber.gerber.GerberFile`
+    file : :class:`gerber.rs274x.GerberFile`
         A GerberFile created from the specified file.
     """
     return GerberParser().parse(filename)
@@ -91,23 +91,18 @@ class GerberFile(CamFile):
         ybounds = [0.0, 0.0]
         for stmt in [stmt for stmt in self.statements
                      if isinstance(stmt, CoordStmt)]:
-            if stmt.x is not None and stmt.x < xbounds[0]:
-                xbounds[0] = stmt.x
-            if stmt.x is not None and stmt.x > xbounds[1]:
-                xbounds[1] = stmt.x
-            if stmt.i is not None and stmt.i < xbounds[0]:
-                xbounds[0] = stmt.i
-            if stmt.i is not None and stmt.i > xbounds[1]:
-                xbounds[1] = stmt.i
-            if stmt.y is not None and stmt.y < ybounds[0]:
-                ybounds[0] = stmt.y
-            if stmt.y is not None and stmt.y > ybounds[1]:
-                ybounds[1] = stmt.y
-            if stmt.j is not None and stmt.j < ybounds[0]:
-                ybounds[0] = stmt.j
-            if stmt.j is not None and stmt.j > ybounds[1]:
-                ybounds[1] = stmt.j
+            if stmt.x is not None:
+                if stmt.x < xbounds[0]:
+                    xbounds[0] = stmt.x
+                elif stmt.x > xbounds[1]:
+                    xbounds[1] = stmt.x
+            if stmt.y is not None:
+                if stmt.y < ybounds[0]:
+                    ybounds[0] = stmt.y
+                elif stmt.y > ybounds[1]:
+                    ybounds[1] = stmt.y
         return (xbounds, ybounds)
+
 
     def write(self, filename):
         """ Write data out to a gerber file

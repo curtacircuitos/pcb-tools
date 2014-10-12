@@ -39,6 +39,7 @@ def read(filename):
     -------
     file : :class:`gerber.excellon.ExcellonFile`
         An ExcellonFile created from the specified file.
+
     """
     detected_settings = detect_excellon_format(filename)
     settings = FileSettings(**detected_settings)
@@ -317,7 +318,7 @@ def detect_excellon_format(filename):
                 hole_area = 0.0
                 for hit in p.hits:
                     tool = hit[0]
-                    hole_area += math.pow(math.pi * tool.diameter, 2)
+                    hole_area += math.pow(math.pi * tool.diameter / 2., 2)
                 results[key] = (size, p.hole_count, hole_area)
             except:
                 pass
