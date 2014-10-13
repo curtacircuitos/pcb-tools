@@ -15,16 +15,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-gerber.cnc
+CAM File
 ============
-**CNC file classes**
+**AM file classes**
 
 This module provides common base classes for Excellon/Gerber CNC files
 """
 
 
 class FileSettings(object):
-    """ CNC File Settings
+    """ CAM File Settings
 
     Provides a common representation of gerber/excellon file settings
     """
@@ -60,7 +60,7 @@ class FileSettings(object):
             raise KeyError()
 
 
-class CncFile(object):
+class CamFile(object):
     """ Base class for Gerber/Excellon files.
 
     Provides a common set of settings parameters.
@@ -71,7 +71,10 @@ class CncFile(object):
         The current file configuration.
 
     filename : string
-        Name of the file that this CncFile represents.
+        Name of the file that this CamFile represents.
+
+    layer_name : string
+        Name of the PCB layer that the file represents
 
     Attributes
     ----------
@@ -92,7 +95,8 @@ class CncFile(object):
         decimal digits)
     """
 
-    def __init__(self, statements=None, settings=None, filename=None):
+    def __init__(self, statements=None, settings=None, filename=None,
+                 layer_name=None):
         if settings is not None:
             self.notation = settings['notation']
             self.units = settings['units']
@@ -105,6 +109,7 @@ class CncFile(object):
             self.format = (2, 5)
         self.statements = statements if statements is not None else []
         self.filename = filename
+        self.layer_name = layer_name
 
     @property
     def settings(self):

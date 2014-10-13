@@ -3,7 +3,7 @@
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
-from ..cnc import CncFile, FileSettings
+from ..cam import CamFile, FileSettings
 from tests import *
 
 
@@ -46,5 +46,5 @@ def test_filesettings_assign():
     assert_equal(fs.zero_suppression, 'test')
     assert_equal(fs.format, 'test')
 
-    def test_smoke_cncfile():
-        pass
+def test_smoke_camfile():
+    cf = CamFile

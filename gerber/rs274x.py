@@ -15,30 +15,35 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-Gerber File module
-==================
-**Gerber File module**
-
-This module provides an RS-274-X class and parser
+""" This module provides an RS-274-X class and parser.
 """
 
 
 import re
 import json
 from .gerber_statements import *
-from .cnc import CncFile, FileSettings
+from .cam import CamFile, FileSettings
 
 
 
 
 def read(filename):
     """ Read data from filename and return a GerberFile
+
+    Parameters
+    ----------
+    filename : string
+        Filename of file to parse
+
+    Returns
+    -------
+    file : :class:`gerber.rs274x.GerberFile`
+        A GerberFile created from the specified file.
     """
     return GerberParser().parse(filename)
 
 
-class GerberFile(CncFile):
+class GerberFile(CamFile):
     """ A class representing a single gerber file
 
     The GerberFile class represents a single gerber file.
@@ -86,23 +91,18 @@ class GerberFile(CncFile):
         ybounds = [0.0, 0.0]
         for stmt in [stmt for stmt in self.statements
                      if isinstance(stmt, CoordStmt)]:
-            if stmt.x is not None and stmt.x < xbounds[0]:
-                xbounds[0] = stmt.x
-            if stmt.x is not None and stmt.x > xbounds[1]:
-                xbounds[1] = stmt.x
-            if stmt.i is not None and stmt.i < xbounds[0]:
-                xbounds[0] = stmt.i
-            if stmt.i is not None and stmt.i > xbounds[1]:
-                xbounds[1] = stmt.i
-            if stmt.y is not None and stmt.y < ybounds[0]:
-                ybounds[0] = stmt.y
-            if stmt.y is not None and stmt.y > ybounds[1]:
-                ybounds[1] = stmt.y
-            if stmt.j is not None and stmt.j < ybounds[0]:
-                ybounds[0] = stmt.j
-            if stmt.j is not None and stmt.j > ybounds[1]:
-                ybounds[1] = stmt.j
+            if stmt.x is not None:
+                if stmt.x < xbounds[0]:
+                    xbounds[0] = stmt.x
+                elif stmt.x > xbounds[1]:
+                    xbounds[1] = stmt.x
+            if stmt.y is not None:
+                if stmt.y < ybounds[0]:
+                    ybounds[0] = stmt.y
+                elif stmt.y > ybounds[1]:
+                    ybounds[1] = stmt.y
         return (xbounds, ybounds)
+
 
     def write(self, filename):
         """ Write data out to a gerber file
@@ -113,6 +113,14 @@ class GerberFile(CncFile):
 
     def render(self, ctx, filename=None):
         """ Generate image of layer.
+
+        Parameters
+        ----------
+        ctx : :class:`GerberContext`
+            GerberContext subclass used for rendering the image
+
+        filename : string <optional>
+            If provided, the rendered image will be saved to `filename`
         """
         ctx.set_bounds(self.bounds)
         for statement in self.statements:

@@ -3,37 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to Gerber Tools's documentation!
+Gerber-Tools!
 ========================================
 
 Contents:
 
 .. toctree::
-   :maxdepth: 2
-
-.. automodule:: gerber
-    :members:
-   
-.. automodule:: gerber.gerber
-    :members:
-
-.. automodule:: gerber.excellon
-    :members:
-
-.. automodule:: gerber.render.render
-    :members:
-
-.. automodule:: gerber.gerber_statements
-    :members:
+    :maxdepth: 1
     
-.. automodule:: gerber.excellon_statements
-    :members:
-    
-.. automodule:: gerber.cnc
-    :members:
-    
-.. automodule:: gerber.utils
-    :members:
+    intro
+    documentation/index
 
 Indices and tables
 ==================

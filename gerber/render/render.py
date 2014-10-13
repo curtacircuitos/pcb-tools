@@ -83,6 +83,9 @@ class GerberContext(object):
     background_color : tuple (<float>, <float>, <float>)
         Color of the background. Used when exposing areas in 'clear' level
         polarity mode. Format is the same as for `color`.
+
+    alpha : float
+        Rendering opacity. Between 0.0 (transparent) and 1.0 (opaque.)
     """
     def __init__(self):
         self.settings = {}
@@ -96,11 +99,12 @@ class GerberContext(object):
         self.level_polarity = 'dark'
         self.region_mode = 'off'
         self.quadrant_mode = 'multi-quadrant'
-
+        self.step_and_repeat = (1, 1, 0, 0)
         self.color = (0.7215, 0.451, 0.200)
         self.drill_color = (0.25, 0.25, 0.25)
         self.background_color = (0.0, 0.0, 0.0)
-
+        self.alpha = 1.0
+        
     def set_format(self, settings):
         """ Set source file format.
 
@@ -260,6 +264,19 @@ class GerberContext(object):
         """
         self.background_color = color
 
+    def set_alpha(self, alpha):
+        """ Set layer rendering opacity
+
+        .. note::
+            Not all backends/rendering devices support this parameter.
+
+        Parameters
+        ----------
+        alpha : float
+            Rendering opacity. must be between 0.0 (transparent) and 1.0 (opaque)
+        """
+        self.alpha = alpha
+
     def resolve(self, x, y):
         """ Resolve missing x or y coordinates in a coordinate command.
 
@@ -415,6 +432,12 @@ class GerberContext(object):
         """
         pass
 
+    def region_contour(self, x, y):
+        pass
+    
+    def fill_region(self):
+        pass
+    
     def evaluate(self, stmt):
         """ Evaluate Gerber statement and update image accordingly.
 
@@ -450,7 +473,7 @@ class GerberContext(object):
     def _evaluate_mode(self, stmt):
         if stmt.type == 'RegionMode':
             if self.region_mode == 'on' and stmt.mode == 'off':
-                self._fill_region()
+                self.fill_region()
             self.region_mode = stmt.mode
         elif stmt.type == 'QuadrantMode':
             self.quadrant_mode = stmt.mode
@@ -460,11 +483,11 @@ class GerberContext(object):
             self.set_coord_format(stmt.zero_suppression, stmt.format,
                                   stmt.notation)
             self.set_coord_notation(stmt.notation)
-        elif stmt.param == "MO:":
+        elif stmt.param == "MO":
             self.set_coord_unit(stmt.mode)
-        elif stmt.param == "IP:":
+        elif stmt.param == "IP":
             self.set_image_polarity(stmt.ip)
-        elif stmt.param == "LP:":
+        elif stmt.param == "LP":
             self.set_level_polarity(stmt.lp)
         elif stmt.param == "AD":
             self.define_aperture(stmt.d, stmt.shape, stmt.modifiers)
@@ -477,7 +500,10 @@ class GerberContext(object):
             self.direction = ('clockwise' if stmt.function in ('G02', 'G2')
                               else 'counterclockwise')
         if stmt.op == "D01":
-            self.stroke(stmt.x, stmt.y, stmt.i, stmt.j)
+            if self.region_mode == 'on':
+                self.region_contour(stmt.x, stmt.y)
+            else:
+                self.stroke(stmt.x, stmt.y, stmt.i, stmt.j)
         elif stmt.op == "D02":
             self.move(stmt.x, stmt.y)
         elif stmt.op == "D03":
@@ -486,5 +512,3 @@ class GerberContext(object):
     def _evaluate_aperture(self, stmt):
         self.set_aperture(stmt.d)
 
-    def _fill_region(self):
-        pass

@@ -17,9 +17,9 @@ __all__ = ['FSParamStmt', 'MOParamStmt', 'IPParamStmt', 'OFParamStmt',
 
 class Statement(object):
     """ Gerber statement Base class
-    
+
     The statement class provides a type attribute.
-    
+
     Parameters
     ----------
     type : string
@@ -27,7 +27,7 @@ class Statement(object):
 
     Attributes
     ----------
-    type : string 
+    type : string
         String identifying the statement type.
     """
     def __init__(self, stype):
@@ -45,9 +45,9 @@ class Statement(object):
 
 class ParamStmt(Statement):
     """ Gerber parameter statement Base class
-    
+
     The parameter statement class provides a parameter type attribute.
-    
+
     Parameters
     ----------
     param : string
@@ -55,7 +55,7 @@ class ParamStmt(Statement):
 
     Attributes
     ----------
-    param : string 
+    param : string
         Parameter type code
     """
     def __init__(self, param):
@@ -133,7 +133,12 @@ class MOParamStmt(ParamStmt):
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
-        mo = 'inch' if stmt_dict.get('mo') == 'IN' else 'metric'
+        if stmt_dict.get('mo').lower() == 'in':
+            mo = 'inch'
+        elif stmt_dict.get('mo').lower() == 'mm':
+            mo = 'metric'
+        else:
+            mo = None
         return cls(param, mo)
 
     def __init__(self, param, mo):
@@ -260,7 +265,7 @@ class LPParamStmt(ParamStmt):
 
     @classmethod
     def from_dict(cls, stmt_dict):
-        param = stmt_dict.get('lp')
+        param = stmt_dict['param']
         lp = 'clear' if stmt_dict.get('lp') == 'C' else 'dark'
         return cls(param, lp)
 
@@ -667,6 +672,6 @@ class UnknownStmt(Statement):
     def __init__(self, line):
         Statement.__init__(self, "UNKNOWN")
         self.line = line
-        
+
     def to_gerber(self):
         return self.line

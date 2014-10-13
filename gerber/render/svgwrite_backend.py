@@ -117,16 +117,24 @@ class GerberSvgContext(GerberContext):
 
         self.apertures = {}
         self.dwg = svgwrite.Drawing()
+        self.dwg.transform = 'scale 1 -1'
         self.background = False
+        self.region_path = None
 
     def set_bounds(self, bounds):
         xbounds, ybounds = bounds
         size = (SCALE * (xbounds[1] - xbounds[0]), SCALE * (ybounds[1] - ybounds[0]))
         if not self.background:
+            self.dwg = svgwrite.Drawing(viewBox='%f, %f, %f, %f' % (SCALE*xbounds[0], -SCALE*ybounds[1],size[0], size[1]))
             self.dwg.add(self.dwg.rect(insert=(SCALE * xbounds[0],
                                                -SCALE * ybounds[1]),
-                                       size=size, fill="black"))
+                                       size=size, fill=convert_color(self.background_color)))
             self.background = True
+
+    def set_alpha(self, alpha):
+        super(GerberSvgContext, self).set_alpha(alpha)
+        import warnings
+        warnings.warn('SVG output does not support transparency')
 
     def define_aperture(self, d, shape, modifiers):
         aperture = None
@@ -173,7 +181,8 @@ class GerberSvgContext(GerberContext):
         ap = self.apertures.get(self.aperture, None)
         if ap is None:
             return
-        color = (convert_color(self.color) if self.level_polarity == 'dark' 
+        
+        color = (convert_color(self.color) if self.level_polarity == 'dark'
                  else convert_color(self.background_color))
         for shape in ap.flash(self, x, y, color):
             self.dwg.add(shape)
@@ -184,6 +193,22 @@ class GerberSvgContext(GerberContext):
                               r=SCALE*(diameter/2.0),
                               fill=convert_color(self.drill_color))
         self.dwg.add(hit)
+
+    def region_contour(self, x, y):
+        super(GerberSvgContext, self).region_contour(x, y)
+        x, y = self.resolve(x, y)
+        color = (convert_color(self.color) if self.level_polarity == 'dark'
+                 else convert_color(self.background_color))
+        if self.region_path is None:
+            self.region_path = self.dwg.path(d = 'M %f, %f' %
+                                             (self.x*SCALE, -self.y*SCALE),
+                                             fill = color, stroke = 'none')
+        self.region_path.push('L %f, %f' % (x*SCALE, -y*SCALE))
+        self.move(x, y, resolve=False)
+
+    def fill_region(self):
+        self.dwg.add(self.region_path)
+        self.region_path = None
 
     def dump(self, filename):
         self.dwg.saveas(filename)
