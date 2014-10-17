@@ -262,7 +262,7 @@ class GerberParser(object):
 
         for i, line in enumerate(data):
             line = oldline + line.strip()
-        
+
             # skip empty lines
             if not len(line):
                 continue
@@ -287,7 +287,7 @@ class GerberParser(object):
                 (aperture, r) = self._match_one(self.APERTURE_STMT, line)
                 if aperture:
                     yield ApertureStmt(**aperture)
-                    
+
                     did_something = True
                     line = r
                     continue
@@ -334,7 +334,7 @@ class GerberParser(object):
                     did_something = True
                     line = r
                     continue
-                
+
                 if False:
                     print self.COORD_STMT.pattern
                     print self.APERTURE_STMT.pattern
@@ -345,6 +345,10 @@ class GerberParser(object):
 
                 if line.find('*') > 0:
                     yield UnknownStmt(line)
+                    did_something = True
+                    line = ""
+                    continue
+
             oldline = line
 
     def _match_one(self, expr, data):
