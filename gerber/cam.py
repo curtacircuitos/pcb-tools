@@ -70,6 +70,9 @@ class CamFile(object):
     settings : FileSettings
         The current file configuration.
 
+    primitives : iterable
+        List of primitives in the file.
+
     filename : string
         Name of the file that this CamFile represents.
 
@@ -95,8 +98,8 @@ class CamFile(object):
         decimal digits)
     """
 
-    def __init__(self, statements=None, settings=None, filename=None,
-                 layer_name=None):
+    def __init__(self, statements=None, settings=None, primitives=None,
+                 filename=None, layer_name=None):
         if settings is not None:
             self.notation = settings['notation']
             self.units = settings['units']
@@ -108,6 +111,7 @@ class CamFile(object):
             self.zero_suppression = 'trailing'
             self.format = (2, 5)
         self.statements = statements if statements is not None else []
+        self.primitives = primitives
         self.filename = filename
         self.layer_name = layer_name
 
@@ -122,3 +126,20 @@ class CamFile(object):
         """
         return FileSettings(self.notation, self.units, self.zero_suppression,
                             self.format)
+
+    def render(self, ctx, filename=None):
+        """ Generate image of layer.
+
+        Parameters
+        ----------
+        ctx : :class:`GerberContext`
+            GerberContext subclass used for rendering the image
+
+        filename : string <optional>
+            If provided, save the rendered image to `filename`
+        """
+        ctx.set_bounds(self.bounds)
+        for p in self.primitives:
+            ctx.render(p)
+        if filename is not None:
+            ctx.dump(filename)

@@ -24,21 +24,22 @@ bottom_coppper_name = ['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', ]
 internal_layer_ext = ['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1', 
                       'g2', 'g3', 'g4', 'g5', 'g6', ]
 internal_layer_name = ['art', 'internal']
+
 power_plane_name = ['pgp', 'pwr', ]
 ground_plane_name = ['gp1', 'gp2', 'gp3', 'gp4', 'gt5', 'gp6', 'gnd', 
                      'ground', ]
 
-top_silk_ext = ['gto', 'ts', 'skt', ]
-top_silk_name = ['sst01', 'topsilk, 'silk', 'slk', 'sst', ]
+top_silk_ext = ['gto', 'sst', 'plc', 'ts', 'skt', ]
+top_silk_name = ['sst01', 'topsilk', 'silk', 'slk', 'sst', ]
 
-bottom_silk_ext = ['gbo, 'bs', 'skb', ]
+bottom_silk_ext = ['gbo', 'ssb', 'pls', 'bs', 'skb', ]
 bottom_silk_name = ['sst', 'bsilk', 'ssb', 'botsilk', ]
 
-top_mask_ext = ['gts', 'tmk', 'smt', 'tr', ]
+top_mask_ext = ['gts', 'stc', 'tmk', 'smt', 'tr', ]
 top_mask_name = ['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask', 
                  'mst', ]
 
-bottom_mask_ext = ['gbs', bmk', 'smb', 'br', ]
+bottom_mask_ext = ['gbs', 'sts', 'bmk', 'smb', 'br', ]
 bottom_mask_name = ['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', ]
 
 top_paste_ext = ['gtp', 'tm']
@@ -49,3 +50,5 @@ bottom_paste_name = ['sp02', 'botpaste', 'psb']
 
 board_outline_ext = ['gko']
 board_outline_name = ['BDR', 'border', 'out', ]
+
+

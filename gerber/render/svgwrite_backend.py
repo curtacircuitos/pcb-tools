@@ -17,214 +17,139 @@
 # limitations under the License.
 
 from .render import GerberContext
-from .apertures import Circle, Rect, Obround, Polygon
+from operator import mul
 import svgwrite
 
 SCALE = 300
 
 
-def convert_color(color):
+def svg_color(color):
     color = tuple([int(ch * 255) for ch in color])
     return  'rgb(%d, %d, %d)' % color
-
-class SvgCircle(Circle):
-    def line(self, ctx, x, y, color='rgb(184, 115, 51)', alpha=1.0):
-        aline =  ctx.dwg.line(start=(ctx.x * SCALE, -ctx.y * SCALE),
-                              end=(x * SCALE, -y * SCALE),
-                              stroke=color,
-                              stroke_width=SCALE * self.diameter,
-                              stroke_linecap="round")
-        aline.stroke(opacity=alpha)
-        return aline
-        
-    def arc(self, ctx, x, y, i, j, direction, color='rgb(184, 115, 51)', alpha=1.0):
-        pass
-
-    def flash(self, ctx, x, y, color='rgb(184, 115, 51)', alpha=1.0):
-        circle = ctx.dwg.circle(center=(x * SCALE, -y * SCALE),
-                               r = SCALE * (self.diameter / 2.0),
-                               fill=color)
-        circle.fill(opacity=alpha)
-        return [circle, ]
-
-
-class SvgRect(Rect):
-    def line(self, ctx, x, y, color='rgb(184, 115, 51)', alpha=1.0):
-        aline = ctx.dwg.line(start=(ctx.x * SCALE, -ctx.y * SCALE),
-                            end=(x * SCALE, -y * SCALE),
-                            stroke=color, stroke_width=2,
-                            stroke_linecap="butt")
-        aline.stroke(opacity=alpha)
-        return aline
-
-    def flash(self, ctx, x, y, color='rgb(184, 115, 51)', alpha=1.0):
-        xsize, ysize = self.size
-        rectangle = ctx.dwg.rect(insert=(SCALE * (x - (xsize / 2)),
-                                     -SCALE * (y + (ysize / 2))),
-                             size=(SCALE * xsize, SCALE * ysize),
-                             fill=color)
-        rectangle.fill(opacity=alpha)
-        return [rectangle, ]
-
-
-class SvgObround(Obround):
-    def line(self, ctx, x, y, color='rgb(184, 115, 51)', alpha=1.0):
-        pass
-
-    def flash(self, ctx, x, y, color='rgb(184, 115, 51)', alpha=1.0):
-        xsize, ysize = self.size
-
-        # horizontal obround
-        if xsize == ysize:
-            circle = ctx.dwg.circle(center=(x * SCALE, -y * SCALE),
-                                   r = SCALE * (x / 2.0),
-                                   fill=color)
-            circle.fill(opacity=alpha)
-            return [circle, ]
-        if xsize > ysize:
-            rectx = xsize - ysize
-            recty = ysize
-            lcircle = ctx.dwg.circle(center=((x - (rectx / 2.0)) * SCALE,
-                                             -y * SCALE),
-                                     r = SCALE * (ysize / 2.0),
-                                     fill=color)
-
-            rcircle = ctx.dwg.circle(center=((x + (rectx / 2.0)) * SCALE,
-                                             -y * SCALE),
-                                     r = SCALE * (ysize / 2.0),
-                                     fill=color)
-
-            rect = ctx.dwg.rect(insert=(SCALE * (x - (xsize / 2.)),
-                                        -SCALE * (y + (ysize / 2.))),
-                                size=(SCALE * xsize, SCALE * ysize),
-                                fill=color)
-            lcircle.fill(opacity=alpha)
-            rcircle.fill(opacity=alpha)
-            rect.fill(opacity=alpha)
-            return [lcircle, rcircle, rect, ]
-
-        # Vertical obround
-        else:
-            rectx = xsize
-            recty = ysize - xsize
-            lcircle = ctx.dwg.circle(center=(x * SCALE,
-                                            (y - (recty / 2.)) * -SCALE),
-                                     r = SCALE * (xsize / 2.),
-                                     fill=color)
-
-            ucircle = ctx.dwg.circle(center=(x * SCALE,
-                                             (y + (recty / 2.)) * -SCALE),
-                                     r = SCALE * (xsize / 2.),
-                                     fill=color)
-
-            rect = ctx.dwg.rect(insert=(SCALE * (x - (xsize / 2.)),
-                                        -SCALE * (y + (ysize / 2.))),
-                                size=(SCALE * xsize, SCALE * ysize),
-                                fill=color)
-            lcircle.fill(opacity=alpha)
-            ucircle.fill(opacity=alpha)
-            rect.fill(opacity=alpha)
-            return [lcircle, ucircle, rect, ]
 
 
 class GerberSvgContext(GerberContext):
     def __init__(self):
         GerberContext.__init__(self)
-
-        self.apertures = {}
+        self.scale = (SCALE, -SCALE)
         self.dwg = svgwrite.Drawing()
-        self.dwg.transform = 'scale 1 -1'
         self.background = False
-        self.region_path = None
-
-    def set_bounds(self, bounds):
-        xbounds, ybounds = bounds
-        size = (SCALE * (xbounds[1] - xbounds[0]), SCALE * (ybounds[1] - ybounds[0]))
-        if not self.background:
-            self.dwg = svgwrite.Drawing(viewBox='%f, %f, %f, %f' % (SCALE*xbounds[0], -SCALE*ybounds[1],size[0], size[1]))
-            self.dwg.add(self.dwg.rect(insert=(SCALE * xbounds[0],
-                                               -SCALE * ybounds[1]),
-                                       size=size, fill=convert_color(self.background_color)))
-            self.background = True
-
-    def define_aperture(self, d, shape, modifiers):
-        aperture = None
-        if shape == 'C':
-            aperture = SvgCircle(diameter=float(modifiers[0][0]))
-        elif shape == 'R':
-            aperture = SvgRect(size=modifiers[0][0:2])
-        elif shape == 'O':
-            aperture = SvgObround(size=modifiers[0][0:2])
-        self.apertures[d] = aperture
-
-    def stroke(self, x, y, i, j):
-        super(GerberSvgContext, self).stroke(x, y, i, j)
-
-        if self.interpolation == 'linear':
-            self.line(x, y)
-        elif self.interpolation == 'arc':
-            self.arc(x, y, i, j)
-
-    def line(self, x, y):
-        super(GerberSvgContext, self).line(x, y)
-        x, y = self.resolve(x, y)
-        ap = self.apertures.get(self.aperture, None)
-        if ap is None:
-            return
-        color = (convert_color(self.color) if self.level_polarity == 'dark' 
-                 else convert_color(self.background_color))
-        alpha = self.alpha if self.level_polarity == 'dark' else 1.0
-        self.dwg.add(ap.line(self, x, y, color, alpha))
-        self.move(x, y, resolve=False)
-
-    def arc(self, x, y, i, j):
-        super(GerberSvgContext, self).arc(x, y, i, j)
-        x, y = self.resolve(x, y)
-        ap = self.apertures.get(self.aperture, None)
-        if ap is None:
-            return
-        #self.dwg.add(ap.arc(self, x, y, i, j, self.direction,
-        #                    convert_color(self.color), self.alpha))
-        self.move(x, y, resolve=False)
-
-    def flash(self, x, y):
-        super(GerberSvgContext, self).flash(x, y)
-        x, y = self.resolve(x, y)
-        ap = self.apertures.get(self.aperture, None)
-        if ap is None:
-            return
-        
-        color = (convert_color(self.color) if self.level_polarity == 'dark'
-                 else convert_color(self.background_color))
-        alpha = self.alpha if self.level_polarity == 'dark' else 1.0
-        for shape in ap.flash(self, x, y, color, alpha):
-            self.dwg.add(shape)
-        self.move(x, y, resolve=False)
-
-    def drill(self, x, y, diameter):
-        hit = self.dwg.circle(center=(x*SCALE, -y*SCALE),
-                              r=SCALE*(diameter/2.0),
-                              fill=convert_color(self.drill_color))
-        #hit.fill(opacity=self.alpha)
-        self.dwg.add(hit)
-
-    def region_contour(self, x, y):
-        super(GerberSvgContext, self).region_contour(x, y)
-        x, y = self.resolve(x, y)
-        color = (convert_color(self.color) if self.level_polarity == 'dark'
-                 else convert_color(self.background_color))
-        alpha = self.alpha if self.level_polarity == 'dark' else 1.0
-        if self.region_path is None:
-            self.region_path = self.dwg.path(d = 'M %f, %f' %
-                                             (self.x*SCALE, -self.y*SCALE),
-                                             fill = color, stroke = 'none')
-            self.region_path.fill(opacity=alpha)
-        self.region_path.push('L %f, %f' % (x*SCALE, -y*SCALE))
-        self.move(x, y, resolve=False)
-
-    def fill_region(self):
-        self.dwg.add(self.region_path)
-        self.region_path = None
 
     def dump(self, filename):
         self.dwg.saveas(filename)
+
+    def set_bounds(self, bounds):
+        xbounds, ybounds = bounds
+        size = (SCALE * (xbounds[1] - xbounds[0]),
+                SCALE * (ybounds[1] - ybounds[0]))
+        if not self.background:
+            vbox = '%f, %f, %f, %f' % (SCALE * xbounds[0], -SCALE * ybounds[1],
+                                       size[0], size[1])
+            self.dwg = svgwrite.Drawing(viewBox=vbox)
+            rect = self.dwg.rect(insert=(SCALE * xbounds[0],
+                                         -SCALE * ybounds[1]),
+                                 size=size,
+                                 fill=svg_color(self.background_color))
+            self.dwg.add(rect)
+            self.background = True
+
+    def _render_line(self, line, color):
+        start = map(mul, line.start, self.scale)
+        end = map(mul, line.end, self.scale)
+        aline = self.dwg.line(start=start, end=end,
+                              stroke=svg_color(color),
+                              stroke_width=SCALE * line.width,
+                              stroke_linecap='round')
+        aline.stroke(opacity=self.alpha)
+        self.dwg.add(aline)
+
+    def _render_region(self, region, color):
+        points = [tuple(map(mul, point, self.scale)) for point in region.points]
+        region_path = self.dwg.path(d='M %f, %f' % points[0],
+                                    fill=svg_color(color),
+                                    stroke='none')
+        region_path.fill(opacity=self.alpha)
+        for point in points[1:]:
+            region_path.push('L %f, %f' % point)
+        self.dwg.add(region_path)
+
+    def _render_circle(self, circle, color):
+        center = map(mul, circle.position, self.scale)
+        acircle = self.dwg.circle(center=center,
+                                  r = SCALE * circle.radius,
+                                  fill=svg_color(color))
+        acircle.fill(opacity=self.alpha)
+        self.dwg.add(acircle)
+
+    def _render_rectangle(self, rectangle, color):
+        center = map(mul, rectangle.position, self.scale)
+        size = tuple(map(mul, (rectangle.width, rectangle.height), map(abs, self.scale)))
+        insert = center[0] - size[0] / 2., center[1] - size[1] / 2.
+        arect = self.dwg.rect(insert=insert, size=size,
+                              fill=svg_color(color))
+        arect.fill(opacity=self.alpha)
+        self.dwg.add(arect)
+
+    def _render_obround(self, obround, color):
+        x, y = tuple(map(mul, obround.position, self.scale))
+        xsize, ysize = tuple(map(mul, (obround.width, obround.height),
+                                 self.scale))
+        xscale, yscale = self.scale
+
+        # Corner case...
+        if xsize == ysize:
+            circle = self.dwg.circle(center=(x, y),
+                                   r = (xsize / 2.0),
+                                   fill=svg_color(color))
+            circle.fill(opacity=self.alpha)
+            self.dwg.add(circle)
+
+        # Horizontal obround
+        elif xsize > ysize:
+            rectx = xsize - ysize
+            recty = ysize
+            c1 = self.dwg.circle(center=(x - (rectx / 2.0), y),
+                                 r = (ysize / 2.0),
+                                 fill=svg_color(color))
+
+            c2 = self.dwg.circle(center=(x + (rectx / 2.0), y),
+                                 r = (ysize / 2.0),
+                                 fill=svg_color(color))
+
+            rect = self.dwg.rect(insert=(x, y),
+                                 size=(xsize, ysize),
+                                 fill=svg_color(color))
+            c1.fill(opacity=self.alpha)
+            c2.fill(opacity=self.alpha)
+            rect.fill(opacity=self.alpha)
+            self.dwg.add(c1)
+            self.dwg.add(c2)
+            self.dwg.add(rect)
+
+        # Vertical obround
+        else:
+            rectx = xsize
+            recty = ysize - xsize
+            c1 = self.dwg.circle(center=(x, y - (recty / 2.)),
+                                 r = (xsize / 2.),
+                                 fill=svg_color(color))
+
+            c2 = self.dwg.circle(center=(x, y + (recty / 2.)),
+                                 r = (xsize / 2.),
+                                 fill=svg_color(color))
+
+            rect = self.dwg.rect(insert=(x, y),
+                                size=(xsize, ysize),
+                                fill=svg_color(color))
+            c1.fill(opacity=self.alpha)
+            c2.fill(opacity=self.alpha)
+            rect.fill(opacity=self.alpha)
+            self.dwg.add(c1)
+            self.dwg.add(c2)
+            self.dwg.add(rect)
+
+    def _render_drill(self, primitive, color):
+        center = map(mul, primitive.position, self.scale)
+        hit = self.dwg.circle(center=center, r=SCALE * primitive.radius,
+                              fill=svg_color(color))
+        self.dwg.add(hit)

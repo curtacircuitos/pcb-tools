@@ -28,6 +28,7 @@ from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
                                  QuadrantModeStmt,
 )
 
+from ..primitives import *
 
 class GerberContext(object):
     """ Gerber rendering context base class
@@ -39,40 +40,8 @@ class GerberContext(object):
 
     Attributes
     ----------
-    settings : FileSettings (dict-like)
-        Gerber file settings
-
-    x : float
-        X-coordinate of the "photoplotter" head.
-
-    y : float
-        Y-coordinate of the "photoplotter" head
-
-    aperture : int
-        The aperture that is currently in use
-
-    interpolation : str
-        Current interpolation mode. may be 'linear' or 'arc'
-
-    direction : string
-        Current arc direction. May be either 'clockwise' or 'counterclockwise'
-
-    image_polarity : string
-        Current image polarity setting. May be 'positive' or 'negative'
-
-    level_polarity : string
-        Level polarity. May be 'dark' or 'clear'. Dark polarity indicates the
-        existance of copper/silkscreen/etc. in the exposed area, whereas clear
-        polarity indicates material should be removed from the exposed area.
-
-    region_mode : string
-        Region mode. May be 'on' or 'off'. When region mode is set to 'on' the
-        following "contours" define the outline of a region. When region mode
-        is subsequently turned 'off', the defined area is filled.
-
-    quadrant_mode : string
-        Quadrant mode. May be 'single-quadrant' or 'multi-quadrant'. Defines
-        how arcs are specified.
+    units : string
+        Measurement units
 
     color : tuple (<float>, <float>, <float>)
         Color used for rendering as a tuple of normalized (red, green, blue) values.
@@ -87,73 +56,14 @@ class GerberContext(object):
     alpha : float
         Rendering opacity. Between 0.0 (transparent) and 1.0 (opaque.)
     """
-    def __init__(self):
-        self.settings = {}
-        self.x = 0
-        self.y = 0
-
-        self.aperture = 0
-        self.interpolation = 'linear'
-        self.direction = 'clockwise'
-        self.image_polarity = 'positive'
-        self.level_polarity = 'dark'
-        self.region_mode = 'off'
-        self.quadrant_mode = 'multi-quadrant'
-        self.step_and_repeat = (1, 1, 0, 0)
+    def __init__(self, units='inch'):
+        self.units = units
         self.color = (0.7215, 0.451, 0.200)
         self.drill_color = (0.25, 0.25, 0.25)
         self.background_color = (0.0, 0.0, 0.0)
         self.alpha = 1.0
-        
-    def set_format(self, settings):
-        """ Set source file format.
 
-        Parameters
-        ----------
-        settings : FileSettings instance or dict-like
-            Gerber file settings used in source file.
-        """
-        self.settings = settings
-
-    def set_coord_format(self, zero_suppression, decimal_format, notation):
-        """ Set coordinate format used in source gerber file
-
-        Parameters
-        ----------
-        zero_suppression : string
-            Zero suppression mode. may be 'leading' or 'trailling'
-
-        decimal_format : tuple (<int>, <int>)
-            Decimal precision format specified as (integer digits, decimal digits)
-
-        notation : string
-            Notation mode. 'absolute' or 'incremental'
-        """
-        if zero_suppression not in ('leading', 'trailling'):
-            raise ValueError('Zero suppression must be "leading" or "trailing"')
-        self.settings['zero_suppression'] = zero_suppression
-        self.settings['format'] = decimal_format
-        self.settings['notation'] = notation
-
-    def set_coord_notation(self, notation):
-        """ Set context notation mode
-
-        Parameters
-        ----------
-        notation : string
-            Notation mode. may be 'absolute' or 'incremental'
-
-        Raises
-        ------
-        ValueError
-            If `notation` is not either "absolute" or "incremental"
-
-        """
-        if notation not in ('absolute', 'incremental'):
-            raise ValueError('Notation may be "absolute" or "incremental"')
-        self.settings['notation'] = notation
-
-    def set_coord_unit(self, unit):
+    def set_units(self, units):
         """ Set context measurement units
 
         Parameters
@@ -166,70 +76,9 @@ class GerberContext(object):
         ValueError
             If `unit` is not 'inch' or 'metric'
         """
-        if unit not in ('inch', 'metric'):
-            raise ValueError('Unit may be "inch" or "metric"')
-        self.settings['units'] = unit
-
-    def set_image_polarity(self, polarity):
-        """ Set context image polarity
-
-        Parameters
-        ----------
-        polarity : string
-            Image polarity. May be "positive" or "negative"
-
-        Raises
-        ------
-        ValueError
-            If polarity is not 'positive' or 'negative'
-        """
-        if polarity not in ('positive', 'negative'):
-            raise ValueError('Polarity may be "positive" or "negative"')
-        self.image_polarity = polarity
-
-    def set_level_polarity(self, polarity):
-        """ Set context level polarity
-
-        Parameters
-        ----------
-        polarity : string
-            Level polarity. May be "dark" or "clear"
-
-        Raises
-        ------
-        ValueError
-            If polarity is not 'dark' or 'clear'
-        """
-        if polarity not in ('dark', 'clear'):
-            raise ValueError('Polarity may be "dark" or "clear"')
-        self.level_polarity = polarity
-
-    def set_interpolation(self, interpolation):
-        """ Set arc interpolation mode
-
-        Parameters
-        ----------
-        interpolation : string
-            Interpolation mode. May be 'linear' or 'arc'
-
-        Raises
-        ------
-        ValueError
-            If `interpolation` is not 'linear' or 'arc'
-        """
-        if interpolation not in ('linear', 'arc'):
-            raise ValueError('Interpolation may be "linear" or "arc"')
-        self.interpolation = interpolation
-
-    def set_aperture(self, d):
-        """ Set active aperture
-
-        Parameters
-        ----------
-        aperture : int
-            Aperture number to activate.
-        """
-        self.aperture = d
+        if units not in ('inch', 'metric'):
+            raise ValueError('Units may be "inch" or "metric"')
+        self.units = units
 
     def set_color(self, color):
         """ Set rendering color.
@@ -277,238 +126,49 @@ class GerberContext(object):
         """
         self.alpha = alpha
 
-    def resolve(self, x, y):
-        """ Resolve missing x or y coordinates in a coordinate command.
-
-        Replace missing x or y values with the current x or y position. This
-        is the default method for handling coordinate pairs pulled from gerber
-        file statments, as a move/line/arc involving a change in only one axis
-        will drop the redundant axis coordinate to reduce file size.
-
-        Parameters
-        ----------
-        x : float
-            X-coordinate. If `None`, will be replaced with current
-            "photoplotter" head x-coordinate
-
-        y : float
-            Y-coordinate. If `None`, will be replaced with current
-            "photoplotter" head y-coordinate
-
-        Returns
-        -------
-        coordinates : tuple (<float>, <float>)
-            Coordinates in absolute notation
-        """
-        x = x if x is not None else self.x
-        y = y if y is not None else self.y
-        return x, y
-
-    def define_aperture(self, d, shape, modifiers):
-        pass
-
-    def move(self, x, y, resolve=True):
-        """ Lights-off move.
-
-        Move the "photoplotter" head to (x, y) without drawing a line. If x or
-        y is `None`, remain at the same point in that axis.
-
-        Parameters
-        -----------
-        x : float
-            X-coordinate to move to. If x is `None`, do not move in the X
-            direction
-
-        y : float
-            Y-coordinate to move to. if y is `None`, do not move in the Y
-            direction
-
-        resolve : bool
-            If resolve is `True` the context will replace missing x or y
-            coordinates with the current plotter head position. This is the
-            default behavior.
-        """
-        if resolve:
-            self.x, self.y = self.resolve(x, y)
+    def render(self, primitive):
+        color = (self.color if primitive.level_polarity == 'dark'
+                 else self.background_color)
+        if isinstance(primitive, Line):
+            self._render_line(primitive, color)
+        elif isinstance(primitive, Arc):
+            self._render_arc(primitive, color)
+        elif isinstance(primitive, Region):
+            self._render_region(primitive, color)
+        elif isinstance(primitive, Circle):
+            self._render_circle(primitive, color)
+        elif isinstance(primitive, Rectangle):
+            self._render_rectangle(primitive, color)
+        elif isinstance(primitive, Obround):
+            self._render_obround(primitive, color)
+        elif isinstance(primitive, Polygon):
+            self._render_polygon(Polygon, color)
+        elif isinstance(primitive, Drill):
+            self._render_drill(primitive, self.drill_color)
         else:
-            self.x, self.y = x, y
-
-    def stroke(self, x, y, i, j):
-        """ Lights-on move. (draws a line or arc)
-
-        The stroke method is called when a Lights-on move statement is
-        encountered. This will call the `line` or `arc` method as necessary
-        based on the move statement's parameters. The `stroke` method should
-        be overridden in `GerberContext` subclasses.
-
-        Parameters
-        ----------
-        x : float
-            X coordinate of target position
-
-        y : float
-            Y coordinate of target position
-
-        i : float
-            Offset in X-direction from current position of arc center.
-
-        j : float
-            Offset in Y-direction from current position of arc center.
-        """
-        pass
-
-    def line(self, x, y):
-        """ Draw a line
-
-        Draws a line from the current position to  (x, y) using the currently
-        selected aperture. The `line` method should be overridden in
-        `GerberContext` subclasses.
-
-        Parameters
-        ----------
-        x : float
-            X coordinate of target position
-
-        y : float
-            Y coordinate of target position
-        """
-        pass
-
-    def arc(self, x, y, i, j):
-        """ Draw an arc
-
-        Draw an arc from the current position to (x, y) using the currently
-        selected aperture. `i` and `j` specify the offset from the starting
-        position to the center of the arc.The `arc` method should be
-        overridden in `GerberContext` subclasses.
-
-        Parameters
-        ----------
-        x : float
-            X coordinate of target position
-
-        y : float
-            Y coordinate of target position
-
-        i : float
-            Offset in X-direction from current position of arc center.
-
-        j : float
-            Offset in Y-direction from current position of arc center.
-        """
-        pass
-
-    def flash(self, x, y):
-        """ Flash the current aperture
-
-        Draw a filled shape defined by the currently selected aperture.
-
-        Parameters
-        ----------
-        x : float
-            X coordinate of the position at which to flash
-
-        y : float
-            Y coordinate of the position at which to flash
-        """
-        pass
-
-    def drill(self, x, y, diameter):
-        """ Draw a drill hit
-
-        Draw a filled circle representing a drill hit at the specified
-        position and with the specified diameter.
-
-        Parameters
-        ----------
-        x : float
-            X coordinate of the drill hit
-
-        y : float
-            Y coordinate of the drill hit
-
-        diameter : float
-            Finished hole diameter to draw.
-        """
-        pass
-
-    def region_contour(self, x, y):
-        pass
-    
-    def fill_region(self):
-        pass
-    
-    def evaluate(self, stmt):
-        """ Evaluate Gerber statement and update image accordingly.
-
-        This method is called once for each statement in a Gerber/Excellon
-        file when the file's `render` method is called. The evaluate method
-        should forward the statement on to the relevant handling method based
-        on the statement type.
-
-        Parameters
-        ----------
-        statement : Statement
-            Gerber/Excellon statement to evaluate.
-
-        """
-        if isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
             return
 
-        elif isinstance(stmt, ParamStmt):
-            self._evaluate_param(stmt)
+    def _render_line(self, primitive, color):
+        pass
 
-        elif isinstance(stmt, CoordStmt):
-            self._evaluate_coord(stmt)
+    def _render_arc(self, primitive, color):
+        pass
 
-        elif isinstance(stmt, ApertureStmt):
-            self._evaluate_aperture(stmt)
+    def _render_region(self, primitive, color):
+        pass
 
-        elif isinstance(stmt, (RegionModeStmt, QuadrantModeStmt)):
-            self._evaluate_mode(stmt)
+    def _render_circle(self, primitive, color):
+        pass
 
-        else:
-            raise Exception("Invalid statement to evaluate")
+    def _render_rectangle(self, primitive, color):
+        pass
 
-    def _evaluate_mode(self, stmt):
-        if stmt.type == 'RegionMode':
-            if self.region_mode == 'on' and stmt.mode == 'off':
-                self.fill_region()
-            self.region_mode = stmt.mode
-        elif stmt.type == 'QuadrantMode':
-            self.quadrant_mode = stmt.mode
+    def _render_obround(self, primitive, color):
+        pass
 
-    def _evaluate_param(self, stmt):
-        if stmt.param == "FS":
-            self.set_coord_format(stmt.zero_suppression, stmt.format,
-                                  stmt.notation)
-            self.set_coord_notation(stmt.notation)
-        elif stmt.param == "MO":
-            self.set_coord_unit(stmt.mode)
-        elif stmt.param == "IP":
-            self.set_image_polarity(stmt.ip)
-        elif stmt.param == "LP":
-            self.set_level_polarity(stmt.lp)
-        elif stmt.param == "AD":
-            self.define_aperture(stmt.d, stmt.shape, stmt.modifiers)
+    def _render_polygon(self, primitive, color):
+        pass
 
-    def _evaluate_coord(self, stmt):
-        if stmt.function in ("G01", "G1"):
-            self.set_interpolation('linear')
-        elif stmt.function in ('G02', 'G2', 'G03', 'G3'):
-            self.set_interpolation('arc')
-            self.direction = ('clockwise' if stmt.function in ('G02', 'G2')
-                              else 'counterclockwise')
-        if stmt.op == "D01":
-            if self.region_mode == 'on':
-                self.region_contour(stmt.x, stmt.y)
-            else:
-                self.stroke(stmt.x, stmt.y, stmt.i, stmt.j)
-        elif stmt.op == "D02":
-            self.move(stmt.x, stmt.y)
-        elif stmt.op == "D03":
-            self.flash(stmt.x, stmt.y)
-
-    def _evaluate_aperture(self, stmt):
-        self.set_aperture(stmt.d)
+    def _render_drill(self, primitive, color):
+        pass
 

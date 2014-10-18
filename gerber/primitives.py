@@ -19,11 +19,15 @@ from operator import sub
 
 
 class Primitive(object):
+    
+    def __init__(self, level_polarity='dark'):
+        self.level_polarity = level_polarity
+        
     def bounding_box(self):
         """ Calculate bounding box
 
         will be helpful for sweep & prune during DRC clearance checks.
-        
+
         Return ((min x, max x), (min y, max y))
         """
         pass
@@ -32,16 +36,19 @@ class Primitive(object):
 class Line(Primitive):
     """
     """
-    def __init__(self, start, end, width):
+    def __init__(self, start, end, width, level_polarity='dark'):
+        super(Line, self).__init__(level_polarity)
         self.start = start
         self.end = end
         self.width = width
-        
+
     @property
     def angle(self):
-        dx, dy = tuple(map(sub, end, start))
-        angle = degrees(math.tan(dy/dx))
+        delta_x, delta_y = tuple(map(sub, end, start))
+        angle = degrees(math.tan(delta_y/delta_x))
+        return angle
 
+    @property
     def bounding_box(self):
         width_2 = self.width / 2.
         min_x = min(self.start[0], self.end[0]) - width_2
@@ -54,7 +61,8 @@ class Line(Primitive):
 class Arc(Primitive):
     """
     """
-    def __init__(self, start, end, center, direction, width):
+    def __init__(self, start, end, center, direction, width, level_polarity='dark'):
+        super(Arc, self).__init__(level_polarity)
         self.start = start
         self.end = end
         self.center = center
@@ -71,17 +79,23 @@ class Arc(Primitive):
         dy, dx = map(sub, self.end, self.center)
         return math.atan2(dy, dx)
 
+    @property
     def bounding_box(self):
         pass
 
 class Circle(Primitive):
     """
     """
-    def __init__(self, position, diameter):
+    def __init__(self, position, diameter, level_polarity='dark'):
+        super(Circle, self).__init__(level_polarity)
         self.position = position
         self.diameter = diameter
-        self.radius = diameter / 2.
 
+    @property
+    def radius(self):
+        return self.diameter / 2.
+
+    @property
     def bounding_box(self):
         min_x = self.position[0] - self.radius
         max_x = self.position[0] + self.radius
@@ -89,11 +103,16 @@ class Circle(Primitive):
         max_y = self.position[1] + self.radius
         return ((min_x, max_x), (min_y, max_y))
 
+    @property
+    def stroke_width(self):
+        return self.diameter
+
 
 class Rectangle(Primitive):
     """
     """
-    def __init__(self, position, width, height):
+    def __init__(self, position, width, height, level_polarity='dark'):
+        super(Rectangle, self).__init__(level_polarity)
         self.position = position
         self.width = width
         self.height = height
@@ -108,6 +127,7 @@ class Rectangle(Primitive):
         return (self.position[0] + (self.width / 2.), 
                 self.position[1] + (self.height / 2.))
 
+    @property
     def bounding_box(self):
         min_x = self.lower_left[0]
         max_x = self.upper_right[0]
@@ -115,11 +135,16 @@ class Rectangle(Primitive):
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
 
+    @property
+    def stroke_width(self):
+        return max((self.width, self.height))
+
 
 class Obround(Primitive):
     """
     """
-    def __init__(self, position, width, height)
+    def __init__(self, position, width, height, level_polarity='dark'):
+        super(Obround, self).__init__(level_polarity)
         self.position = position
         self.width = width
         self.height = height
@@ -138,6 +163,7 @@ class Obround(Primitive):
         return (self.position[0] + (self.width / 2.), 
                 self.position[1] + (self.height / 2.))
 
+    @property
     def bounding_box(self):
         min_x = self.lower_left[0]
         max_x = self.upper_right[0]
@@ -149,11 +175,13 @@ class Obround(Primitive):
 class Polygon(Primitive):
     """
     """
-    def __init__(self, position, sides, radius):
+    def __init__(self, position, sides, radius, level_polarity='dark'):
+        super(Polygon, self).__init__(level_polarity)
         self.position = position
         self.sides = sides
         self.radius = radius
-        
+
+    @property
     def bounding_box(self):
         min_x = self.position[0] - self.radius
         max_x = self.position[0] + self.radius
@@ -165,9 +193,11 @@ class Polygon(Primitive):
 class Region(Primitive):
     """
     """
-    def __init__(self, points):
+    def __init__(self, points, level_polarity='dark'):
+        super(Region, self).__init__(level_polarity)
         self.points = points
-        
+
+    @property
     def bounding_box(self):
         x_list, y_list = zip(*self.points)
         min_x = min(x_list)
@@ -181,10 +211,15 @@ class Drill(Primitive):
     """
     """
     def __init__(self, position, diameter):
+        super(Drill, self).__init__('dark')
         self.position = position
         self.diameter = diameter
-        self.radius = diameter / 2.
-        
+
+    @property
+    def radius(self):
+        return self.diameter / 2.
+
+    @property
     def bounding_box(self):
         min_x = self.position[0] - self.radius
         max_x = self.position[0] + self.radius

@@ -25,7 +25,7 @@ This module provides Excellon file classes and parsing utilities
 
 from .excellon_statements import *
 from .cam import CamFile, FileSettings
-
+from .primitives import Drill
 import math
 
 def read(filename):
@@ -74,35 +74,39 @@ class ExcellonFile(CamFile):
 
     """
     def __init__(self, statements, tools, hits, settings, filename=None):
-        super(ExcellonFile, self).__init__(statements, settings, filename)
+        super(ExcellonFile, self).__init__(statements=statements,
+                                           settings=settings,
+                                           filename=filename)
         self.tools = tools
         self.hits = hits
+        self.primitives = [Drill(position, tool.diameter)
+                           for tool, position in self.hits]
+
+    @property
+    def bounds(self):
+        xmin = ymin = 100000000000
+        xmax = ymax = -100000000000
+        for tool, position in self.hits:
+            radius = tool.diameter / 2.
+            x = position[0]
+            y = position[1]
+            xmin = min(x - radius, xmin)
+            xmax = max(x + radius, xmax)
+            ymin = min(y - radius, ymin)
+            ymax = max(y + radius, ymax)
+        return ((xmin, xmax), (ymin, ymax))
 
     def report(self):
         """ Print drill report
         """
         pass
 
-    def render(self, ctx, filename=None):
-        """ Generate image of file
-
-        Parameters
-        ----------
-        ctx : :class:`gerber.render.GerberContext`
-            GerberContext subclass used for rendering the image
-
-        filename : string <optional>
-            If provided, the rendered image will be saved to `filename`
-        """
-        for tool, pos in self.hits:
-            ctx.drill(pos[0], pos[1], tool.diameter)
-        if filename is not None:
-            ctx.dump(filename)
 
     def write(self, filename):
         with open(filename, 'w') as f:
             for statement in self.statements:
                 f.write(statement.to_excellon() + '\n')
+
 
 
 class ExcellonParser(object):

@@ -12,7 +12,8 @@ from .utils import parse_gerber_value, write_gerber_value, decimal_string
 __all__ = ['FSParamStmt', 'MOParamStmt', 'IPParamStmt', 'OFParamStmt',
            'LPParamStmt', 'ADParamStmt', 'AMParamStmt', 'INParamStmt',
            'LNParamStmt', 'CoordStmt', 'ApertureStmt', 'CommentStmt',
-           'EofStmt', 'QuadrantModeStmt', 'RegionModeStmt', 'UnknownStmt']
+           'EofStmt', 'QuadrantModeStmt', 'RegionModeStmt', 'UnknownStmt',
+           'ParamStmt']
 
 
 class Statement(object):
