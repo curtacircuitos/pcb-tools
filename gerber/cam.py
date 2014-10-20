@@ -59,6 +59,33 @@ class FileSettings(object):
         else:
             raise KeyError()
 
+    def __setitem__(self, key, value):
+        if key == 'notation':
+            if value not in ['absolute', 'incremental']:
+                raise ValueError('Notation must be either \
+                                 absolute or incremental')
+            self.notation = value
+        elif key == 'units':
+            if value not in ['inch', 'metric']:
+                raise ValueError('Units must be either inch or metric')
+            self.units = value
+        elif key == 'zero_suppression':
+            if value not in ['leading', 'trailing']:
+                raise ValueError('Zero suppression must be either leading or \
+                                 trailling')
+            self.zero_suppression = value
+        elif key == 'format':
+            if len(value) != 2:
+                raise ValueError('Format must be a tuple(n=2) of integers')
+            self.format = value
+
+    def __eq__(self, other):
+        return (self.notation == other.notation and
+                self.units == other.units and
+                self.zero_suppression == other.zero_suppression and
+                self.format == other.format)
+
+
 
 class CamFile(object):
     """ Base class for Gerber/Excellon files.
@@ -126,6 +153,12 @@ class CamFile(object):
         """
         return FileSettings(self.notation, self.units, self.zero_suppression,
                             self.format)
+
+    @property
+    def bounds(self):
+        """ File baundaries
+        """
+        pass
 
     def render(self, ctx, filename=None):
         """ Generate image of layer.

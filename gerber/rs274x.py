@@ -112,8 +112,6 @@ class GerberFile(CamFile):
                 f.write(statement.to_gerber())
 
 
-
-
 class GerberParser(object):
     """ GerberParser
     """
@@ -324,20 +322,20 @@ class GerberParser(object):
             Gerber/Excellon statement to evaluate.
 
         """
-        if isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
-            return
+        if isinstance(stmt, CoordStmt):
+            self._evaluate_coord(stmt)
 
         elif isinstance(stmt, ParamStmt):
             self._evaluate_param(stmt)
-
-        elif isinstance(stmt, CoordStmt):
-            self._evaluate_coord(stmt)
 
         elif isinstance(stmt, ApertureStmt):
             self._evaluate_aperture(stmt)
 
         elif isinstance(stmt, (RegionModeStmt, QuadrantModeStmt)):
             self._evaluate_mode(stmt)
+
+        elif isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
+            return
 
         else:
             raise Exception("Invalid statement to evaluate")

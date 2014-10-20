@@ -44,6 +44,10 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
         The specified value as a floating-point number.
 
     """
+    # Handle excellon edge case with explicit decimal. "That was easy!"
+    if '.' in value:
+        return float(value)
+
     # Format precision
     integer_digits, decimal_digits = format
     MAX_DIGITS = integer_digits + decimal_digits
@@ -55,23 +59,20 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
         raise ValueError('Parser only supports precision up to 6:7 format')
 
     # Remove extraneous information
-    value = value.strip()
-    value = value.strip(' +')
+    #value = value.strip()
+    value = value.lstrip('+')
     negative = '-' in value
     if negative:
-        value = value.strip(' -')
+        value = value.lstrip('-')
 
-    # Handle excellon edge case with explicit decimal. "That was easy!"
-    if '.' in value:
-        return float(value)
 
-    digits = [digit for digit in '0' * MAX_DIGITS]
+    digits = list('0' * MAX_DIGITS)
     offset = 0 if zero_suppression == 'trailing' else (MAX_DIGITS - len(value))
     for i, digit in enumerate(value):
         digits[i + offset] = digit
 
     result = float(''.join(digits[:integer_digits] + ['.'] + digits[integer_digits:]))
-    return -1.0 * result if negative else result
+    return -result if negative else result
 
 
 def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):

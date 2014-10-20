@@ -72,10 +72,10 @@ class FSParamStmt(ParamStmt):
     def from_dict(cls, stmt_dict):
         """
         """
-        param = stmt_dict.get('param').strip()
+        param = stmt_dict.get('param')
         zeros = 'leading' if stmt_dict.get('zero') == 'L' else 'trailing'
         notation = 'absolute' if stmt_dict.get('notation') == 'A' else 'incremental'
-        x = map(int, stmt_dict.get('x').strip())
+        x = map(int, stmt_dict.get('x'))
         fmt = (x[0], x[1])
         return cls(param, zeros, notation, fmt)
 
@@ -471,9 +471,9 @@ class CoordStmt(Statement):
 
     @classmethod
     def from_dict(cls, stmt_dict, settings):
-        zeros = settings['zero_suppression']
-        format = settings['format']
-        function = stmt_dict.get('function')
+        zeros = settings.zero_suppression
+        format = settings.format
+        function = stmt_dict['function']
         x = stmt_dict.get('x')
         y = stmt_dict.get('y')
         i = stmt_dict.get('i')
@@ -527,8 +527,8 @@ class CoordStmt(Statement):
 
         """
         Statement.__init__(self, "COORD")
-        self.zero_suppression = settings['zero_suppression']
-        self.format = settings['format']
+        self.zero_suppression = settings.zero_suppression
+        self.format = settings.format
         self.function = function
         self.x = x
         self.y = y
@@ -628,7 +628,6 @@ class QuadrantModeStmt(Statement):
 
     @classmethod
     def from_gerber(cls, line):
-        line = line.strip()
         if 'G74' not in line and 'G75' not in line:
             raise ValueError('%s is not a valid quadrant mode statement'
                              % line)
@@ -651,7 +650,6 @@ class RegionModeStmt(Statement):
 
     @classmethod
     def from_gerber(cls, line):
-        line = line.strip()
         if 'G36' not in line and 'G37' not in line:
             raise ValueError('%s is not a valid region mode statement' % line)
         return (cls('on') if line[:3] == 'G36' else cls('off'))

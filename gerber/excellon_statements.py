@@ -107,8 +107,8 @@ class ExcellonTool(ExcellonStatement):
         commands = re.split('([BCFHSTZ])', line)[1:]
         commands = [(command, value) for command, value in pairwise(commands)]
         args = {}
-        nformat = settings['format']
-        zero_suppression = settings['zero_suppression']
+        nformat = settings.format
+        zero_suppression = settings.zero_suppression
         for cmd, val in commands:
             if cmd == 'B':
                 args['retract_rate'] = parse_gerber_value(val, nformat, zero_suppression)
@@ -157,8 +157,8 @@ class ExcellonTool(ExcellonStatement):
         self.hit_count = 0
 
     def to_excellon(self):
-        fmt = self.settings['format']
-        zs = self.settings['zero_suppression']
+        fmt = self.settings.format
+        zs = self.settings.format
         stmt = 'T%d' % self.number
         if self.retract_rate is not None:
             stmt += 'B%s' % write_gerber_value(self.retract_rate, fmt, zs)
@@ -201,7 +201,7 @@ class ToolSelectionStmt(ExcellonStatement):
         tool_statement : ToolSelectionStmt
             ToolSelectionStmt representation of `line.`
         """
-        line = line.strip()[1:]
+        line = line[1:]
         compensation_index = None
         tool = int(line[:2])
         if len(line) > 2:
@@ -230,10 +230,10 @@ class CoordinateStmt(ExcellonStatement):
         y_coord = None
         if line[0] == 'X':
             splitline = line.strip('X').split('Y')
-            x_coord = parse_gerber_value(splitline[0].strip(), nformat,
+            x_coord = parse_gerber_value(splitline[0], nformat,
                                          zero_suppression)
             if len(splitline) == 2:
-                y_coord = parse_gerber_value(splitline[1].strip(), nformat,
+                y_coord = parse_gerber_value(splitline[1], nformat,
                                              zero_suppression)
         else:
             y_coord = parse_gerber_value(line.strip(' Y'), nformat,
@@ -257,7 +257,7 @@ class CommentStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line):
-        return cls(line.strip().lstrip(';'))
+        return cls(line.lstrip(';'))
 
     def __init__(self, comment):
         self.comment = comment
@@ -380,7 +380,7 @@ class LinkToolStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line):
-        linked = [int(tool) for tool in line.strip().split('/')]
+        linked = [int(tool) for tool in line.split('/')]
         return cls(linked)
 
     def __init__(self, linked_tools):

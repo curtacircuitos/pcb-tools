@@ -7,12 +7,6 @@ from ..cam import CamFile, FileSettings
 from tests import *
 
 
-def test_smoke_filesettings():
-    """ Smoke test FileSettings class
-    """
-    fs = FileSettings()
-
-
 def test_filesettings_defaults():
     """ Test FileSettings default values
     """
@@ -37,14 +31,38 @@ def test_filesettings_assign():
     """ Test FileSettings attribute assignment
     """
     fs = FileSettings()
-    fs.units = 'test'
-    fs.notation = 'test'
-    fs.zero_suppression = 'test'
-    fs.format = 'test'
-    assert_equal(fs.units, 'test')
-    assert_equal(fs.notation, 'test')
-    assert_equal(fs.zero_suppression, 'test')
-    assert_equal(fs.format, 'test')
+    fs.units = 'test1'
+    fs.notation = 'test2'
+    fs.zero_suppression = 'test3'
+    fs.format = 'test4'
+    assert_equal(fs.units, 'test1')
+    assert_equal(fs.notation, 'test2')
+    assert_equal(fs.zero_suppression, 'test3')
+    assert_equal(fs.format, 'test4')
 
-def test_smoke_camfile():
-    cf = CamFile
+
+def test_filesettings_dict_assign():
+    """ Test FileSettings dict-style attribute assignment
+    """
+    fs = FileSettings()
+    fs['units'] = 'metric'
+    fs['notation'] = 'incremental'
+    fs['zero_suppression'] = 'leading'
+    fs['format'] = (1, 2)
+    assert_equal(fs.units, 'metric')
+    assert_equal(fs.notation, 'incremental')
+    assert_equal(fs.zero_suppression, 'leading')
+    assert_equal(fs.format, (1, 2))
+
+def test_camfile_init():
+    """ Smoke test CamFile test
+    """
+    cf = CamFile()
+
+def test_camfile_settings():
+    """ Test CamFile Default Settings
+    """
+    cf = CamFile()
+    assert_equal(cf.settings, FileSettings())
+    
+    

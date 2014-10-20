@@ -44,8 +44,6 @@ def read(filename):
     detected_settings = detect_excellon_format(filename)
     settings = FileSettings(**detected_settings)
     zeros = ''
-    print('Detected %d:%d format with %s zero suppression' %
-          (settings.format[0], settings.format[1], settings.zero_suppression))
     return ExcellonParser(settings).parse(filename)
 
 
@@ -108,7 +106,6 @@ class ExcellonFile(CamFile):
                 f.write(statement.to_excellon() + '\n')
 
 
-
 class ExcellonParser(object):
     """ Excellon File Parser
 
@@ -129,10 +126,10 @@ class ExcellonParser(object):
         self.active_tool = None
         self.pos = [0., 0.]
         if settings is not None:
-            self.units = settings['units']
-            self.zero_suppression = settings['zero_suppression']
-            self.notation = settings['notation']
-            self.format = settings['format']
+            self.units = settings.units
+            self.zero_suppression = settings.zero_suppression
+            self.notation = settings.notation
+            self.format = settings.format
 
 
     @property
@@ -163,14 +160,14 @@ class ExcellonParser(object):
     def parse(self, filename):
         with open(filename, 'r') as f:
             for line in f:
-                self._parse(line)
+                self._parse(line.strip())
         return ExcellonFile(self.statements, self.tools, self.hits,
                             self._settings(), filename)
 
     def _parse(self, line):
-        line = line.strip()
-        zs = self._settings()['zero_suppression']
-        fmt = self._settings()['format']
+        #line = line.strip()
+        zs = self._settings().zero_suppression
+        fmt = self._settings().format
         if line[0] == ';':
             self.statements.append(CommentStmt.from_excellon(line))
 
