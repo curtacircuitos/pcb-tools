@@ -41,8 +41,8 @@ class GerberCoordFormat(object):
         self.y_int_digits, self.y_dec_digits = [int(d) for d in y]
 
     def resolve(self, x, y):
-        new_x = x.replace("+", "")
-        new_y = y.replace("+", "")
+        new_x = x.replace("+", "") if x else None
+        new_y = y.replace("+", "") if y else None
 
         if new_x is not None:
             negative = "-" in new_x
