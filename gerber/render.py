@@ -117,7 +117,7 @@ class GerberContext(object):
 
     def resolve(self, x, y):
         x, y = self.coord_format.resolve(x, y)
-        return x or self.x, y or self.y
+        return x if x is not None else self.x, y if y is not None else self.y
 
     def define_aperture(self, d, shape, modifiers):
         pass
