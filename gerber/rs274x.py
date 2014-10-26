@@ -118,7 +118,7 @@ class GerberParser(object):
     NUMBER = r"[\+-]?\d+"
     DECIMAL = r"[\+-]?\d+([.]?\d+)?"
     STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
-    NAME = "[a-zA-Z_$][a-zA-Z_$0-9]+"
+    NAME = r"[a-zA-Z_$][a-zA-Z_$0-9]+"
     FUNCTION = r"G\d{2}"
 
     COORD_OP = r"D[0]?[123]"
@@ -128,10 +128,10 @@ class GerberParser(object):
     IP = r"(?P<param>IP)(?P<ip>(POS|NEG))"
     LP = r"(?P<param>LP)(?P<lp>(D|C))"
     AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>C)[,](?P<modifiers>[^,]*)"
-    AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>R)[,](?P<modifiers>[^,]*)"
+    AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>R)[,]?(?P<modifiers>[^,]+)?"
     AD_OBROUND = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>O)[,](?P<modifiers>[^,]*)"
     AD_POLY = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>P)[,](?P<modifiers>[^,]*)"
-    AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)+(?P<shape>{name})[,](?P<modifiers>[^,]*)".format(name=NAME)
+    AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>{name})[,]?(?P<modifiers>[^,]+)?".format(name=NAME)
     AM = r"(?P<param>AM)(?P<name>{name})\*(?P<macro>.*)".format(name=NAME)
 
     # begin deprecated
@@ -140,7 +140,7 @@ class GerberParser(object):
     LN = r"(?P<param>LN)(?P<name>.*)"
     # end deprecated
 
-    PARAMS = (FS, MO, IP, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_MACRO, AD_POLY, AM, OF, IN, LN)
+    PARAMS = (FS, MO, IP, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY, AD_MACRO, AM, OF, IN, LN)
     PARAM_STMT = [re.compile(r"%{0}\*%".format(p)) for p in PARAMS]
 
     COORD_STMT = re.compile((

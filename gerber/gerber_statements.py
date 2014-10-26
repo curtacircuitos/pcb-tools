@@ -308,9 +308,6 @@ class ADParamStmt(ParamStmt):
         d = int(stmt_dict.get('d'))
         shape = stmt_dict.get('shape')
         modifiers = stmt_dict.get('modifiers')
-        if modifiers is not None:
-            modifiers = [[float(x) for x in m.split('X')]
-                         for m in modifiers.split(',')]
         return cls(param, d, shape, modifiers)
 
     def __init__(self, param, d, shape, modifiers):
@@ -339,7 +336,10 @@ class ADParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.d = d
         self.shape = shape
-        self.modifiers = modifiers
+        if modifiers is not None:
+            self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",")]
+        else:
+            self.modifiers = []
 
     def to_gerber(self, settings):
         return '%ADD{0}{1},{2}*%'.format(self.d, self.shape,
