@@ -308,6 +308,10 @@ class GerberParser(object):
 
                 if line.find('*') > 0:
                     yield UnknownStmt(line)
+                    did_something = True
+                    line = ""
+                    continue
+
             oldline = line
 
     def evaluate(self, stmt):
