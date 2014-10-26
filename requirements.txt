@@ -6,8 +6,7 @@ Sphinx==1.2.3
 coverage==3.7.1
 docutils==0.12
 nose==1.3.4
+numpydoc==0.5
 pyparsing==2.0.2
 svgwrite==1.1.6
 wsgiref==0.1.2
-numpydoc==0.5
-

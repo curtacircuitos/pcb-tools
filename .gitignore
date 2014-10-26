@@ -38,9 +38,9 @@ nosetests.xml
 .idea/misc.xml
 .idea
 
-# Komodo
+# Komodo Files
 *.komodoproject
 
-# OS
+# OS Files
 .DS_Store
 Thumbs.db
