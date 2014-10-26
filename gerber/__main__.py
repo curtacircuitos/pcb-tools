@@ -10,22 +10,32 @@
 #     http://www.apache.org/licenses/LICENSE-2.0
 
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 
 if __name__ == '__main__':
-    from .parser import GerberParser
-    from .render import GerberContext
-
+    from .common import read
+    from .render import GerberSvgContext
     import sys
 
     if len(sys.argv) < 2:
         print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."
         sys.exit(1)
 
+    ctx = GerberSvgContext()
+    ctx.set_alpha(0.95)
     for filename in sys.argv[1:]:
         print "parsing %s" % filename
-        g = GerberParser(GerberContext())
-        g.parse(filename)
+        if 'GTO' in filename or 'GBO' in filename:
+            ctx.set_color((1, 1, 1))
+            ctx.set_alpha(0.8)
+        elif 'GTS' in filename or 'GBS' in filename:
+            ctx.set_color((0.2, 0.2, 0.75))
+            ctx.set_alpha(0.8)
+        gerberfile = read(filename)
+        gerberfile.render(ctx)
+
+    print('Saving image to test.svg')
+    ctx.dump('test.svg')

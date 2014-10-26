@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2013-2014 Paulo Henrique Silva <ph.silva@gmail.com>
+# copyright 2014 Hamilton Kibbe <ham@hamiltonkib.be>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Gerber Tools
+gerber.render
 ============
-**Gerber Tools**
+**Gerber Renderers**
 
-gerber-tools provides utilities for working with Gerber (RS-274X) and Excellon
-files in python.
+This module provides contexts for rendering images of gerber layers. Currently
+SVG is the only supported format.
 """
 
-from .common import read
+
+from svgwrite_backend import GerberSvgContext
+
