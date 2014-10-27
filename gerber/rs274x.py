@@ -386,12 +386,13 @@ class GerberParser(object):
     def _evaluate_coord(self, stmt):
         x = self.x if stmt.x is None else stmt.x
         y = self.y if stmt.y is None else stmt.y
+
         if stmt.function in ("G01", "G1"):
             self.interpolation = 'linear'
         elif stmt.function in ('G02', 'G2', 'G03', 'G3'):
             self.interpolation = 'arc'
-            self.direction = ('clockwise' if stmt.function in ('G02', 'G2')
-                              else 'counterclockwise')
+            self.direction = ('clockwise' if stmt.function in ('G02', 'G2') else 'counterclockwise')
+
         if stmt.op == "D01":
             if self.region_mode == 'on':
                 if self.current_region is None:
