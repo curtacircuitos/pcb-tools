@@ -148,8 +148,8 @@ class GerberSvgContext(GerberContext):
             self.dwg.add(c2)
             self.dwg.add(rect)
 
-    def _render_drill(self, primitive, color):
-        center = map(mul, primitive.position, self.scale)
-        hit = self.dwg.circle(center=center, r=SCALE * primitive.radius,
+    def _render_drill(self, circle, color):
+        center = map(mul, circle.position, self.scale)
+        hit = self.dwg.circle(center=center, r=SCALE * circle.radius,
                               fill=svg_color(color))
         self.dwg.add(hit)

@@ -171,6 +171,23 @@ class Obround(Primitive):
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
 
+    @property
+    def subshapes(self):
+        if self.orientation == 'vertical':
+            circle1 = Circle((self.position[0], self.position[1] +
+                              (self.height-self.width) / 2.), self.width)
+            circle2 = Circle((self.position[0], self.position[1] -
+                              (self.height-self.width) / 2.), self.width)
+            rect = Rectangle(self.position, self.width,
+                            (self.height - self.width))
+        else:
+            circle1 = Circle((self.position[0] - (self.height - self.width) / 2.,
+                              self.position[1]), self.height)
+            circle2 = Circle((self.position[0] - (self.height - self.width) / 2.,
+                              self.position[1]), self.height)
+            rect = Rectangle(self.position, (self.width - self.height),
+                            self.height)
+        return {'circle1': circle1, 'circle2': circle2, 'rectangle': rect}
 
 class Polygon(Primitive):
     """
