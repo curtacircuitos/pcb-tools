@@ -127,11 +127,11 @@ class GerberParser(object):
     MO = r"(?P<param>MO)(?P<mo>(MM|IN))"
     IP = r"(?P<param>IP)(?P<ip>(POS|NEG))"
     LP = r"(?P<param>LP)(?P<lp>(D|C))"
-    AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>C)[,](?P<modifiers>[^,]*)"
-    AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>R)[,]?(?P<modifiers>[^,]+)?"
+    AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>C)[,]?(?P<modifiers>[^,]*)?"
+    AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>R)[,](?P<modifiers>[^,]*)"
     AD_OBROUND = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>O)[,](?P<modifiers>[^,]*)"
     AD_POLY = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>P)[,](?P<modifiers>[^,]*)"
-    AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>{name})[,]?(?P<modifiers>[^,]+)?".format(name=NAME)
+    AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>{name})[,]?(?P<modifiers>[^,]*)?".format(name=NAME)
     AM = r"(?P<param>AM)(?P<name>{name})\*(?P<macro>.*)".format(name=NAME)
 
     # begin deprecated
