@@ -20,7 +20,7 @@ from operator import mul
 import cairocffi as cairo
 import math
 
-SCALE = 300.
+SCALE = 400.
 
 
 class GerberCairoContext(GerberContext):
@@ -48,8 +48,9 @@ class GerberCairoContext(GerberContext):
     def _render_line(self, line, color):
         start = map(mul, line.start, self.scale)
         end = map(mul, line.end, self.scale)
-        self.ctx.set_source_rgb (*color)
-        self.ctx.set_line_width(line.width * SCALE)
+        width = line.width if line.width != 0 else 0.001
+        self.ctx.set_source_rgba(*color, alpha=self.alpha)
+        self.ctx.set_line_width(width * SCALE)
         self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
         self.ctx.move_to(*start)
         self.ctx.line_to(*end)
@@ -57,7 +58,7 @@ class GerberCairoContext(GerberContext):
 
     def _render_region(self, region, color):
         points = [tuple(map(mul, point, self.scale)) for point in region.points]
-        self.ctx.set_source_rgb (*color)
+        self.ctx.set_source_rgba(*color, alpha=self.alpha)
         self.ctx.set_line_width(0)
         self.ctx.move_to(*points[0])
         for point in points[1:]:
@@ -66,7 +67,7 @@ class GerberCairoContext(GerberContext):
 
     def _render_circle(self, circle, color):
         center = map(mul, circle.position, self.scale)
-        self.ctx.set_source_rgb (*color)
+        self.ctx.set_source_rgba(*color, alpha=self.alpha)
         self.ctx.set_line_width(0)
         self.ctx.arc(*center, radius=circle.radius * SCALE, angle1=0, angle2=2 * math.pi)
         self.ctx.fill()
@@ -74,7 +75,7 @@ class GerberCairoContext(GerberContext):
     def _render_rectangle(self, rectangle, color):
         ll = map(mul, rectangle.lower_left, self.scale)
         width, height = tuple(map(mul, (rectangle.width, rectangle.height), map(abs, self.scale)))
-        self.ctx.set_source_rgb (*color)
+        self.ctx.set_source_rgba(*color, alpha=self.alpha)
         self.ctx.set_line_width(0)
         self.ctx.rectangle(*ll,width=width, height=height)
         self.ctx.fill()

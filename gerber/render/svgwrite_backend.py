@@ -20,7 +20,7 @@ from .render import GerberContext
 from operator import mul
 import svgwrite
 
-SCALE = 300
+SCALE = 400.
 
 
 def svg_color(color):
@@ -56,9 +56,10 @@ class GerberSvgContext(GerberContext):
     def _render_line(self, line, color):
         start = map(mul, line.start, self.scale)
         end = map(mul, line.end, self.scale)
+        width = line.width if line.width != 0 else 0.001
         aline = self.dwg.line(start=start, end=end,
                               stroke=svg_color(color),
-                              stroke_width=SCALE * line.width,
+                              stroke_width=SCALE * width,
                               stroke_linecap='round')
         aline.stroke(opacity=self.alpha)
         self.dwg.add(aline)
@@ -91,62 +92,10 @@ class GerberSvgContext(GerberContext):
         self.dwg.add(arect)
 
     def _render_obround(self, obround, color):
-        x, y = tuple(map(mul, obround.position, self.scale))
-        xsize, ysize = tuple(map(mul, (obround.width, obround.height),
-                                 self.scale))
-        xscale, yscale = self.scale
+        self._render_circle(obround.subshapes['circle1'], color)
+        self._render_circle(obround.subshapes['circle2'], color)
+        self._render_rectangle(obround.subshapes['rectangle'], color)
 
-        # Corner case...
-        if xsize == ysize:
-            circle = self.dwg.circle(center=(x, y),
-                                   r = (xsize / 2.0),
-                                   fill=svg_color(color))
-            circle.fill(opacity=self.alpha)
-            self.dwg.add(circle)
-
-        # Horizontal obround
-        elif xsize > ysize:
-            rectx = xsize - ysize
-            recty = ysize
-            c1 = self.dwg.circle(center=(x - (rectx / 2.0), y),
-                                 r = (ysize / 2.0),
-                                 fill=svg_color(color))
-
-            c2 = self.dwg.circle(center=(x + (rectx / 2.0), y),
-                                 r = (ysize / 2.0),
-                                 fill=svg_color(color))
-
-            rect = self.dwg.rect(insert=(x, y),
-                                 size=(xsize, ysize),
-                                 fill=svg_color(color))
-            c1.fill(opacity=self.alpha)
-            c2.fill(opacity=self.alpha)
-            rect.fill(opacity=self.alpha)
-            self.dwg.add(c1)
-            self.dwg.add(c2)
-            self.dwg.add(rect)
-
-        # Vertical obround
-        else:
-            rectx = xsize
-            recty = ysize - xsize
-            c1 = self.dwg.circle(center=(x, y - (recty / 2.)),
-                                 r = (xsize / 2.),
-                                 fill=svg_color(color))
-
-            c2 = self.dwg.circle(center=(x, y + (recty / 2.)),
-                                 r = (xsize / 2.),
-                                 fill=svg_color(color))
-
-            rect = self.dwg.rect(insert=(x, y),
-                                size=(xsize, ysize),
-                                fill=svg_color(color))
-            c1.fill(opacity=self.alpha)
-            c2.fill(opacity=self.alpha)
-            rect.fill(opacity=self.alpha)
-            self.dwg.add(c1)
-            self.dwg.add(c2)
-            self.dwg.add(rect)
 
     def _render_drill(self, circle, color):
         center = map(mul, circle.position, self.scale)
