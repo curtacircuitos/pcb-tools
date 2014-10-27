@@ -394,7 +394,7 @@ class AMParamStmt(ParamStmt):
         return '%AM{0}*{1}*%'.format(self.name, self.macro)
 
     def __str__(self):
-        return '<Aperture Macro %s: %s>' % (self.name, macro)
+        return '<Aperture Macro %s: %s>' % (self.name, self.macro)
 
 
 class INParamStmt(ParamStmt):
