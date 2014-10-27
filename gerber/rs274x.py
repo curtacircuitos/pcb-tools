@@ -412,9 +412,11 @@ class GerberParser(object):
 
         elif stmt.op == "D03":
             primitive = copy.deepcopy(self.apertures[self.aperture])
-            primitive.position = (x, y)
-            primitive.level_polarity = self.level_polarity
-            self.primitives.append(primitive)
+            # XXX: temporary fix because there are no primitives for Macros and Polygon
+            if primitive is not None:
+                primitive.position = (x, y)
+                primitive.level_polarity = self.level_polarity
+                self.primitives.append(primitive)
         self.x, self.y = x, y
 
     def _evaluate_aperture(self, stmt):
