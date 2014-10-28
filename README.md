@@ -1,4 +1,4 @@
-gerber-tools
+pcb-tools
 ============
 ![Travis CI Build Status](https://travis-ci.org/curtacircuitos/pcb-tools.svg?branch=master) 
 [![Coverage Status](https://coveralls.io/repos/curtacircuitos/pcb-tools/badge.png?branch=master)](https://coveralls.io/r/curtacircuitos/pcb-tools?branch=master)
