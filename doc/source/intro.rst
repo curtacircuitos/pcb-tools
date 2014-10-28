@@ -1,4 +1,4 @@
-Gerber Tools Intro
+PCB Tools Intro
 ==================
     
 PCB CAM (Gerber) Files
@@ -10,7 +10,7 @@ a generic term that may refer to `RS-274X (Gerber) <http://en.wikipedia.org/wiki
 files.
 
 
-Gerber-Tools
+PCB-Tools
 ------------
 
 The gerber-tools module provides tools for working with and rendering Gerber

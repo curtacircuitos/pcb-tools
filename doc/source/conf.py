@@ -47,8 +47,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Gerber Tools'
-copyright = u'2014, Hamilton Kibbe'
+project = u'PCB Tools'
+copyright = u'2014 Paulo Henrique Silva <ph.silva@gmail.com>, Hamilton Kibbe <ham@hamiltonkib.be>'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -180,7 +180,7 @@ html_static_path = ['_static']
 #html_file_suffix = None
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'GerberToolsdoc'
+htmlhelp_basename = 'PCBToolsdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------
@@ -200,7 +200,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  ('index', 'GerberTools.tex', u'Gerber Tools Documentation',
+  ('index', 'PCBTools.tex', u'PCB Tools Documentation',
    u'Hamilton Kibbe', 'manual'),
 ]
 
@@ -230,7 +230,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'gerbertools', u'Gerber Tools Documentation',
+    ('index', 'pcbtools', u'PCB Tools Documentation',
      [u'Hamilton Kibbe'], 1)
 ]
 
@@ -244,8 +244,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'GerberTools', u'Gerber Tools Documentation',
-   u'Hamilton Kibbe', 'GerberTools', 'One line description of project.',
+  ('index', 'PCBTools', u'PCB Tools Documentation',
+   u'Hamilton Kibbe', 'PCBTools', 'Tools for working with PCB CAM files.',
    'Miscellaneous'),
 ]
 

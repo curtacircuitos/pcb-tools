@@ -1,4 +1,4 @@
-Gerber Tools Reference
+PCB Tools Reference
 ======================
 
 .. toctree::
