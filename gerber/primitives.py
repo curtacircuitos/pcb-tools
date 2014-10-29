@@ -44,8 +44,8 @@ class Line(Primitive):
 
     @property
     def angle(self):
-        delta_x, delta_y = tuple(map(sub, end, start))
-        angle = degrees(math.tan(delta_y/delta_x))
+        delta_x, delta_y = tuple(map(sub, self.end, self.start))
+        angle = math.atan2(delta_y, delta_x)
         return angle
 
     @property
@@ -70,18 +70,71 @@ class Arc(Primitive):
         self.width = width
 
     @property
+    def radius(self):
+        dy, dx = map(sub, self.start, self.center)
+        return math.sqrt(dy**2 + dx**2)
+
+    @property
     def start_angle(self):
         dy, dx = map(sub, self.start, self.center)
-        return math.atan2(dy, dx)
+        return math.atan2(dx, dy)
 
     @property
     def end_angle(self):
         dy, dx = map(sub, self.end, self.center)
-        return math.atan2(dy, dx)
+        return math.atan2(dx, dy)
+
+    @property
+    def sweep_angle(self):
+        two_pi = 2 * math.pi
+        theta0 = (self.start_angle + two_pi) % two_pi
+        theta1 = (self.end_angle + two_pi) % two_pi
+        if self.direction == 'counterclockwise':
+            return abs(theta1 - theta0)
+        else:
+            theta0 += two_pi
+            return abs(theta0 - theta1) % two_pi
 
     @property
     def bounding_box(self):
-        pass
+        two_pi = 2 * math.pi
+        theta0 = (self.start_angle + two_pi) % two_pi
+        theta1 = (self.end_angle + two_pi) % two_pi
+        points = [self.start, self.end]
+        #Shit's about to get ugly...
+        if self.direction == 'counterclockwise':
+            # Passes through 0 degrees
+            if theta0 > theta1:
+                points.append((self.center[0] + self.radius, self.center[1]))
+            # Passes through 90 degrees
+            if theta0 <= math.pi / 2. and (theta1 >= math.pi / 2. or theta1 < theta0):
+                points.append((self.center[0], self.center[1] + self.radius))
+            # Passes through 180 degrees
+            if theta0 <= math.pi and (theta1 >= math.pi or theta1 < theta0):
+                points.append((self.center[0] - self.radius, self.center[1]))
+            # Passes through 270 degrees
+            if theta0 <= math.pi * 1.5 and (theta1 >= math.pi * 1.5 or theta1 < theta0):
+                points.append((self.center[0], self.center[1] - self.radius ))
+        else:
+             # Passes through 0 degrees
+            if theta1 > theta0:
+                points.append((self.center[0] + self.radius, self.center[1]))
+            # Passes through 90 degrees
+            if theta1 <= math.pi / 2. and (theta0 >= math.pi / 2. or theta0 < theta1):
+                points.append((self.center[0], self.center[1] + self.radius))
+            # Passes through 180 degrees
+            if theta1 <= math.pi and (theta0 >= math.pi or theta0 < theta1):
+                points.append((self.center[0] - self.radius, self.center[1]))
+            # Passes through 270 degrees
+            if theta1 <= math.pi * 1.5 and (theta0 >= math.pi * 1.5 or theta0 < theta1):
+                points.append((self.center[0], self.center[1] - self.radius ))
+        x, y = zip(*points)
+        min_x = min(x)
+        max_x = max(x)
+        min_y = min(y)
+        max_y = max(y)
+        return ((min_x, max_x), (min_y, max_y))
+
 
 class Circle(Primitive):
     """

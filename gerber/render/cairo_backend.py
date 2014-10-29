@@ -56,13 +56,31 @@ class GerberCairoContext(GerberContext):
         self.ctx.line_to(*end)
         self.ctx.stroke()
 
+    def _render_arc(self, arc, color):
+        center = map(mul, arc.center, self.scale)
+        start = map(mul, arc.start, self.scale)
+        end = map(mul, arc.end, self.scale)
+        radius = SCALE * arc.radius
+        angle1 = arc.start_angle
+        angle2 = arc.end_angle
+        width = arc.width if arc.width != 0 else 0.001
+        self.ctx.set_source_rgba(*color, alpha=self.alpha)
+        self.ctx.set_line_width(width * SCALE)
+        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        self.ctx.move_to(*start)  # You actually have to do this...
+        if arc.direction == 'counterclockwise':
+            self.ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
+        else:
+            self.ctx.arc_negative(*center, radius=radius, angle1=angle1, angle2=angle2)
+        self.ctx.move_to(*end)  # ...lame
+
     def _render_region(self, region, color):
         points = [tuple(map(mul, point, self.scale)) for point in region.points]
         self.ctx.set_source_rgba(*color, alpha=self.alpha)
         self.ctx.set_line_width(0)
         self.ctx.move_to(*points[0])
         for point in points[1:]:
-            self.ctx.move_to(*point)
+            self.ctx.line_to(*point)
         self.ctx.fill()
 
     def _render_circle(self, circle, color):

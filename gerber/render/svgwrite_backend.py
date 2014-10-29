@@ -18,6 +18,7 @@
 
 from .render import GerberContext
 from operator import mul
+import math
 import svgwrite
 
 SCALE = 400.
@@ -64,6 +65,19 @@ class GerberSvgContext(GerberContext):
         aline.stroke(opacity=self.alpha)
         self.dwg.add(aline)
 
+    def _render_arc(self, arc, color):
+        start = tuple(map(mul, arc.start, self.scale))
+        end = tuple(map(mul, arc.end, self.scale))
+        radius = SCALE * arc.radius
+        width = arc.width if arc.width != 0 else 0.001
+        arc_path = self.dwg.path(d='M %f, %f' % start,
+                                    stroke=svg_color(color),
+                                    stroke_width=SCALE * width)
+        large_arc = arc.sweep_angle >= 2 * math.pi
+        direction = '-' if arc.direction == 'clockwise' else '+'
+        arc_path.push_arc(end, 0, radius, large_arc, direction, True)
+        self.dwg.add(arc_path)
+        
     def _render_region(self, region, color):
         points = [tuple(map(mul, point, self.scale)) for point in region.points]
         region_path = self.dwg.path(d='M %f, %f' % points[0],
