@@ -23,9 +23,9 @@ def test_excellontool_factory():
 def test_excellontool_dump():
     """ Test ExcellonTool to_excellon()
     """
-    exc_lines = ['T1F00S00C0.01200', 'T2F00S00C0.01500', 'T3F00S00C0.01968',
-                 'T4F00S00C0.02800', 'T5F00S00C0.03300', 'T6F00S00C0.03800',
-                 'T7F00S00C0.04300', 'T8F00S00C0.12500', 'T9F00S00C0.13000', ]
+    exc_lines = ['T1F0S0C0.01200', 'T2F0S0C0.01500', 'T3F0S0C0.01968',
+                 'T4F0S0C0.02800', 'T5F0S0C0.03300', 'T6F0S0C0.03800',
+                 'T7F0S0C0.04300', 'T8F0S0C0.12500', 'T9F0S0C0.13000', ]
     settings = FileSettings(format=(2, 5), zero_suppression='trailing',
                 units='inch', notation='absolute')
     for line in exc_lines:

@@ -215,8 +215,8 @@ class OFParamStmt(ParamStmt):
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
-        a = float(stmt_dict.get('a'))
-        b = float(stmt_dict.get('b'))
+        a = float(stmt_dict.get('a', 0))
+        b = float(stmt_dict.get('b', 0))
         return cls(param, a, b)
 
     def __init__(self, param, a, b):
@@ -245,17 +245,17 @@ class OFParamStmt(ParamStmt):
 
     def to_gerber(self):
         ret = '%OF'
-        if self.a:
-            ret += 'A' + decimal_string(self.a, precision=6)
-        if self.b:
-            ret += 'B' + decimal_string(self.b, precision=6)
+        if self.a is not None:
+            ret += 'A' + decimal_string(self.a, precision=5)
+        if self.b is not None:
+            ret += 'B' + decimal_string(self.b, precision=5)
         return ret + '*%'
 
     def __str__(self):
         offset_str = ''
-        if self.a:
+        if self.a is not None:
             offset_str += ('X: %f' % self.a)
-        if self.b:
+        if self.b is not None:
             offset_str += ('Y: %f' % self.b)
         return ('<Offset: %s>' % offset_str)
 
@@ -341,7 +341,7 @@ class ADParamStmt(ParamStmt):
         else:
             self.modifiers = []
 
-    def to_gerber(self, settings):
+    def to_gerber(self):
         return '%ADD{0}{1},{2}*%'.format(self.d, self.shape,
                                          ','.join(['X'.join(e) for e in self.modifiers]))
 
@@ -540,18 +540,14 @@ class CoordStmt(Statement):
         ret = ''
         if self.function:
             ret += self.function
-        if self.x:
-            ret += 'X{0}'.format(write_gerber_value(self.x, self.zeros,
-                                                    self.format))
-        if self.y:
-            ret += 'Y{0}'.format(write_gerber_value(self.y, self. zeros,
-                                                    self.format))
-        if self.i:
-            ret += 'I{0}'.format(write_gerber_value(self.i, self.zeros,
-                                                    self.format))
-        if self.j:
-            ret += 'J{0}'.format(write_gerber_value(self.j, self.zeros,
-                                                    self.format))
+        if self.x is not None:
+            ret += 'X{0}'.format(write_gerber_value(self.x, self.format, self.zero_suppression))
+        if self.y is not None:
+            ret += 'Y{0}'.format(write_gerber_value(self.y, self.format, self.zero_suppression))
+        if self.i is not None:
+            ret += 'I{0}'.format(write_gerber_value(self.i, self.format, self.zero_suppression))
+        if self.j is not None:
+            ret += 'J{0}'.format(write_gerber_value(self.j, self.format, self.zero_suppression))
         if self.op:
             ret += self.op
         return ret + '*'
@@ -560,13 +556,13 @@ class CoordStmt(Statement):
         coord_str = ''
         if self.function:
             coord_str += 'Fn: %s ' % self.function
-        if self.x:
+        if self.x is not None:
             coord_str += 'X: %f ' % self.x
-        if self.y:
+        if self.y is not None:
             coord_str += 'Y: %f ' % self.y
-        if self.i:
+        if self.i is not None:
             coord_str += 'I: %f ' % self.i
-        if self.j:
+        if self.j is not None:
             coord_str += 'J: %f ' % self.j
         if self.op:
             if self.op == 'D01':
@@ -585,12 +581,16 @@ class CoordStmt(Statement):
 class ApertureStmt(Statement):
     """ Aperture Statement
     """
-    def __init__(self, d):
+    def __init__(self, d, deprecated=None):
         Statement.__init__(self, "APERTURE")
         self.d = int(d)
+        self.deprecated = True if deprecated is not None else False
 
     def to_gerber(self):
-        return 'G54D{0}*'.format(self.d)
+        if self.deprecated:
+            return 'G54D{0}*'.format(self.d)
+        else:
+            return 'D{0}*'.format(self.d)
 
     def __str__(self):
         return '<Aperture: %d>' % self.d

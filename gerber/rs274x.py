@@ -109,7 +109,7 @@ class GerberFile(CamFile):
         """
         with open(filename, 'w') as f:
             for statement in self.statements:
-                f.write(statement.to_gerber())
+                f.write(statement.to_gerber() + "\n")
 
 
 class GerberParser(object):
@@ -149,7 +149,7 @@ class GerberParser(object):
         r"(I(?P<i>{number}))?(J(?P<j>{number}))?"
         r"(?P<op>{op})?\*".format(number=NUMBER, function=FUNCTION, op=COORD_OP)))
 
-    APERTURE_STMT = re.compile(r"(G54)?D(?P<d>\d+)\*")
+    APERTURE_STMT = re.compile(r"(?P<deprecated>G54)?D(?P<d>\d+)\*")
 
     COMMENT_STMT = re.compile(r"G04(?P<comment>[^*]*)(\*)?")
 

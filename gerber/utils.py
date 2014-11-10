@@ -125,9 +125,9 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     if MAX_DIGITS > 13 or integer_digits > 6 or decimal_digits > 7:
         raise ValueError('Parser only supports precision up to 6:7 format')
 
-    # Edge case...
+    # Edge case... (per Gerber spec we should return 0 in all cases, see page 77)
     if value == 0:
-        return '00'
+        return '0'
 
     # negative sign affects padding, so deal with it at the end...
     negative = value < 0.0
@@ -173,10 +173,14 @@ def decimal_string(value, precision=6, padding=False):
         integer, decimal = floatstr.split('.')
     elif ',' in floatstr:
         integer, decimal = floatstr.split(',')
+    else:
+        integer, decimal = floatstr, "0"
+
     if len(decimal) > precision:
         decimal = decimal[:precision]
     elif padding:
         decimal = decimal + (precision - len(decimal)) * '0'
+
     if integer or decimal:
         return ''.join([integer, '.', decimal])
     else:

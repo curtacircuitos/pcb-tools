@@ -123,7 +123,7 @@ def test_IPParamStmt_dump():
 
 
 def test_OFParamStmt_factory():
-    """ Test OFParamStmt factory 
+    """ Test OFParamStmt factory
     """
     stmt = {'param': 'OF', 'a': '0.1234567', 'b': '0.1234567'}
     of = OFParamStmt.from_dict(stmt)
@@ -139,13 +139,13 @@ def test_OFParamStmt():
         assert_equal(stmt.param, param)
         assert_equal(stmt.a, val)
         assert_equal(stmt.b, val)
-    
+
 def test_OFParamStmt_dump():
     """ Test OFParamStmt to_gerber()
     """
-    stmt = {'param': 'OF', 'a': '0.1234567', 'b': '0.1234567'}
+    stmt = {'param': 'OF', 'a': '0.123456', 'b': '0.123456'}
     of = OFParamStmt.from_dict(stmt)
-    assert_equal(of.to_gerber(), '%OFA0.123456B0.123456*%')
+    assert_equal(of.to_gerber(), '%OFA0.12345B0.12345*%')
 
 
 def test_LPParamStmt_factory():

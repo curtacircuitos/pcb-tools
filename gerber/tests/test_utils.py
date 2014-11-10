@@ -19,7 +19,8 @@ def test_zero_suppression():
                   ('1000', 0.01), ('10000', 0.1), ('100000', 1.0),
                   ('1000000', 10.0), ('-1', -0.00001), ('-10', -0.0001),
                   ('-100', -0.001), ('-1000', -0.01), ('-10000', -0.1),
-                  ('-100000', -1.0), ('-1000000', -10.0), ]
+                  ('-100000', -1.0), ('-1000000', -10.0),
+                  ('0', 0.0)]
     for string, value in test_cases:
         assert(value == parse_gerber_value(string, fmt, zero_suppression))
         assert(string == write_gerber_value(value, fmt, zero_suppression))
@@ -30,7 +31,8 @@ def test_zero_suppression():
                   ('00001', 0.001), ('000001', 0.0001),
                   ('0000001', 0.00001), ('-1', -10.0), ('-01', -1.0),
                   ('-001', -0.1), ('-0001', -0.01), ('-00001', -0.001),
-                  ('-000001', -0.0001), ('-0000001', -0.00001)]
+                  ('-000001', -0.0001), ('-0000001', -0.00001),
+                  ('0', 0.0)]
     for string, value in test_cases:
         assert(value == parse_gerber_value(string, fmt, zero_suppression))
         assert(string == write_gerber_value(value, fmt, zero_suppression))
@@ -46,7 +48,8 @@ def test_format():
                   ((2, 1), '1', 0.1), ((2, 7), '-1', -0.0000001),
                   ((2, 6), '-1', -0.000001), ((2, 5), '-1', -0.00001),
                   ((2, 4), '-1', -0.0001), ((2, 3), '-1', -0.001),
-                  ((2, 2), '-1', -0.01), ((2, 1), '-1', -0.1), ]
+                  ((2, 2), '-1', -0.01), ((2, 1), '-1', -0.1),
+                  ((2, 6), '0', 0) ]
     for fmt, string, value in test_cases:
         assert(value == parse_gerber_value(string, fmt, zero_suppression))
         assert(string == write_gerber_value(value, fmt, zero_suppression))
@@ -57,7 +60,8 @@ def test_format():
                   ((2, 5), '1', 10.0), ((1, 5), '1', 1.0),
                   ((6, 5), '-1', -100000.0), ((5, 5), '-1', -10000.0),
                   ((4, 5), '-1', -1000.0), ((3, 5), '-1', -100.0),
-                  ((2, 5), '-1', -10.0), ((1, 5), '-1', -1.0), ]
+                  ((2, 5), '-1', -10.0), ((1, 5), '-1', -1.0),
+                  ((2, 5), '0', 0)]
     for fmt, string, value in test_cases:
         assert(value == parse_gerber_value(string, fmt, zero_suppression))
         assert(string == write_gerber_value(value, fmt, zero_suppression))
@@ -81,3 +85,6 @@ def test_decimal_padding():
     assert_equal(decimal_string(value, precision=4, padding=True), '1.1230')
     assert_equal(decimal_string(value, precision=5, padding=True), '1.12300')
     assert_equal(decimal_string(value, precision=6, padding=True), '1.123000')
+
+    assert_equal(decimal_string(0, precision=6, padding=True), '0.000000')
+
