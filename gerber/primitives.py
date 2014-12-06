@@ -19,10 +19,11 @@ from operator import sub
 
 
 class Primitive(object):
-    
-    def __init__(self, level_polarity='dark'):
+
+    def __init__(self, level_polarity='dark', rotation=0):
         self.level_polarity = level_polarity
-        
+        self.rotation = rotation
+
     def bounding_box(self):
         """ Calculate bounding box
 
@@ -36,8 +37,8 @@ class Primitive(object):
 class Line(Primitive):
     """
     """
-    def __init__(self, start, end, width, level_polarity='dark'):
-        super(Line, self).__init__(level_polarity)
+    def __init__(self, start, end, width, **kwargs):
+        super(Line, self).__init__(**kwargs)
         self.start = start
         self.end = end
         self.width = width
@@ -61,8 +62,8 @@ class Line(Primitive):
 class Arc(Primitive):
     """
     """
-    def __init__(self, start, end, center, direction, width, level_polarity='dark'):
-        super(Arc, self).__init__(level_polarity)
+    def __init__(self, start, end, center, direction, width, **kwargs):
+        super(Arc, self).__init__(**kwargs)
         self.start = start
         self.end = end
         self.center = center
@@ -139,8 +140,8 @@ class Arc(Primitive):
 class Circle(Primitive):
     """
     """
-    def __init__(self, position, diameter, level_polarity='dark'):
-        super(Circle, self).__init__(level_polarity)
+    def __init__(self, position, diameter, **kwargs):
+        super(Circle, self).__init__(**kwargs)
         self.position = position
         self.diameter = diameter
 
@@ -161,11 +162,29 @@ class Circle(Primitive):
         return self.diameter
 
 
+class Ellipse(Primitive):
+    """
+    """
+    def __init__(self, position, width, height, **kwargs):
+        super(Ellipse, self).__init__(**kwargs)
+        self.position = position
+        self.width = width
+        self.height = height
+
+    @property
+    def bounding_box(self):
+        min_x = self.position[0] - (self.width / 2.0)
+        max_x = self.position[0] + (self.width / 2.0)
+        min_y = self.position[1] - (self.height / 2.0)
+        max_y = self.position[1] + (self.height / 2.0)
+        return ((min_x, max_x), (min_y, max_y))
+
+
 class Rectangle(Primitive):
     """
     """
-    def __init__(self, position, width, height, level_polarity='dark'):
-        super(Rectangle, self).__init__(level_polarity)
+    def __init__(self, position, width, height, **kwargs):
+        super(Rectangle, self).__init__(**kwargs)
         self.position = position
         self.width = width
         self.height = height
@@ -193,11 +212,23 @@ class Rectangle(Primitive):
         return max((self.width, self.height))
 
 
+class Diamond(Primitive):
+    pass
+
+
+class ChamferRectangle(Primitive):
+    pass
+
+
+class RoundRectangle(Primitive):
+    pass
+
+
 class Obround(Primitive):
     """
     """
-    def __init__(self, position, width, height, level_polarity='dark'):
-        super(Obround, self).__init__(level_polarity)
+    def __init__(self, position, width, height, **kwargs):
+        super(Obround, self).__init__(**kwargs)
         self.position = position
         self.width = width
         self.height = height
@@ -242,11 +273,12 @@ class Obround(Primitive):
                             self.height)
         return {'circle1': circle1, 'circle2': circle2, 'rectangle': rect}
 
+
 class Polygon(Primitive):
     """
     """
-    def __init__(self, position, sides, radius, level_polarity='dark'):
-        super(Polygon, self).__init__(level_polarity)
+    def __init__(self, position, sides, radius, **kwargs):
+        super(Polygon, self).__init__(**kwargs)
         self.position = position
         self.sides = sides
         self.radius = radius
@@ -263,8 +295,8 @@ class Polygon(Primitive):
 class Region(Primitive):
     """
     """
-    def __init__(self, points, level_polarity='dark'):
-        super(Region, self).__init__(level_polarity)
+    def __init__(self, points, **kwargs):
+        super(Region, self).__init__(**kwargs)
         self.points = points
 
     @property
@@ -275,6 +307,34 @@ class Region(Primitive):
         min_y = min(y_list)
         max_y = max(y_list)
         return ((min_x, max_x), (min_y, max_y))
+
+
+class RoundButterfly(Primitive):
+    """
+    """
+    def __init__(self, position, diameter, **kwargs):
+        super(RoundButterfly, self).__init__(**kwargs)
+        self.position = position
+        self.diameter = diameter
+
+    @property
+    def radius(self):
+        return self.diameter / 2.
+
+    @property
+    def bounding_box(self):
+        min_x = self.position[0] - self.radius
+        max_x = self.position[0] + self.radius
+        min_y = self.position[1] - self.radius
+        max_y = self.position[1] + self.radius
+        return ((min_x, max_x), (min_y, max_y))
+    
+class SquareButterfly(Primitive):
+    pass
+
+
+class Donut(Primitive):
+    pass
 
 
 class Drill(Primitive):

@@ -11,7 +11,7 @@ Contents:
 .. toctree::
     :maxdepth: 1
     
-    intro
+    about
     documentation/index
 
 Indices and tables
