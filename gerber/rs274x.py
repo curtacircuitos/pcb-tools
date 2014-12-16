@@ -104,12 +104,13 @@ class GerberFile(CamFile):
         return (xbounds, ybounds)
 
 
-    def write(self, filename):
+    def write(self, filename, settings=None):
         """ Write data out to a gerber file
         """
         with open(filename, 'w') as f:
             for statement in self.statements:
-                f.write(statement.to_gerber() + "\n")
+                f.write(statement.to_gerber(settings or self.settings))
+                f.write("\n")
 
 
 class GerberParser(object):
@@ -125,7 +126,6 @@ class GerberParser(object):
 
     FS = r"(?P<param>FS)(?P<zero>(L|T))?(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
     MO = r"(?P<param>MO)(?P<mo>(MM|IN))"
-    IP = r"(?P<param>IP)(?P<ip>(POS|NEG))"
     LP = r"(?P<param>LP)(?P<lp>(D|C))"
     AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>C)[,]?(?P<modifiers>[^,]*)?"
     AD_RECT = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>R)[,](?P<modifiers>[^,]*)"
@@ -135,13 +135,18 @@ class GerberParser(object):
     AM = r"(?P<param>AM)(?P<name>{name})\*(?P<macro>.*)".format(name=NAME)
 
     # begin deprecated
-    OF = r"(?P<param>OF)(A(?P<a>{decimal}))?(B(?P<b>{decimal}))?".format(decimal=DECIMAL)
+    AS = r"(?P<param>AS)(?P<mode>(AXBY)|(AYBX))"
     IN = r"(?P<param>IN)(?P<name>.*)"
+    IP = r"(?P<param>IP)(?P<ip>(POS|NEG))"
+    IR = r"(?P<param>IR)(?P<angle>{number})".format(number=NUMBER)
+    MI = r"(?P<param>MI)(A(?P<a>0|1))?(B(?P<b>0|1))?"
+    OF = r"(?P<param>OF)(A(?P<a>{decimal}))?(B(?P<b>{decimal}))?".format(decimal=DECIMAL)
+    SF = r"(?P<param>SF)(?P<discarded>.*)"
     LN = r"(?P<param>LN)(?P<name>.*)"
     # end deprecated
 
-    PARAMS = (FS, MO, IP, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY, AD_MACRO, AM, OF, IN, LN)
-    PARAM_STMT = [re.compile(r"%{0}\*%".format(p)) for p in PARAMS]
+    PARAMS = (FS, MO, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY, AD_MACRO, AM, AS, IN, IP, IR, MI, OF, SF, LN)
+    PARAM_STMT = [re.compile(r"%?{0}\*%?".format(p)) for p in PARAMS]
 
     COORD_STMT = re.compile((
         r"(?P<function>{function})?"
@@ -149,7 +154,7 @@ class GerberParser(object):
         r"(I(?P<i>{number}))?(J(?P<j>{number}))?"
         r"(?P<op>{op})?\*".format(number=NUMBER, function=FUNCTION, op=COORD_OP)))
 
-    APERTURE_STMT = re.compile(r"(?P<deprecated>G54)?D(?P<d>\d+)\*")
+    APERTURE_STMT = re.compile(r"(?P<deprecated>(G54)|G55)?D(?P<d>\d+)\*")
 
     COMMENT_STMT = re.compile(r"G04(?P<comment>[^*]*)(\*)?")
 
@@ -270,8 +275,6 @@ class GerberParser(object):
                         stmt = MOParamStmt.from_dict(param)
                         self.settings.units = stmt.mode
                         yield stmt
-                    elif param["param"] == "IP":
-                        yield IPParamStmt.from_dict(param)
                     elif param["param"] == "LP":
                         yield LPParamStmt.from_dict(param)
                     elif param["param"] == "AD":
@@ -284,8 +287,26 @@ class GerberParser(object):
                         yield INParamStmt.from_dict(param)
                     elif param["param"] == "LN":
                         yield LNParamStmt.from_dict(param)
+                    # deprecated commands AS, IN, IP, IR, MI, OF, SF, LN
+                    elif param["param"] == "AS":
+                        yield ASParamStmt.from_dict(param)
+                    elif param["param"] == "IN":
+                        yield INParamStmt.from_dict(param)
+                    elif param["param"] == "IP":
+                        yield IPParamStmt.from_dict(param)
+                    elif param["param"] == "IR":
+                        yield IRParamStmt.from_dict(param)
+                    elif param["param"] == "MI":
+                        yield MIParamStmt.from_dict(param)
+                    elif param["param"] == "OF":
+                        yield OFParamStmt.from_dict(param)
+                    elif param["param"] == "SF":
+                        yield SFParamStmt.from_dict(param)
+                    elif param["param"] == "LN":
+                        yield LNParamStmt.from_dict(param)
                     else:
                         yield UnknownStmt(line)
+
                     did_something = True
                     line = r
                     continue
@@ -297,14 +318,6 @@ class GerberParser(object):
                     did_something = True
                     line = r
                     continue
-
-                if False:
-                    print self.COORD_STMT.pattern
-                    print self.APERTURE_STMT.pattern
-                    print self.COMMENT_STMT.pattern
-                    print self.EOF_STMT.pattern
-                    for i in self.PARAM_STMT:
-                        print i.pattern
 
                 if line.find('*') > 0:
                     yield UnknownStmt(line)

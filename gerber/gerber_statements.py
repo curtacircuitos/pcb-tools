@@ -23,13 +23,6 @@ Gerber (RS-274X) Statements
 from .utils import parse_gerber_value, write_gerber_value, decimal_string
 
 
-__all__ = ['FSParamStmt', 'MOParamStmt', 'IPParamStmt', 'OFParamStmt',
-           'LPParamStmt', 'ADParamStmt', 'AMParamStmt', 'INParamStmt',
-           'LNParamStmt', 'CoordStmt', 'ApertureStmt', 'CommentStmt',
-           'EofStmt', 'QuadrantModeStmt', 'RegionModeStmt', 'UnknownStmt',
-           'ParamStmt']
-
-
 class Statement(object):
     """ Gerber statement Base class
 
@@ -128,17 +121,21 @@ class FSParamStmt(ParamStmt):
         self.notation = notation
         self.format = format
 
-    def to_gerber(self):
-        zero_suppression = 'L' if self.zero_suppression == 'leading' else 'T'
-        notation = 'A' if self.notation == 'absolute' else 'I'
-        fmt = ''.join(map(str, self.format))
-        return '%FS{0}{1}X{2}Y{3}*%'.format(zero_suppression, notation,
-                                            fmt, fmt)
+    def to_gerber(self, settings=None):
+        if settings:
+            zero_suppression = 'L' if settings.zero_suppression == 'leading' else 'T'
+            notation = 'A' if settings.notation == 'absolute' else 'I'
+            fmt = ''.join(map(str, settings.format))
+        else:
+            zero_suppression = 'L' if self.zero_suppression == 'leading' else 'T'
+            notation = 'A' if self.notation == 'absolute' else 'I'
+            fmt = ''.join(map(str, self.format))
+
+        return '%FS{0}{1}X{2}Y{3}*%'.format(zero_suppression, notation, fmt, fmt)
 
     def __str__(self):
         return ('<Format Spec: %d:%d %s zero suppression %s notation>' %
-                (self.format[0], self.format[1], self.zero_suppression,
-                 self.notation))
+                (self.format[0], self.format[1], self.zero_suppression, self.notation))
 
 
 class MOParamStmt(ParamStmt):
@@ -176,102 +173,13 @@ class MOParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.mode = mo
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         mode = 'MM' if self.mode == 'metric' else 'IN'
         return '%MO{0}*%'.format(mode)
 
     def __str__(self):
         mode_str = 'millimeters' if self.mode == 'metric' else 'inches'
         return ('<Mode: %s>' % mode_str)
-
-
-class IPParamStmt(ParamStmt):
-    """ IP - Gerber Image Polarity Statement. (Deprecated)
-    """
-    @classmethod
-    def from_dict(cls, stmt_dict):
-        param = stmt_dict.get('param')
-        ip = 'positive' if stmt_dict.get('ip') == 'POS' else 'negative'
-        return cls(param, ip)
-
-    def __init__(self, param, ip):
-        """ Initialize IPParamStmt class
-
-        Parameters
-        ----------
-        param : string
-            Parameter string.
-
-        ip : string
-            Image polarity. May be either'positive' or 'negative'
-
-        Returns
-        -------
-        ParamStmt : IPParamStmt
-            Initialized IPParamStmt class.
-
-        """
-        ParamStmt.__init__(self, param)
-        self.ip = ip
-
-    def to_gerber(self):
-        ip = 'POS' if self.ip == 'positive' else 'NEG'
-        return '%IP{0}*%'.format(ip)
-
-    def __str__(self):
-        return ('<Image Polarity: %s>' % self.ip)
-
-
-class OFParamStmt(ParamStmt):
-    """ OF - Gerber Offset statement (Deprecated)
-    """
-
-    @classmethod
-    def from_dict(cls, stmt_dict):
-        param = stmt_dict.get('param')
-        a = float(stmt_dict.get('a', 0))
-        b = float(stmt_dict.get('b', 0))
-        return cls(param, a, b)
-
-    def __init__(self, param, a, b):
-        """ Initialize OFParamStmt class
-
-        Parameters
-        ----------
-        param : string
-            Parameter
-
-        a : float
-            Offset along the output device A axis
-
-        b : float
-            Offset along the output device B axis
-
-        Returns
-        -------
-        ParamStmt : OFParamStmt
-            Initialized OFParamStmt class.
-
-        """
-        ParamStmt.__init__(self, param)
-        self.a = a
-        self.b = b
-
-    def to_gerber(self):
-        ret = '%OF'
-        if self.a is not None:
-            ret += 'A' + decimal_string(self.a, precision=5)
-        if self.b is not None:
-            ret += 'B' + decimal_string(self.b, precision=5)
-        return ret + '*%'
-
-    def __str__(self):
-        offset_str = ''
-        if self.a is not None:
-            offset_str += ('X: %f' % self.a)
-        if self.b is not None:
-            offset_str += ('Y: %f' % self.b)
-        return ('<Offset: %s>' % offset_str)
 
 
 class LPParamStmt(ParamStmt):
@@ -304,7 +212,7 @@ class LPParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.lp = lp
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         lp = 'C' if self.lp == 'clear' else 'D'
         return '%LP{0}*%'.format(lp)
 
@@ -351,13 +259,15 @@ class ADParamStmt(ParamStmt):
         self.d = d
         self.shape = shape
         if modifiers is not None:
-            self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",")]
+            self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",") if len(m)]
         else:
             self.modifiers = []
 
-    def to_gerber(self):
-        return '%ADD{0}{1},{2}*%'.format(self.d, self.shape,
-                                         ','.join(['X'.join(e) for e in self.modifiers]))
+    def to_gerber(self, settings=None):
+        if len(self.modifiers):
+            return '%ADD{0}{1},{2}*%'.format(self.d, self.shape, ','.join(['X'.join(e) for e in self.modifiers]))
+        else:
+            return '%ADD{0}{1}*%'.format(self.d, self.shape)
 
     def __str__(self):
         if self.shape == 'C':
@@ -404,15 +314,51 @@ class AMParamStmt(ParamStmt):
         self.name = name
         self.macro = macro
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return '%AM{0}*{1}*%'.format(self.name, self.macro)
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, self.macro)
 
 
+class ASParamStmt(ParamStmt):
+    """ AS - Axis Select. (Deprecated)
+    """
+    @classmethod
+    def from_dict(cls, stmt_dict):
+        param = stmt_dict.get('param')
+        mode = stmt_dict.get('mode')
+        return cls(param, mode)
+
+    def __init__(self, param, ip):
+        """ Initialize ASParamStmt class
+
+        Parameters
+        ----------
+        param : string
+            Parameter string.
+
+        mode : string
+            Axis select. May be either 'AXBY' or 'AYBX'
+
+        Returns
+        -------
+        ParamStmt : ASParamStmt
+            Initialized ASParamStmt class.
+
+        """
+        ParamStmt.__init__(self, param)
+        self.mode = mode
+
+    def to_gerber(self, settings=None):
+        return '%AS{0}*%'.format(self.mode)
+
+    def __str__(self):
+        return ('<Axis Select: %s>' % self.mode)
+
+
 class INParamStmt(ParamStmt):
-    """ IN - Image Name Statement
+    """ IN - Image Name Statement (Deprecated)
     """
     @classmethod
     def from_dict(cls, stmt_dict):
@@ -438,11 +384,233 @@ class INParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.name = name
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return '%IN{0}*%'.format(self.name)
 
     def __str__(self):
         return '<Image Name: %s>' % self.name
+
+
+class IPParamStmt(ParamStmt):
+    """ IP - Gerber Image Polarity Statement. (Deprecated)
+    """
+    @classmethod
+    def from_dict(cls, stmt_dict):
+        param = stmt_dict.get('param')
+        ip = 'positive' if stmt_dict.get('ip') == 'POS' else 'negative'
+        return cls(param, ip)
+
+    def __init__(self, param, ip):
+        """ Initialize IPParamStmt class
+
+        Parameters
+        ----------
+        param : string
+            Parameter string.
+
+        ip : string
+            Image polarity. May be either'positive' or 'negative'
+
+        Returns
+        -------
+        ParamStmt : IPParamStmt
+            Initialized IPParamStmt class.
+
+        """
+        ParamStmt.__init__(self, param)
+        self.ip = ip
+
+    def to_gerber(self, settings=None):
+        ip = 'POS' if self.ip == 'positive' else 'NEG'
+        return '%IP{0}*%'.format(ip)
+
+    def __str__(self):
+        return ('<Image Polarity: %s>' % self.ip)
+
+
+class IRParamStmt(ParamStmt):
+    """ IR - Image Rotation Param (Deprecated)
+    """
+    @classmethod
+    def from_dict(cls, stmt_dict):
+        return cls(**stmt_dict)
+
+    def __init__(self, param, angle):
+        """ Initialize IRParamStmt class
+
+        Parameters
+        ----------
+        param : string
+            Parameter code
+
+        angle : int
+            Image angle
+
+        Returns
+        -------
+        ParamStmt : IRParamStmt
+            Initialized IRParamStmt class.
+
+        """
+        ParamStmt.__init__(self, param)
+        self.angle = angle
+
+    def to_gerber(self, settings=None):
+        return '%IR{0}*%'.format(self.angle)
+
+    def __str__(self):
+        return '<Image Angle: %s>' % self.angle
+
+
+class MIParamStmt(ParamStmt):
+    """ MI - Image Mirror Param (Deprecated)
+    """
+    @classmethod
+    def from_dict(cls, stmt_dict):
+        param = stmt_dict.get('param')
+        a = int(stmt_dict.get('a', 0))
+        b = int(stmt_dict.get('b', 0))
+        return cls(param, a, b)
+
+    def __init__(self, param, a, b):
+        """ Initialize MIParamStmt class
+
+        Parameters
+        ----------
+        param : string
+            Parameter code
+
+        a : int
+            Mirror for A output devices axis (0=disabled, 1=mirrored)
+
+        b : int
+            Mirror for B output devices axis (0=disabled, 1=mirrored)
+
+        Returns
+        -------
+        ParamStmt : MIParamStmt
+            Initialized MIParamStmt class.
+
+        """
+        ParamStmt.__init__(self, param)
+        self.a = a
+        self.b = b
+
+    def to_gerber(self, settings=None):
+        ret = "%MI"
+        if self.a is not None:
+            ret += "A{0}".format(self.a)
+        if self.b is not None:
+            ret += "B{0}".format(self.b)
+
+        return ret
+
+    def __str__(self):
+        return '<Image Mirror: A=%d B=%d>' % (self.a, self.b)
+
+
+class OFParamStmt(ParamStmt):
+    """ OF - Gerber Offset statement (Deprecated)
+    """
+
+    @classmethod
+    def from_dict(cls, stmt_dict):
+        param = stmt_dict.get('param')
+        a = float(stmt_dict.get('a', 0))
+        b = float(stmt_dict.get('b', 0))
+        return cls(param, a, b)
+
+    def __init__(self, param, a, b):
+        """ Initialize OFParamStmt class
+
+        Parameters
+        ----------
+        param : string
+            Parameter
+
+        a : float
+            Offset along the output device A axis
+
+        b : float
+            Offset along the output device B axis
+
+        Returns
+        -------
+        ParamStmt : OFParamStmt
+            Initialized OFParamStmt class.
+
+        """
+        ParamStmt.__init__(self, param)
+        self.a = a
+        self.b = b
+
+    def to_gerber(self, settings=None):
+        ret = '%OF'
+        if self.a is not None:
+            ret += 'A' + decimal_string(self.a, precision=5)
+        if self.b is not None:
+            ret += 'B' + decimal_string(self.b, precision=5)
+        return ret + '*%'
+
+    def __str__(self):
+        offset_str = ''
+        if self.a is not None:
+            offset_str += ('X: %f' % self.a)
+        if self.b is not None:
+            offset_str += ('Y: %f' % self.b)
+        return ('<Offset: %s>' % offset_str)
+
+
+class SFParamStmt(ParamStmt):
+    """ SF - Scale Factor Param (Deprecated)
+    """
+
+    @classmethod
+    def from_dict(cls, stmt_dict):
+        param = stmt_dict.get('param')
+        a = float(stmt_dict.get('a', 1))
+        b = float(stmt_dict.get('b', 1))
+        return cls(param, a, b)
+
+    def __init__(self, param, a, b):
+        """ Initialize OFParamStmt class
+
+        Parameters
+        ----------
+        param : string
+            Parameter
+
+        a : float
+            Scale factor for the output device A axis
+
+        b : float
+            Scale factor for the output device B axis
+
+        Returns
+        -------
+        ParamStmt : SFParamStmt
+            Initialized SFParamStmt class.
+
+        """
+        ParamStmt.__init__(self, param)
+        self.a = a
+        self.b = b
+
+    def to_gerber(self, settings=None):
+        ret = '%SF'
+        if self.a is not None:
+            ret += 'A' + decimal_string(self.a, precision=5)
+        if self.b is not None:
+            ret += 'B' + decimal_string(self.b, precision=5)
+        return ret + '*%'
+
+    def __str__(self):
+        scale_factor = ''
+        if self.a is not None:
+            scale_factor += ('X: %f' % self.a)
+        if self.b is not None:
+            scale_factor += ('Y: %f' % self.b)
+        return ('<Scale Factor: %s>' % scale_factor)
 
 
 class LNParamStmt(ParamStmt):
@@ -472,7 +640,7 @@ class LNParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.name = name
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return '%LN{0}*%'.format(self.name)
 
     def __str__(self):
@@ -485,8 +653,6 @@ class CoordStmt(Statement):
 
     @classmethod
     def from_dict(cls, stmt_dict, settings):
-        zeros = settings.zero_suppression
-        format = settings.format
         function = stmt_dict['function']
         x = stmt_dict.get('x')
         y = stmt_dict.get('y')
@@ -495,17 +661,13 @@ class CoordStmt(Statement):
         op = stmt_dict.get('op')
 
         if x is not None:
-            x = parse_gerber_value(stmt_dict.get('x'),
-                                   format, zeros)
+            x = parse_gerber_value(stmt_dict.get('x'), settings.format, settings.zero_suppression)
         if y is not None:
-            y = parse_gerber_value(stmt_dict.get('y'),
-                                   format, zeros)
+            y = parse_gerber_value(stmt_dict.get('y'), settings.format, settings.zero_suppression)
         if i is not None:
-            i = parse_gerber_value(stmt_dict.get('i'),
-                                   format, zeros)
+            i = parse_gerber_value(stmt_dict.get('i'), settings.format, settings.zero_suppression)
         if j is not None:
-            j = parse_gerber_value(stmt_dict.get('j'),
-                                   format, zeros)
+            j = parse_gerber_value(stmt_dict.get('j'), settings.format, settings.zero_suppression)
         return cls(function, x, y, i, j, op, settings)
 
     def __init__(self, function, x, y, i, j, op, settings):
@@ -541,8 +703,6 @@ class CoordStmt(Statement):
 
         """
         Statement.__init__(self, "COORD")
-        self.zero_suppression = settings.zero_suppression
-        self.format = settings.format
         self.function = function
         self.x = x
         self.y = y
@@ -550,18 +710,18 @@ class CoordStmt(Statement):
         self.j = j
         self.op = op
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         ret = ''
         if self.function:
             ret += self.function
         if self.x is not None:
-            ret += 'X{0}'.format(write_gerber_value(self.x, self.format, self.zero_suppression))
+            ret += 'X{0}'.format(write_gerber_value(self.x, settings.format, settings.zero_suppression))
         if self.y is not None:
-            ret += 'Y{0}'.format(write_gerber_value(self.y, self.format, self.zero_suppression))
+            ret += 'Y{0}'.format(write_gerber_value(self.y, settings.format, settings.zero_suppression))
         if self.i is not None:
-            ret += 'I{0}'.format(write_gerber_value(self.i, self.format, self.zero_suppression))
+            ret += 'I{0}'.format(write_gerber_value(self.i, settings.format, settings.zero_suppression))
         if self.j is not None:
-            ret += 'J{0}'.format(write_gerber_value(self.j, self.format, self.zero_suppression))
+            ret += 'J{0}'.format(write_gerber_value(self.j, settings.format, settings.zero_suppression))
         if self.op:
             ret += self.op
         return ret + '*'
@@ -600,7 +760,7 @@ class ApertureStmt(Statement):
         self.d = int(d)
         self.deprecated = True if deprecated is not None else False
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         if self.deprecated:
             return 'G54D{0}*'.format(self.d)
         else:
@@ -618,7 +778,7 @@ class CommentStmt(Statement):
         Statement.__init__(self, "COMMENT")
         self.comment = comment
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return 'G04{0}*'.format(self.comment)
 
     def __str__(self):
@@ -631,7 +791,7 @@ class EofStmt(Statement):
     def __init__(self):
         Statement.__init__(self, "EOF")
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return 'M02*'
 
     def __str__(self):
@@ -656,7 +816,7 @@ class QuadrantModeStmt(Statement):
                              or "multi-quadrant"')
         self.mode = mode
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return 'G74*' if self.mode == 'single-quadrant' else 'G75*'
 
 
@@ -675,7 +835,7 @@ class RegionModeStmt(Statement):
             raise ValueError('Valid modes are "on" or "off"')
         self.mode = mode
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return 'G36*' if self.mode == 'on' else 'G37*'
 
 
@@ -686,5 +846,5 @@ class UnknownStmt(Statement):
         Statement.__init__(self, "UNKNOWN")
         self.line = line
 
-    def to_gerber(self):
+    def to_gerber(self, settings=None):
         return self.line
