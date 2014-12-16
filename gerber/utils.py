@@ -201,9 +201,14 @@ def detect_file_format(filename):
         File format. either 'excellon' or 'rs274x'
     """
 
-    # Read the first 20 lines
+    # Read the first 20 lines (if possible)
+    lines = []
     with open(filename, 'r') as f:
-        lines = [next(f) for x in xrange(20)]
+        try:
+            for i in range(20):
+                lines.append(f.readline())
+        except StopIteration:
+            pass
 
     # Look for
     for line in lines:
