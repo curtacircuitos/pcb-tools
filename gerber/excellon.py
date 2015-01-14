@@ -28,6 +28,7 @@ from .excellon_statements import *
 from .cam import CamFile, FileSettings
 from .primitives import Drill
 import math
+import re
 
 def read(filename):
     """ Read data from filename and return an ExcellonFile
@@ -42,10 +43,7 @@ def read(filename):
         An ExcellonFile created from the specified file.
 
     """
-    detected_settings = detect_excellon_format(filename)
-    settings = FileSettings(**detected_settings)
-    zeros = ''
-    return ExcellonParser(settings).parse(filename)
+    return ExcellonParser(None).parse(filename)
 
 
 class ExcellonFile(CamFile):
@@ -104,7 +102,7 @@ class ExcellonFile(CamFile):
     def write(self, filename):
         with open(filename, 'w') as f:
             for statement in self.statements:
-                f.write(statement.to_excellon() + '\n')
+                f.write(statement.to_excellon(self.settings) + '\n')
 
 
 class ExcellonParser(object):
@@ -118,8 +116,8 @@ class ExcellonParser(object):
     def __init__(self, settings=None):
         self.notation = 'absolute'
         self.units = 'inch'
-        self.zero_suppression = 'trailing'
-        self.format = (2, 5)
+        self.zero_suppression = 'leading'
+        self.format = (2, 4)
         self.state = 'INIT'
         self.statements = []
         self.tools = {}
@@ -166,11 +164,19 @@ class ExcellonParser(object):
                             self._settings(), filename)
 
     def _parse(self, line):
-        #line = line.strip()
-        zs = self._settings().zero_suppression
-        fmt = self._settings().format
+        # skip empty lines
+        if not line.strip():
+            return
+
         if line[0] == ';':
-            self.statements.append(CommentStmt.from_excellon(line))
+            comment_stmt = CommentStmt.from_excellon(line)
+            self.statements.append(comment_stmt)
+
+            # get format from altium comment
+            if "FILE_FORMAT" in comment_stmt.comment:
+                detected_format = tuple([int(x) for x in comment_stmt.comment.split('=')[1].split(":")])
+                if detected_format:
+                    self.format = detected_format
 
         elif line[:3] == 'M48':
             self.statements.append(HeaderBeginStmt())
@@ -191,9 +197,11 @@ class ExcellonParser(object):
             self.statements.append(stmt)
 
         elif line[:3] == 'G00':
+            self.statements.append(RouteModeStmt())
             self.state = 'ROUT'
 
         elif line[:3] == 'G05':
+            self.statements.append(DrillModeStmt())
             self.state = 'DRILL'
 
         elif (('INCH' in line or 'METRIC' in line) and
@@ -221,6 +229,9 @@ class ExcellonParser(object):
             stmt = FormatStmt.from_excellon(line)
             self.statements.append(stmt)
 
+        elif line[:4] == 'G90':
+            self.statements.append(AbsoluteModeStmt())
+
         elif line[0] == 'T' and self.state == 'HEADER':
             tool = ExcellonTool.from_excellon(line, self._settings())
             self.tools[tool.number] = tool
@@ -228,11 +239,13 @@ class ExcellonParser(object):
 
         elif line[0] == 'T' and self.state != 'HEADER':
             stmt = ToolSelectionStmt.from_excellon(line)
-            self.active_tool = self.tools[stmt.tool]
+            # T0 is used as END marker, just ignore
+            if stmt.tool != 0:
+                self.active_tool = self.tools[stmt.tool]
             self.statements.append(stmt)
 
         elif line[0] in ['X', 'Y']:
-            stmt = CoordinateStmt.from_excellon(line, fmt, zs)
+            stmt = CoordinateStmt.from_excellon(line, self._settings())
             x = stmt.x
             y = stmt.y
             self.statements.append(stmt)

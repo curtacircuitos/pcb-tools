@@ -28,7 +28,8 @@ __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'CommentStmt', 'HeaderBeginStmt', 'HeaderEndStmt',
            'RewindStopStmt', 'EndOfProgramStmt', 'UnitStmt',
            'IncrementalModeStmt', 'VersionStmt', 'FormatStmt', 'LinkToolStmt',
-           'MeasuringModeStmt', 'UnknownStmt',
+           'MeasuringModeStmt', 'RouteModeStmt', 'DrillModeStmt', 'AbsoluteModeStmt',
+           'UnknownStmt',
            ]
 
 
@@ -39,7 +40,7 @@ class ExcellonStatement(object):
     def from_excellon(cls, line):
         pass
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         pass
 
 
@@ -156,10 +157,10 @@ class ExcellonTool(ExcellonStatement):
         self.depth_offset = kwargs.get('depth_offset')
         self.hit_count = 0
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         fmt = self.settings.format
         zs = self.settings.format
-        stmt = 'T%d' % self.number
+        stmt = 'T%02d' % self.number
         if self.retract_rate is not None:
             stmt += 'B%s' % write_gerber_value(self.retract_rate, fmt, zs)
         if self.feed_rate is not None:
@@ -177,12 +178,20 @@ class ExcellonTool(ExcellonStatement):
             stmt += 'Z%s' % write_gerber_value(self.depth_offset, fmt, zs)
         return stmt
 
+    def to_inch(self):
+        if self.diameter is not None:
+            self.diameter = self.diameter / 25.4
+
+    def to_metric(self):
+        if self.diameter is not None:
+            self.diameter = self.diameter * 25.4
+
     def _hit(self):
         self.hit_count += 1
 
     def __repr__(self):
         unit = 'in.' if self.settings.units == 'inch' else 'mm'
-        return '<ExcellonTool %d: %0.3f%s dia.>' % (self.number, self.diameter, unit)
+        return '<ExcellonTool %02d: %0.3f%s dia.>' % (self.number, self.diameter, unit)
 
 
 class ToolSelectionStmt(ExcellonStatement):
@@ -215,7 +224,7 @@ class ToolSelectionStmt(ExcellonStatement):
         self.tool = tool
         self.compensation_index = compensation_index
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         stmt = 'T%02d' % self.tool
         if self.compensation_index is not None:
             stmt += '%02d' % self.compensation_index
@@ -225,32 +234,50 @@ class ToolSelectionStmt(ExcellonStatement):
 class CoordinateStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line, nformat=(2, 5), zero_suppression='trailing'):
+    def from_excellon(cls, line, settings):
         x_coord = None
         y_coord = None
         if line[0] == 'X':
             splitline = line.strip('X').split('Y')
-            x_coord = parse_gerber_value(splitline[0], nformat,
-                                         zero_suppression)
+            x_coord = parse_gerber_value(splitline[0], settings.format, settings.zero_suppression)
             if len(splitline) == 2:
-                y_coord = parse_gerber_value(splitline[1], nformat,
-                                             zero_suppression)
+                y_coord = parse_gerber_value(splitline[1], settings.format, settings.zero_suppression)
         else:
-            y_coord = parse_gerber_value(line.strip(' Y'), nformat,
-                                         zero_suppression)
+            y_coord = parse_gerber_value(line.strip(' Y'), settings.format, settings.zero_suppression)
         return cls(x_coord, y_coord)
 
     def __init__(self, x=None, y=None):
         self.x = x
         self.y = y
 
-    def to_excellon(self):
+    def to_excellon(self, settings):
         stmt = ''
         if self.x is not None:
-            stmt += 'X%s' % write_gerber_value(self.x)
+            stmt += 'X%s' % write_gerber_value(self.x, settings.format, settings.zero_suppression)
         if self.y is not None:
-            stmt += 'Y%s' % write_gerber_value(self.y)
+            stmt += 'Y%s' % write_gerber_value(self.y, settings.format, settings.zero_suppression)
         return stmt
+
+    def to_inch(self):
+        if self.x is not None:
+            self.x = self.x / 25.4
+        if self.y is not None:
+            self.y = self.y / 25.4
+
+    def to_metric(self):
+        if self.x is not None:
+            self.x = self.x * 25.4
+        if self.y is not None:
+            self.y = self.y * 25.4
+
+    def __str__(self):
+        coord_str = ''
+        if self.x is not None:
+            coord_str += 'X: %f ' % self.x
+        if self.y is not None:
+            coord_str += 'Y: %f ' % self.y
+
+        return '<Coordinate Statement: %s>' % coord_str
 
 
 class CommentStmt(ExcellonStatement):
@@ -262,7 +289,7 @@ class CommentStmt(ExcellonStatement):
     def __init__(self, comment):
         self.comment = comment
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return ';%s' % self.comment
 
 
@@ -271,7 +298,7 @@ class HeaderBeginStmt(ExcellonStatement):
     def __init__(self):
         pass
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return 'M48'
 
 
@@ -280,7 +307,7 @@ class HeaderEndStmt(ExcellonStatement):
     def __init__(self):
         pass
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return 'M95'
 
 
@@ -289,17 +316,21 @@ class RewindStopStmt(ExcellonStatement):
     def __init__(self):
         pass
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return '%'
 
 
 class EndOfProgramStmt(ExcellonStatement):
 
+    @classmethod
+    def from_excellon(cls, line):
+        return cls()
+
     def __init__(self, x=None, y=None):
         self.x = x
         self.y = y
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         stmt = 'M30'
         if self.x is not None:
             stmt += 'X%s' % write_gerber_value(self.x)
@@ -320,7 +351,7 @@ class UnitStmt(ExcellonStatement):
         self.units = units.lower()
         self.zero_suppression = zero_suppression
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         stmt = '%s,%s' % ('INCH' if self.units == 'inch' else 'METRIC',
                           'LZ' if self.zero_suppression == 'trailing'
                           else 'TZ')
@@ -338,7 +369,7 @@ class IncrementalModeStmt(ExcellonStatement):
             raise ValueError('Mode may be "on" or "off"')
         self.mode = mode
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return 'ICI,%s' % ('OFF' if self.mode == 'off' else 'ON')
 
 
@@ -355,7 +386,7 @@ class VersionStmt(ExcellonStatement):
             raise ValueError('Valid versions are  1 or 2')
         self.version = version
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return 'VER,%d' % self.version
 
 
@@ -372,7 +403,7 @@ class FormatStmt(ExcellonStatement):
             raise ValueError('Valid formats are 1 or 2')
         self.format = format
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return 'FMAT,%d' % self.format
 
 
@@ -386,7 +417,7 @@ class LinkToolStmt(ExcellonStatement):
     def __init__(self, linked_tools):
         self.linked_tools = [int(x) for x in linked_tools]
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return '/'.join([str(x) for x in self.linked_tools])
 
 
@@ -404,8 +435,35 @@ class MeasuringModeStmt(ExcellonStatement):
             raise ValueError('units must be "inch" or "metric"')
         self.units = units
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return 'M72' if self.units == 'inch' else 'M71'
+
+
+class RouteModeStmt(ExcellonStatement):
+
+    def __init__(self):
+        pass
+
+    def to_excellon(self, settings=None):
+        return 'G00'
+
+
+class DrillModeStmt(ExcellonStatement):
+
+    def __init__(self):
+        pass
+
+    def to_excellon(self, settings=None):
+        return 'G05'
+
+
+class AbsoluteModeStmt(ExcellonStatement):
+
+    def __init__(self):
+        pass
+
+    def to_excellon(self, settings=None):
+        return 'G90'
 
 
 class UnknownStmt(ExcellonStatement):
@@ -417,7 +475,7 @@ class UnknownStmt(ExcellonStatement):
     def __init__(self, stmt):
         self.stmt = stmt
 
-    def to_excellon(self):
+    def to_excellon(self, settings=None):
         return self.stmt
 
 
