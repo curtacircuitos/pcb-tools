@@ -140,11 +140,14 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
 
     # Suppression...
     if zero_suppression == 'trailing':
-        while digits[-1] == '0':
+        while digits and digits[-1] == '0':
             digits.pop()
     else:
-        while digits[0] == '0':
+        while digits and digits[0] == '0':
             digits.pop(0)
+
+    if not digits:
+        return '0'
 
     return ''.join(digits) if not negative else ''.join(['-'] + digits)
 
