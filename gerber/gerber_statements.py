@@ -598,7 +598,7 @@ class MIParamStmt(ParamStmt):
             ret += "A{0}".format(self.a)
         if self.b is not None:
             ret += "B{0}".format(self.b)
-
+        ret += "*%"
         return ret
 
     def __str__(self):
