@@ -376,7 +376,7 @@ class GerberParser(object):
     def _evaluate_mode(self, stmt):
         if stmt.type == 'RegionMode':
             if self.region_mode == 'on' and stmt.mode == 'off':
-                self.primitives.append(Region(self.current_region, self.level_polarity))
+                self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity))
                 self.current_region = None
             self.region_mode = stmt.mode
         elif stmt.type == 'QuadrantMode':
