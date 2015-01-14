@@ -259,13 +259,19 @@ class ADParamStmt(ParamStmt):
         self.d = d
         self.shape = shape
         if modifiers is not None:
-            self.modifiers = [[x for x in m.split("X")] for m in modifiers.split(",") if len(m)]
+            self.modifiers = [[float(x) for x in m.split("X")] for m in modifiers.split(",") if len(m)]
         else:
             self.modifiers = []
 
+    def to_inch(self):
+        self.modifiers = [[x / 25.4 for x in modifier] for modifier in self.modifiers]
+
+    def to_metric(self):
+        self.modifiers = [[x * 25.4 for x in modifier] for modifier in self.modifiers]
+
     def to_gerber(self, settings=None):
         if len(self.modifiers):
-            return '%ADD{0}{1},{2}*%'.format(self.d, self.shape, ','.join(['X'.join(e) for e in self.modifiers]))
+            return '%ADD{0}{1},{2}*%'.format(self.d, self.shape, ','.join(['X'.join(["%.4f" % x for x in modifier]) for modifier in self.modifiers]))
         else:
             return '%ADD{0}{1}*%'.format(self.d, self.shape)
 
@@ -280,6 +286,77 @@ class ADParamStmt(ParamStmt):
             shape = self.shape
 
         return '<Aperture Definition: %d: %s>' % (self.d, shape)
+
+
+class AMPrimitive(object):
+
+    def __init__(self, code, exposure):
+        self.code = code
+        self.exposure = exposure
+
+    def to_inch(self):
+        pass
+
+    def to_metric(self):
+        pass
+
+
+class AMOutlinePrimitive(AMPrimitive):
+
+    @classmethod
+    def from_gerber(cls, primitive):
+        modifiers = primitive.split(",")
+
+        code = int(modifiers[0])
+        exposure = "on" if modifiers[1] == "1" else "off"
+        n = int(modifiers[2])
+        start_point = (float(modifiers[3]), float(modifiers[4]))
+        points = []
+
+        for i in range(n):
+            points.append((float(modifiers[5 + i*2]), float(modifiers[5 + i*2 + 1])))
+
+        rotation = float(modifiers[-1])
+
+        return cls(code, exposure, start_point, points, rotation)
+
+    def __init__(self, code, exposure, start_point, points, rotation):
+        super(AMOutlinePrimitive, self).__init__(code, exposure)
+
+        self.start_point = start_point
+        self.points = points
+        self.rotation = rotation
+
+    def to_inch(self):
+        self.start_point = tuple([x / 25.4 for x in self.start_point])
+        self.points = tuple([(x / 25.4, y / 25.4) for x, y in self.points])
+
+    def to_metric(self):
+        self.start_point = tuple([x * 25.4 for x in self.start_point])
+        self.points = tuple([(x * 25.4, y * 25.4) for x, y in self.points])
+
+    def to_gerber(self, settings=None):
+        data = dict(
+            code=self.code,
+            exposure="1" if self.exposure == "on" else "0",
+            n_points=len(self.points),
+            start_point="%.4f,%.4f" % self.start_point,
+            points=",".join(["%.4f,%.4f" % point for point in self.points]),
+            rotation=str(self.rotation)
+        )
+        return "{code},{exposure},{n_points},{start_point},{points},{rotation}".format(**data)
+
+
+class AMUnsupportPrimitive:
+    @classmethod
+    def from_gerber(cls, primitive):
+        return cls(primitive)
+
+    def __init__(self, primitive):
+        self.primitive = primitive
+
+    def to_gerber(self, settings=None):
+        return self.primitive
 
 
 class AMParamStmt(ParamStmt):
@@ -312,10 +389,29 @@ class AMParamStmt(ParamStmt):
         """
         ParamStmt.__init__(self, param)
         self.name = name
-        self.macro = macro
+        self.primitives = self._parsePrimitives(macro)
+
+    def _parsePrimitives(self, macro):
+        primitives = []
+
+        for primitive in macro.split("*"):
+            if primitive[0] == "4":
+                primitives.append(AMOutlinePrimitive.from_gerber(primitive))
+            else:
+                primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
+
+        return primitives
+
+    def to_inch(self):
+        for primitive in self.primitives:
+            primitive.to_inch()
+
+    def to_metric(self):
+        for primitive in self.primitives:
+            primitive.to_metric()
 
     def to_gerber(self, settings=None):
-        return '%AM{0}*{1}*%'.format(self.name, self.macro)
+        return '%AM{0}*{1}*%'.format(self.name, "".join([primitive.to_gerber(settings) for primitive in self.primitives]))
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, self.macro)
@@ -725,6 +821,30 @@ class CoordStmt(Statement):
         if self.op:
             ret += self.op
         return ret + '*'
+
+    def to_inch(self):
+        if self.x is not None:
+            self.x = self.x / 25.4
+        if self.y is not None:
+            self.y = self.y / 25.4
+        if self.i is not None:
+            self.i = self.i / 25.4
+        if self.j is not None:
+            self.j = self.j / 25.4
+        if self.function == "G71":
+            self.function = "G70"
+
+    def to_metric(self):
+        if self.x is not None:
+            self.x = self.x * 25.4
+        if self.y is not None:
+            self.y = self.y * 25.4
+        if self.i is not None:
+            self.i = self.i * 25.4
+        if self.j is not None:
+            self.j = self.j * 25.4
+        if self.function == "G70":
+            self.function = "G71"
 
     def __str__(self):
         coord_str = ''

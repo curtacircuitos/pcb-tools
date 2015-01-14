@@ -361,15 +361,15 @@ class GerberParser(object):
     def _define_aperture(self, d, shape, modifiers):
         aperture = None
         if shape == 'C':
-            diameter = float(modifiers[0][0])
+            diameter = modifiers[0][0]
             aperture = Circle(position=None, diameter=diameter)
         elif shape == 'R':
-            width = float(modifiers[0][0])
-            height = float(modifiers[0][1])
+            width = modifiers[0][0]
+            height = modifiers[0][1]
             aperture = Rectangle(position=None, width=width, height=height)
         elif shape == 'O':
-            width = float(modifiers[0][0])
-            height = float(modifiers[0][1])
+            width = modifiers[0][0]
+            height = modifiers[0][1]
             aperture = Obround(position=None, width=width, height=height)
         self.apertures[d] = aperture
 
