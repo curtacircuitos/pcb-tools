@@ -29,7 +29,7 @@ __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'RewindStopStmt', 'EndOfProgramStmt', 'UnitStmt',
            'IncrementalModeStmt', 'VersionStmt', 'FormatStmt', 'LinkToolStmt',
            'MeasuringModeStmt', 'RouteModeStmt', 'DrillModeStmt', 'AbsoluteModeStmt',
-           'UnknownStmt',
+           'RepeatHoleStmt', 'UnknownStmt',
            ]
 
 
@@ -280,6 +280,22 @@ class CoordinateStmt(ExcellonStatement):
         return '<Coordinate Statement: %s>' % coord_str
 
 
+class RepeatHoleStmt(ExcellonStatement):
+
+    @classmethod
+    def from_excellon(cls, line, settings):
+        return cls(line)
+
+    def __init__(self, line):
+        self.line = line
+
+    def to_excellon(self, settings):
+        return self.line
+
+    def __str__(self):
+        return '<Repeat Hole: %s>' % self.line
+
+
 class CommentStmt(ExcellonStatement):
 
     @classmethod
@@ -477,6 +493,9 @@ class UnknownStmt(ExcellonStatement):
 
     def to_excellon(self, settings=None):
         return self.stmt
+
+    def __str__(self):
+        return "<UnknownStmt: %s >" % self.stmt
 
 
 def pairwise(iterator):

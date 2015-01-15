@@ -204,8 +204,7 @@ class ExcellonParser(object):
             self.statements.append(DrillModeStmt())
             self.state = 'DRILL'
 
-        elif (('INCH' in line or 'METRIC' in line) and
-              ('LZ' in line or 'TZ' in line)):
+        elif 'INCH' in line or 'METRIC' in line:
             stmt = UnitStmt.from_excellon(line)
             self.units = stmt.units
             self.zero_suppression = stmt.zero_suppression
@@ -242,6 +241,10 @@ class ExcellonParser(object):
             # T0 is used as END marker, just ignore
             if stmt.tool != 0:
                 self.active_tool = self.tools[stmt.tool]
+            self.statements.append(stmt)
+
+        elif line[0] == 'R' and self.state != 'HEADER':
+            stmt = RepeatHoleStmt.from_excellon(line, self._settings())
             self.statements.append(stmt)
 
         elif line[0] in ['X', 'Y']:
