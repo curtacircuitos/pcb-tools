@@ -23,9 +23,9 @@ def test_excellontool_factory():
 def test_excellontool_dump():
     """ Test ExcellonTool to_excellon()
     """
-    exc_lines = ['T1F0S0C0.01200', 'T2F0S0C0.01500', 'T3F0S0C0.01968',
-                 'T4F0S0C0.02800', 'T5F0S0C0.03300', 'T6F0S0C0.03800',
-                 'T7F0S0C0.04300', 'T8F0S0C0.12500', 'T9F0S0C0.13000', ]
+    exc_lines = ['T01F0S0C0.01200', 'T02F0S0C0.01500', 'T03F0S0C0.01968',
+                 'T04F0S0C0.02800', 'T05F0S0C0.03300', 'T06F0S0C0.03800',
+                 'T07F0S0C0.04300', 'T08F0S0C0.12500', 'T09F0S0C0.13000', ]
     settings = FileSettings(format=(2, 5), zero_suppression='trailing',
                 units='inch', notation='absolute')
     for line in exc_lines:
@@ -98,9 +98,9 @@ def test_coordinatestmt_factory():
 def test_coordinatestmt_dump():
     """ Test CoordinateStmt to_excellon()
     """
-    lines = ['X0278207Y0065293', 'X0243795', 'Y0082528', 'Y0086028',
-             'X0251295Y0081528', 'X02525Y0078', 'X0255Y00575', 'Y0052',
-             'X02675', 'Y00575', 'X02425', 'Y0052', 'X023', ]
+    lines = ['X278207Y65293', 'X243795', 'Y82528', 'Y86028',
+             'X251295Y81528', 'X2525Y78', 'X255Y575', 'Y52',
+             'X2675', 'Y575', 'X2425', 'Y52', 'X23', ]
 
     settings = FileSettings(format=(2, 4), zero_suppression='leading',
                 units='inch', notation='absolute')
