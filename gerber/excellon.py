@@ -43,7 +43,9 @@ def read(filename):
         An ExcellonFile created from the specified file.
 
     """
-    return ExcellonParser(None).parse(filename)
+    # File object should use settings from source file by default.
+    settings = FileSettings(**detect_excellon_format(filename))
+    return ExcellonParser(settings).parse(filename)
 
 
 class ExcellonFile(CamFile):
@@ -116,7 +118,7 @@ class ExcellonParser(object):
     def __init__(self, settings=None):
         self.notation = 'absolute'
         self.units = 'inch'
-        self.zero_suppression = 'leading'
+        self.zeros = 'leading'
         self.format = (2, 4)
         self.state = 'INIT'
         self.statements = []
@@ -125,8 +127,9 @@ class ExcellonParser(object):
         self.active_tool = None
         self.pos = [0., 0.]
         if settings is not None:
+            print('Setting shit from settings. zeros: %s' %settings.zeros)
             self.units = settings.units
-            self.zero_suppression = settings.zero_suppression
+            self.zeros = settings.zeros
             self.notation = settings.notation
             self.format = settings.format
 
@@ -207,7 +210,7 @@ class ExcellonParser(object):
         elif 'INCH' in line or 'METRIC' in line:
             stmt = UnitStmt.from_excellon(line)
             self.units = stmt.units
-            self.zero_suppression = stmt.zero_suppression
+            self.zeros = stmt.zeros
             self.statements.append(stmt)
 
         elif line[:3] == 'M71' or line [:3] == 'M72':
@@ -270,8 +273,7 @@ class ExcellonParser(object):
 
     def _settings(self):
         return FileSettings(units=self.units, format=self.format,
-                            zero_suppression=self.zero_suppression,
-                            notation=self.notation)
+                            zeros=self.zeros, notation=self.notation)
 
 
 def detect_excellon_format(filename):
@@ -293,7 +295,7 @@ def detect_excellon_format(filename):
     results = {}
     detected_zeros = None
     detected_format = None
-    zs_options = ('leading', 'trailing', )
+    zeros_options = ('leading', 'trailing', )
     format_options = ((2, 4), (2, 5), (3, 3),)
 
     # Check for obvious clues:
@@ -301,7 +303,7 @@ def detect_excellon_format(filename):
     p.parse(filename)
 
     # Get zero_suppression from a unit statement
-    zero_statements = [stmt.zero_suppression for stmt in p.statements
+    zero_statements = [stmt.zeros for stmt in p.statements
                        if isinstance(stmt, UnitStmt)]
 
     # get format from altium comment
@@ -316,19 +318,19 @@ def detect_excellon_format(filename):
 
     # Bail out here if possible
     if detected_format is not None and detected_zeros is not None:
-        return {'format': detected_format, 'zero_suppression': detected_zeros}
+        return {'format': detected_format, 'zeros': detected_zeros}
 
     # Only look at remaining options
     if detected_format is not None:
         format_options = (detected_format,)
     if detected_zeros is not None:
-        zs_options = (detected_zeros,)
+        zeros_options = (detected_zeros,)
 
     # Brute force all remaining options, and pick the best looking one...
-    for zs in zs_options:
+    for zeros in zeros_options:
         for fmt in format_options:
-            key = (fmt, zs)
-            settings = FileSettings(zero_suppression=zs, format=fmt)
+            key = (fmt, zeros)
+            settings = FileSettings(zeros=zeros, format=fmt)
             try:
                 p = ExcellonParser(settings)
                 p.parse(filename)
@@ -351,7 +353,7 @@ def detect_excellon_format(filename):
 
     # Bail out here if we got everything....
     if detected_format is not None and detected_zeros is not None:
-        return {'format': detected_format, 'zero_suppression': detected_zeros}
+        return {'format': detected_format, 'zeros': detected_zeros}
 
     # Otherwise score each option and pick the best candidate
     else:
@@ -362,7 +364,7 @@ def detect_excellon_format(filename):
         minscore = min(scores.values())
         for key in scores.iterkeys():
             if scores[key] == minscore:
-                return {'format': key[0], 'zero_suppression': key[1]}
+                return {'format': key[0], 'zeros': key[1]}
 
 
 def _layer_size_score(size, hole_count, hole_area):

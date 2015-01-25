@@ -15,18 +15,13 @@ def test_format_detection():
     """
     settings = detect_excellon_format(NCDRILL_FILE)
     assert_equal(settings['format'], (2, 4))
-    assert_equal(settings['zero_suppression'], 'leading')
+    assert_equal(settings['zeros'], 'trailing')
 
 def test_read():
     ncdrill = read(NCDRILL_FILE)
     assert(isinstance(ncdrill, ExcellonFile))
-    
+
 def test_read_settings():
     ncdrill = read(NCDRILL_FILE)
-    assert_equal(ncdrill.settings.format, (2, 4))
-    assert_equal(ncdrill.settings.zero_suppression, 'leading')
-    
-    
-    
-    
-    
+    assert_equal(ncdrill.settings['format'], (2, 4))
+    assert_equal(ncdrill.settings['zeros'], 'trailing')

@@ -360,16 +360,16 @@ class UnitStmt(ExcellonStatement):
     @classmethod
     def from_excellon(cls, line):
         units = 'inch' if 'INCH' in line else 'metric'
-        zero_suppression = 'trailing' if 'LZ' in line else 'leading'
-        return cls(units, zero_suppression)
+        zeros = 'leading' if 'LZ' in line else 'trailing'
+        return cls(units, zeros)
 
-    def __init__(self, units='inch', zero_suppression='trailing'):
+    def __init__(self, units='inch', zeros='leading'):
         self.units = units.lower()
-        self.zero_suppression = zero_suppression
+        self.zeros = zeros
 
     def to_excellon(self, settings=None):
         stmt = '%s,%s' % ('INCH' if self.units == 'inch' else 'METRIC',
-                          'LZ' if self.zero_suppression == 'trailing'
+                          'LZ' if self.zeros == 'leading'
                           else 'TZ')
         return stmt
 
