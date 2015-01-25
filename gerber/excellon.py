@@ -127,7 +127,6 @@ class ExcellonParser(object):
         self.active_tool = None
         self.pos = [0., 0.]
         if settings is not None:
-            print('Setting shit from settings. zeros: %s' %settings.zeros)
             self.units = settings.units
             self.zeros = settings.zeros
             self.notation = settings.notation
