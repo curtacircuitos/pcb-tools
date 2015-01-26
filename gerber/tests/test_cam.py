@@ -64,5 +64,28 @@ def test_camfile_settings():
     """
     cf = CamFile()
     assert_equal(cf.settings, FileSettings())
-    
-    
+
+def test_zeros():
+
+    fs = FileSettings()
+    assert_equal(fs.zero_suppression, 'trailing')
+    assert_equal(fs.zeros, 'leading')
+
+
+    fs['zero_suppression'] = 'leading'
+    assert_equal(fs.zero_suppression, 'leading')
+    assert_equal(fs.zeros, 'trailing')
+
+    fs.zero_suppression = 'trailing'
+    assert_equal(fs.zero_suppression, 'trailing')
+    assert_equal(fs.zeros, 'leading')
+
+    fs['zeros'] = 'trailing'
+    assert_equal(fs.zeros, 'trailing')
+    assert_equal(fs.zero_suppression, 'leading')
+
+
+    fs.zeros= 'leading'
+    assert_equal(fs.zeros, 'leading')
+    assert_equal(fs.zero_suppression, 'trailing')
+

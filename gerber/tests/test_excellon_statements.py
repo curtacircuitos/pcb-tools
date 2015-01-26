@@ -141,12 +141,22 @@ def test_unitstmt_factory():
     line = 'INCH,LZ'
     stmt = UnitStmt.from_excellon(line)
     assert_equal(stmt.units, 'inch')
-    assert_equal(stmt.zero_suppression, 'trailing')
+    assert_equal(stmt.zeros, 'leading')
+
+    line = 'INCH,TZ'
+    stmt = UnitStmt.from_excellon(line)
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.zeros, 'trailing')
+
+    line = 'METRIC,LZ'
+    stmt = UnitStmt.from_excellon(line)
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.zeros, 'leading')
 
     line = 'METRIC,TZ'
     stmt = UnitStmt.from_excellon(line)
     assert_equal(stmt.units, 'metric')
-    assert_equal(stmt.zero_suppression, 'leading')
+    assert_equal(stmt.zeros, 'trailing')
 
 
 def test_unitstmt_dump():
