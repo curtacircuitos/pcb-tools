@@ -251,8 +251,8 @@ class ADParamStmt(ParamStmt):
 
         Returns
         -------
-        ParamStmt : LPParamStmt
-            Initialized LPParamStmt class.
+        ParamStmt : ADParamStmt
+            Initialized ADParamStmt class.
 
         """
         ParamStmt.__init__(self, param)
@@ -389,6 +389,7 @@ class AMParamStmt(ParamStmt):
         """
         ParamStmt.__init__(self, param)
         self.name = name
+        self.macro = macro
         self.primitives = self._parsePrimitives(macro)
 
     def _parsePrimitives(self, macro):

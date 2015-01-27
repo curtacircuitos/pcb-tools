@@ -5,6 +5,7 @@
 
 from .tests import *
 from ..gerber_statements import *
+from ..cam import FileSettings
 
 
 def test_FSParamStmt_factory():
@@ -24,6 +25,7 @@ def test_FSParamStmt_factory():
     assert_equal(fs.notation, 'incremental')
     assert_equal(fs.format, (2, 7))
 
+
 def test_FSParamStmt():
     """ Test FSParamStmt initialization
     """
@@ -37,6 +39,7 @@ def test_FSParamStmt():
     assert_equal(stmt.notation, notation)
     assert_equal(stmt.format, fmt)
 
+
 def test_FSParamStmt_dump():
     """ Test FSParamStmt to_gerber()
     """
@@ -47,6 +50,21 @@ def test_FSParamStmt_dump():
     stmt = {'param': 'FS', 'zero': 'T', 'notation': 'I', 'x': '25'}
     fs = FSParamStmt.from_dict(stmt)
     assert_equal(fs.to_gerber(), '%FSTIX25Y25*%')
+
+    settings = FileSettings(zero_suppression='leading', notation='absolute')
+    assert_equal(fs.to_gerber(settings), '%FSLAX25Y25*%')
+
+
+def test_FSParamStmt_string():
+    """ Test FSParamStmt.__str__()
+    """
+    stmt = {'param': 'FS', 'zero': 'L', 'notation': 'A', 'x': '27'}
+    fs = FSParamStmt.from_dict(stmt)
+    assert_equal(str(fs), '<Format Spec: 2:7 leading zero suppression absolute notation>')
+
+    stmt = {'param': 'FS', 'zero': 'T', 'notation': 'I', 'x': '25'}
+    fs = FSParamStmt.from_dict(stmt)
+    assert_equal(str(fs), '<Format Spec: 2:5 trailing zero suppression incremental notation>')
 
 
 def test_MOParamStmt_factory():
@@ -63,6 +81,7 @@ def test_MOParamStmt_factory():
         mo = MOParamStmt.from_dict(stmt)
         assert_equal(mo.param, 'MO')
         assert_equal(mo.mode, 'metric')
+
 
 def test_MOParamStmt():
     """ Test MOParamStmt initialization
@@ -89,6 +108,18 @@ def test_MOParamStmt_dump():
     assert_equal(mo.to_gerber(), '%MOMM*%')
 
 
+def test_MOParamStmt_string():
+    """ Test MOParamStmt.__str__()
+    """
+    stmt = {'param': 'MO', 'mo': 'IN'}
+    mo = MOParamStmt.from_dict(stmt)
+    assert_equal(str(mo), '<Mode: inches>')
+
+    stmt = {'param': 'MO', 'mo': 'MM'}
+    mo = MOParamStmt.from_dict(stmt)
+    assert_equal(str(mo), '<Mode: millimeters>')
+
+
 def test_IPParamStmt_factory():
     """ Test IPParamStruct factory
     """
@@ -99,6 +130,7 @@ def test_IPParamStmt_factory():
     stmt = {'param': 'IP', 'ip': 'NEG'}
     ip = IPParamStmt.from_dict(stmt)
     assert_equal(ip.ip, 'negative')
+
 
 def test_IPParamStmt():
     """ Test IPParamStmt initialization
@@ -130,6 +162,7 @@ def test_OFParamStmt_factory():
     assert_equal(of.a, 0.1234567)
     assert_equal(of.b, 0.1234567)
 
+
 def test_OFParamStmt():
     """ Test IPParamStmt initialization
     """
@@ -139,6 +172,7 @@ def test_OFParamStmt():
         assert_equal(stmt.param, param)
         assert_equal(stmt.a, val)
         assert_equal(stmt.b, val)
+
 
 def test_OFParamStmt_dump():
     """ Test OFParamStmt to_gerber()
@@ -159,6 +193,7 @@ def test_LPParamStmt_factory():
     lp = LPParamStmt.from_dict(stmt)
     assert_equal(lp.lp, 'dark')
 
+
 def test_LPParamStmt_dump():
     """ Test LPParamStmt to_gerber()
     """
@@ -171,12 +206,25 @@ def test_LPParamStmt_dump():
     assert_equal(lp.to_gerber(), '%LPD*%')
 
 
+def test_LPParamStmt_string():
+    """ Test LPParamStmt.__str__()
+    """
+    stmt = {'param': 'LP', 'lp': 'D'}
+    lp = LPParamStmt.from_dict(stmt)
+    assert_equal(str(lp), '<Level Polarity: dark>')
+
+    stmt = {'param': 'LP', 'lp': 'C'}
+    lp = LPParamStmt.from_dict(stmt)
+    assert_equal(str(lp), '<Level Polarity: clear>')
+
+
 def test_INParamStmt_factory():
     """ Test INParamStmt factory
     """
     stmt = {'param': 'IN', 'name': 'test'}
     inp = INParamStmt.from_dict(stmt)
     assert_equal(inp.name, 'test')
+
 
 def test_INParamStmt_dump():
     """ Test INParamStmt to_gerber()
@@ -193,6 +241,7 @@ def test_LNParamStmt_factory():
     lnp = LNParamStmt.from_dict(stmt)
     assert_equal(lnp.name, 'test')
 
+
 def test_LNParamStmt_dump():
     """ Test LNParamStmt to_gerber()
     """
@@ -200,12 +249,14 @@ def test_LNParamStmt_dump():
     lnp = LNParamStmt.from_dict(stmt)
     assert_equal(lnp.to_gerber(), '%LNtest*%')
 
+
 def test_comment_stmt():
     """ Test comment statement
     """
     stmt = CommentStmt('A comment')
     assert_equal(stmt.type, 'COMMENT')
     assert_equal(stmt.comment, 'A comment')
+
 
 def test_comment_stmt_dump():
     """ Test CommentStmt to_gerber()
@@ -219,6 +270,7 @@ def test_eofstmt():
     """
     stmt = EofStmt()
     assert_equal(stmt.type, 'EOF')
+
 
 def test_eofstmt_dump():
     """ Test EofStmt to_gerber()
@@ -238,6 +290,7 @@ def test_quadmodestmt_factory():
     line = 'G75*'
     stmt = QuadrantModeStmt.from_gerber(line)
     assert_equal(stmt.mode, 'multi-quadrant')
+
 
 def test_quadmodestmt_validation():
     """ Test QuadrantModeStmt input validation
@@ -301,3 +354,61 @@ def test_unknownstmt_dump():
         stmt = UnknownStmt(line)
         assert_equal(stmt.to_gerber(), line)
 
+
+def test_statement_string():
+    """ Test Statement.__str__()
+    """
+    stmt = Statement('PARAM')
+    assert_equal(str(stmt), '<Statement type=PARAM>')
+    stmt.test='PASS'
+    assert_equal(str(stmt), '<Statement test=PASS type=PARAM>')
+
+
+def test_ADParamStmt_factory():
+    """ Test ADParamStmt factory
+    """
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.d, 0)
+    assert_equal(ad.shape, 'C')
+
+    stmt = {'param': 'AD', 'd': 1, 'shape': 'R'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.d, 1)
+    assert_equal(ad.shape, 'R')
+
+    stmt = {'param': 'AD', 'd': 2, 'shape': 'O'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.d, 2)
+    assert_equal(ad.shape, 'O')
+
+
+def test_ADParamStmt_dump():
+    """ Test ADParamStmt.to_gerber()
+    """
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.to_gerber(),'%ADD0C*%')
+
+    stmt = {'param': 'AD', 'd': 1, 'shape': 'R'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.to_gerber(),'%ADD1R*%')
+
+    stmt = {'param': 'AD', 'd': 2, 'shape': 'O'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.to_gerber(),'%ADD2O*%')
+
+def test_ADParamStmt_string():
+    """ Test ADParamStmt.__str__()
+    """
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(str(ad), '<Aperture Definition: 0: circle>')
+
+    stmt = {'param': 'AD', 'd': 1, 'shape': 'R'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(str(ad), '<Aperture Definition: 1: rectangle>')
+
+    stmt = {'param': 'AD', 'd': 2, 'shape': 'O'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(str(ad), '<Aperture Definition: 2: obround')
