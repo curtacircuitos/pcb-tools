@@ -113,6 +113,7 @@ class GerberFile(CamFile):
                 f.write("\n")
 
 
+
 class GerberParser(object):
     """ GerberParser
     """
@@ -155,6 +156,7 @@ class GerberParser(object):
         r"(?P<op>{op})?\*".format(number=NUMBER, function=FUNCTION, op=COORD_OP)))
 
     APERTURE_STMT = re.compile(r"(?P<deprecated>(G54)|G55)?D(?P<d>\d+)\*")
+
 
     COMMENT_STMT = re.compile(r"G04(?P<comment>[^*]*)(\*)?")
 

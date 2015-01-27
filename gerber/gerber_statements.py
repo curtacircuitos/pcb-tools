@@ -281,7 +281,7 @@ class ADParamStmt(ParamStmt):
         elif self.shape == 'R':
             shape = 'rectangle'
         elif self.shape == 'O':
-            shape = 'oblong'
+            shape = 'obround'
         else:
             shape = self.shape
 

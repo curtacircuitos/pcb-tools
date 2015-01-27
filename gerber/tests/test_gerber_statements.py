@@ -411,4 +411,4 @@ def test_ADParamStmt_string():
 
     stmt = {'param': 'AD', 'd': 2, 'shape': 'O'}
     ad = ADParamStmt.from_dict(stmt)
-    assert_equal(str(ad), '<Aperture Definition: 2: obround')
+    assert_equal(str(ad), '<Aperture Definition: 2: obround>')
