@@ -19,7 +19,21 @@ from operator import sub
 
 
 class Primitive(object):
+    """ Base class for all Cam file primitives
 
+    Parameters
+    ---------
+    level_polarity : string
+        Polarity of the parameter. May be 'dark' or 'clear'. Dark indicates
+        a "positive" primitive, i.e. indicating where coppper should remain,
+        and clear indicates a negative primitive, such as where copper should
+        be removed. clear primitives are often used to create cutouts in region
+        pours.
+
+    rotation : float
+        Rotation of a primitive about its origin in degrees. Positive rotation
+        is counter-clockwise as viewed from the board top.
+    """
     def __init__(self, level_polarity='dark', rotation=0):
         self.level_polarity = level_polarity
         self.rotation = rotation
@@ -102,7 +116,6 @@ class Arc(Primitive):
         theta0 = (self.start_angle + two_pi) % two_pi
         theta1 = (self.end_angle + two_pi) % two_pi
         points = [self.start, self.end]
-        #Shit's about to get ugly...
         if self.direction == 'counterclockwise':
             # Passes through 0 degrees
             if theta0 > theta1:
@@ -170,13 +183,20 @@ class Ellipse(Primitive):
         self.position = position
         self.width = width
         self.height = height
+        # Axis-aligned width and height
+        ux = (self.width / 2.) * math.cos(math.radians(self.rotation))
+        uy = (self.width / 2.) * math.sin(math.radians(self.rotation))
+        vx = (self.height / 2.) * math.cos(math.radians(self.rotation) + (math.pi / 2.))
+        vy = (self.height / 2.) * math.sin(math.radians(self.rotation) + (math.pi / 2.))
+        self._abs_width = 2 * math.sqrt((ux * ux) + (vx * vx))
+        self._abs_height = 2 * math.sqrt((uy * uy) + (vy * vy))
 
     @property
     def bounding_box(self):
-        min_x = self.position[0] - (self.width / 2.0)
-        max_x = self.position[0] + (self.width / 2.0)
-        min_y = self.position[1] - (self.height / 2.0)
-        max_y = self.position[1] + (self.height / 2.0)
+        min_x = self.position[0] - (self._abs_width / 2.0)
+        max_x = self.position[0] + (self._abs_width / 2.0)
+        min_y = self.position[1] - (self._abs_height / 2.0)
+        max_y = self.position[1] + (self._abs_height / 2.0)
         return ((min_x, max_x), (min_y, max_y))
 
 
@@ -188,16 +208,21 @@ class Rectangle(Primitive):
         self.position = position
         self.width = width
         self.height = height
+        # Axis-aligned width and height
+        self._abs_width = (math.cos(math.radians(self.rotation)) * self.width +
+                           math.sin(math.radians(self.rotation)) * self.height)
+        self._abs_height = (math.cos(math.radians(self.rotation)) * self.height +
+                            math.sin(math.radians(self.rotation)) * self.width)
 
     @property
     def lower_left(self):
-        return (self.position[0] - (self.width / 2.), 
-                self.position[1] - (self.height / 2.))
+        return (self.position[0] - (self._abs_width / 2.), 
+                self.position[1] - (self._abs_height / 2.))
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self.width / 2.), 
-                self.position[1] + (self.height / 2.))
+        return (self.position[0] + (self._abs_width / 2.), 
+                self.position[1] + (self._abs_height / 2.))
 
     @property
     def bounding_box(self):
@@ -207,21 +232,109 @@ class Rectangle(Primitive):
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
 
-    @property
-    def stroke_width(self):
-        return max((self.width, self.height))
 
 
 class Diamond(Primitive):
-    pass
+    """
+    """
+    def __init__(self, position, width, height, **kwargs):
+        super(Diamond, self).__init__(**kwargs)
+        self.position = position
+        self.width = width
+        self.height = height
+        # Axis-aligned width and height
+        self._abs_width = (math.cos(math.radians(self.rotation)) * self.width +
+                           math.sin(math.radians(self.rotation)) * self.height)
+        self._abs_height = (math.cos(math.radians(self.rotation)) * self.height +
+                            math.sin(math.radians(self.rotation)) * self.width)
+
+    @property
+    def lower_left(self):
+        return (self.position[0] - (self._abs_width / 2.), 
+                self.position[1] - (self._abs_height / 2.))
+
+    @property
+    def upper_right(self):
+        return (self.position[0] + (self._abs_width / 2.), 
+                self.position[1] + (self._abs_height / 2.))
+
+    @property
+    def bounding_box(self):
+        min_x = self.lower_left[0]
+        max_x = self.upper_right[0]
+        min_y = self.lower_left[1]
+        max_y = self.upper_right[1]
+        return ((min_x, max_x), (min_y, max_y))
 
 
 class ChamferRectangle(Primitive):
-    pass
+    """
+    """
+    def __init__(self, position, width, height, chamfer, corners, **kwargs):
+        super(ChamferRectangle, self).__init__(**kwargs)
+        self.position = position
+        self.width = width
+        self.height = height
+        self.chamfer = chamfer
+        self.corners = corners
+        # Axis-aligned width and height
+        self._abs_width = (math.cos(math.radians(self.rotation)) * self.width +
+                           math.sin(math.radians(self.rotation)) * self.height)
+        self._abs_height = (math.cos(math.radians(self.rotation)) * self.height +
+                            math.sin(math.radians(self.rotation)) * self.width)
+
+    @property
+    def lower_left(self):
+        return (self.position[0] - (self._abs_width / 2.), 
+                self.position[1] - (self._abs_height / 2.))
+
+    @property
+    def upper_right(self):
+        return (self.position[0] + (self._abs_width / 2.), 
+                self.position[1] + (self._abs_height / 2.))
+
+    @property
+    def bounding_box(self):
+        min_x = self.lower_left[0]
+        max_x = self.upper_right[0]
+        min_y = self.lower_left[1]
+        max_y = self.upper_right[1]
+        return ((min_x, max_x), (min_y, max_y))
 
 
 class RoundRectangle(Primitive):
-    pass
+    """
+    """
+    def __init__(self, position, width, height, radius, corners, **kwargs):
+        super(RoundRectangle, self).__init__(**kwargs)
+        self.position = position
+        self.width = width
+        self.height = height
+        self.radius = radius
+        self.corners = corners
+        # Axis-aligned width and height
+        self._abs_width = (math.cos(math.radians(self.rotation)) * self.width +
+                           math.sin(math.radians(self.rotation)) * self.height)
+        self._abs_height = (math.cos(math.radians(self.rotation)) * self.height +
+                            math.sin(math.radians(self.rotation)) * self.width)
+
+    @property
+    def lower_left(self):
+        return (self.position[0] - (self._abs_width / 2.), 
+                self.position[1] - (self._abs_height / 2.))
+
+    @property
+    def upper_right(self):
+        return (self.position[0] + (self._abs_width / 2.), 
+                self.position[1] + (self._abs_height / 2.))
+
+    @property
+    def bounding_box(self):
+        min_x = self.lower_left[0]
+        max_x = self.upper_right[0]
+        min_y = self.lower_left[1]
+        max_y = self.upper_right[1]
+        return ((min_x, max_x), (min_y, max_y))
 
 
 class Obround(Primitive):
@@ -310,7 +423,7 @@ class Region(Primitive):
 
 
 class RoundButterfly(Primitive):
-    """
+    """ A circle with two diagonally-opposite quadrants removed
     """
     def __init__(self, position, diameter, **kwargs):
         super(RoundButterfly, self).__init__(**kwargs)
@@ -328,17 +441,64 @@ class RoundButterfly(Primitive):
         min_y = self.position[1] - self.radius
         max_y = self.position[1] + self.radius
         return ((min_x, max_x), (min_y, max_y))
-    
+
 class SquareButterfly(Primitive):
-    pass
+    """ A square with two diagonally-opposite quadrants removed
+    """
+    def __init__(self, position, side, **kwargs):
+        super(SquareButterfly, self).__init__(**kwargs)
+        self.position = position
+        self.side = side
+
+
+    @property
+    def bounding_box(self):
+        min_x = self.position[0] - (self.side / 2.)
+        max_x = self.position[0] + (self.side / 2.)
+        min_y = self.position[1] - (self.side / 2.)
+        max_y = self.position[1] + (self.side / 2.)
+        return ((min_x, max_x), (min_y, max_y))
 
 
 class Donut(Primitive):
-    pass
+    """ A Shape with an identical concentric shape removed from its center
+    """
+    def __init__(self, position, shape, inner_diameter, outer_diameter, **kwargs):
+        super(Donut, self).__init__(**kwargs)
+        self.position = position
+        self.shape = shape
+        self.inner_diameter = inner_diameter
+        self.outer_diameter = outer_diameter
+        if self.shape in ('round', 'square', 'octagon'):
+            self.width = outer_diameter
+            self.height = outer_diameter
+        else:
+            # Hexagon
+            self.width = 0.5 * math.sqrt(3.) * outer_diameter
+            self.height = outer_diameter
+
+
+    @property
+    def lower_left(self):
+        return (self.position[0] - (self.width / 2.), 
+                self.position[1] - (self.height / 2.))
+
+    @property
+    def upper_right(self):
+        return (self.position[0] + (self.width / 2.), 
+                self.position[1] + (self.height / 2.))
+
+    @property
+    def bounding_box(self):
+        min_x = self.lower_left[0]
+        max_x = self.upper_right[0]
+        min_y = self.lower_left[1]
+        max_y = self.upper_right[1]
+        return ((min_x, max_x), (min_y, max_y))
 
 
 class Drill(Primitive):
-    """
+    """ A drill hole
     """
     def __init__(self, position, diameter):
         super(Drill, self).__init__('dark')
@@ -356,3 +516,4 @@ class Drill(Primitive):
         min_y = self.position[1] - self.radius
         max_y = self.position[1] + self.radius
         return ((min_x, max_x), (min_y, max_y))
+
