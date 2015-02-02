@@ -62,29 +62,24 @@ class FileSettings(object):
         if units not in ['inch', 'metric']:
             raise ValueError('Units must be either inch or metric')
         self.units = units
-
-
+        
         if zero_suppression is None and zeros is None:
             self.zero_suppression = 'trailing'
-
+        
         elif zero_suppression == zeros:
             raise ValueError('Zeros and Zero Suppression must be different. \
                              Best practice is to specify only one.')
-
+        
         elif zero_suppression is not None:
             if zero_suppression not in ['leading', 'trailing']:
                 raise ValueError('Zero suppression must be either leading or \
                                  trailling')
             self.zero_suppression = zero_suppression
 
-        
         elif zeros is not None:
             if zeros not in ['leading', 'trailing']:
                 raise ValueError('Zeros must be either leading or trailling')
             self.zeros = zeros
-        else:
-            self.zeros = 'leading'
-
 
         if len(format) != 2:
             raise ValueError('Format must be a tuple(n=2) of integers')
@@ -149,6 +144,9 @@ class FileSettings(object):
             if len(value) != 2:
                 raise ValueError('Format must be a tuple(n=2) of integers')
             self.format = value
+
+        else:
+            raise KeyError('%s is not a valid key' % key)
 
     def __eq__(self, other):
         return (self.notation == other.notation and
@@ -230,7 +228,7 @@ class CamFile(object):
     def bounds(self):
         """ File baundaries
         """
-        pass
+        raise NotImplementedError('bounds must be implemented in a subclass')
 
     def render(self, ctx, filename=None):
         """ Generate image of layer.

@@ -65,8 +65,14 @@ def test_camfile_settings():
     cf = CamFile()
     assert_equal(cf.settings, FileSettings())
 
-def test_zeros():
+#def test_bounds_override():
+#    cf = CamFile()
+#    assert_raises(NotImplementedError, cf.bounds)
 
+
+def test_zeros():
+    """ Test zero/zero_suppression interaction
+    """
     fs = FileSettings()
     assert_equal(fs.zero_suppression, 'trailing')
     assert_equal(fs.zeros, 'leading')
@@ -88,4 +94,26 @@ def test_zeros():
     fs.zeros= 'leading'
     assert_equal(fs.zeros, 'leading')
     assert_equal(fs.zero_suppression, 'trailing')
+
+
+def test_filesettings_validation():
+    """ Test FileSettings constructor argument validation
+    """
+    assert_raises(ValueError, FileSettings, 'absolute-ish', 'inch', None, (2, 5), None)
+    assert_raises(ValueError, FileSettings, 'absolute', 'degrees kelvin', None, (2, 5), None)
+    assert_raises(ValueError, FileSettings, 'absolute', 'inch', 'leading', (2, 5), 'leading')
+    assert_raises(ValueError, FileSettings, 'absolute', 'inch', 'following', (2, 5), None)
+    assert_raises(ValueError, FileSettings, 'absolute', 'inch', None, (2, 5), 'following')
+    assert_raises(ValueError, FileSettings, 'absolute', 'inch', None, (2, 5, 6), None)
+
+def test_key_validation():
+    fs = FileSettings()
+    assert_raises(KeyError, fs.__getitem__, 'octopus')
+    assert_raises(KeyError, fs.__setitem__, 'octopus', 'do not care')
+    assert_raises(ValueError, fs.__setitem__, 'notation', 'absolute-ish')
+    assert_raises(ValueError, fs.__setitem__, 'units', 'degrees kelvin')
+    assert_raises(ValueError, fs.__setitem__, 'zero_suppression', 'following')
+    assert_raises(ValueError, fs.__setitem__, 'zeros', 'following')
+    assert_raises(ValueError, fs.__setitem__, 'format', (2, 5, 6))
+
 

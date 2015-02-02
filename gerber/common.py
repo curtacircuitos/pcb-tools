@@ -39,4 +39,5 @@ def read(filename):
     elif fmt == 'excellon':
         return excellon.read(filename)
     else:
-        return None
+        raise TypeError('Unable to detect file format')
+

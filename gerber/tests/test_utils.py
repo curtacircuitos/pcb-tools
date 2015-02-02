@@ -3,8 +3,8 @@
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
-from .tests import assert_equal
-from ..utils import decimal_string, parse_gerber_value, write_gerber_value
+from .tests import assert_equal, assert_raises
+from ..utils import decimal_string, parse_gerber_value, write_gerber_value, detect_file_format
 
 
 def test_zero_suppression():
@@ -22,8 +22,8 @@ def test_zero_suppression():
                   ('-100000', -1.0), ('-1000000', -10.0),
                   ('0', 0.0)]
     for string, value in test_cases:
-        assert(value == parse_gerber_value(string, fmt, zero_suppression))
-        assert(string == write_gerber_value(value, fmt, zero_suppression))
+        assert_equal(value, parse_gerber_value(string, fmt, zero_suppression))
+        assert_equal(string, write_gerber_value(value, fmt, zero_suppression))
 
     # Test trailing zero suppression
     zero_suppression = 'trailing'
@@ -34,8 +34,8 @@ def test_zero_suppression():
                   ('-000001', -0.0001), ('-0000001', -0.00001),
                   ('0', 0.0)]
     for string, value in test_cases:
-        assert(value == parse_gerber_value(string, fmt, zero_suppression))
-        assert(string == write_gerber_value(value, fmt, zero_suppression))
+        assert_equal(value, parse_gerber_value(string, fmt, zero_suppression))
+        assert_equal(string, write_gerber_value(value, fmt, zero_suppression))
 
 
 def test_format():
@@ -51,8 +51,8 @@ def test_format():
                   ((2, 2), '-1', -0.01), ((2, 1), '-1', -0.1),
                   ((2, 6), '0', 0) ]
     for fmt, string, value in test_cases:
-        assert(value == parse_gerber_value(string, fmt, zero_suppression))
-        assert(string == write_gerber_value(value, fmt, zero_suppression))
+        assert_equal(value, parse_gerber_value(string, fmt, zero_suppression))
+        assert_equal(string, write_gerber_value(value, fmt, zero_suppression))
 
     zero_suppression = 'trailing'
     test_cases = [((6, 5), '1', 100000.0), ((5, 5), '1', 10000.0),
@@ -63,8 +63,8 @@ def test_format():
                   ((2, 5), '-1', -10.0), ((1, 5), '-1', -1.0),
                   ((2, 5), '0', 0)]
     for fmt, string, value in test_cases:
-        assert(value == parse_gerber_value(string, fmt, zero_suppression))
-        assert(string == write_gerber_value(value, fmt, zero_suppression))
+        assert_equal(value, parse_gerber_value(string, fmt, zero_suppression))
+        assert_equal(string, write_gerber_value(value, fmt, zero_suppression))
 
 
 def test_decimal_truncation():
@@ -74,7 +74,7 @@ def test_decimal_truncation():
     for x in range(10):
         result = decimal_string(value, precision=x)
         calculated = '1.' + ''.join(str(y) for y in range(1,x+1))
-        assert(result == calculated)
+        assert_equal(result, calculated)
 
 
 def test_decimal_padding():
@@ -85,6 +85,25 @@ def test_decimal_padding():
     assert_equal(decimal_string(value, precision=4, padding=True), '1.1230')
     assert_equal(decimal_string(value, precision=5, padding=True), '1.12300')
     assert_equal(decimal_string(value, precision=6, padding=True), '1.123000')
-
     assert_equal(decimal_string(0, precision=6, padding=True), '0.000000')
 
+
+def test_parse_format_validation():
+    """ Test parse_gerber_value() format validation
+    """
+    assert_raises(ValueError, parse_gerber_value, '00001111', (7, 5))
+    assert_raises(ValueError, parse_gerber_value, '00001111', (5, 8))
+    assert_raises(ValueError, parse_gerber_value, '00001111', (13,1))
+    
+def test_write_format_validation():
+    """ Test write_gerber_value() format validation
+    """
+    assert_raises(ValueError, write_gerber_value, 69.0, (7, 5))
+    assert_raises(ValueError, write_gerber_value, 69.0, (5, 8))
+    assert_raises(ValueError, write_gerber_value, 69.0, (13,1))
+
+
+def test_detect_format_with_short_file():
+    """ Verify file format detection works with short files
+    """
+    assert_equal('unknown', detect_file_format('gerber/tests/__init__.py'))

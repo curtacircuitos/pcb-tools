@@ -20,5 +20,12 @@ def test_file_type_detection():
     """
     ncdrill = read(NCDRILL_FILE)
     top_copper = read(TOP_COPPER_FILE)
-    assert(isinstance(ncdrill, ExcellonFile))
-    assert(isinstance(top_copper, GerberFile))
+    assert_true(isinstance(ncdrill, ExcellonFile))
+    assert_true(isinstance(top_copper, GerberFile))
+
+def test_file_type_validation():
+    """ Test file format validation
+    """
+    assert_raises(TypeError, read, 'LICENSE')
+
+

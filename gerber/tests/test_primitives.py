@@ -165,6 +165,7 @@ def test_chamfer_rectangle_ctor():
         assert_equal(r.chamfer, chamfer)
         assert_array_almost_equal(r.corners, corners)
 
+
 def test_chamfer_rectangle_bounds():
     """ Test chamfer rectangle bounding box calculation
     """
@@ -191,7 +192,8 @@ def test_round_rectangle_ctor():
         assert_equal(r.height, height)
         assert_equal(r.radius, radius)
         assert_array_almost_equal(r.corners, corners)
-        
+
+
 def test_round_rectangle_bounds():
     """ Test round rectangle bounding box calculation
     """
@@ -203,7 +205,76 @@ def test_round_rectangle_bounds():
     xbounds, ybounds = r.bounding_box
     assert_array_almost_equal(xbounds, (-math.sqrt(2), math.sqrt(2)))
     assert_array_almost_equal(ybounds, (-math.sqrt(2), math.sqrt(2)))
+
+
+def test_obround_ctor():
+    """ Test obround creation
+    """
+    test_cases = (((0,0), 1, 1),
+                  ((0, 0), 1, 2),
+                  ((1,1), 1, 2))
+    for pos, width, height in test_cases:
+        o = Obround(pos, width, height)
+        assert_equal(o.position, pos)
+        assert_equal(o.width, width)
+        assert_equal(o.height, height)
+
+
+def test_obround_bounds():
+    """ Test obround bounding box calculation
+    """
+    o = Obround((2,2),2,4)
+    xbounds, ybounds = o.bounding_box
+    assert_array_almost_equal(xbounds, (1, 3))
+    assert_array_almost_equal(ybounds, (0, 4))
+    o = Obround((2,2),4,2)
+    xbounds, ybounds = o.bounding_box
+    assert_array_almost_equal(xbounds, (0, 4))
+    assert_array_almost_equal(ybounds, (1, 3))
+
+
+def test_obround_orientation():
+    o = Obround((0, 0), 2, 1)
+    assert_equal(o.orientation, 'horizontal')
+    o = Obround((0, 0), 1, 2)
+    assert_equal(o.orientation, 'vertical')
+
+
+def test_obround_subshapes():
+    o = Obround((0,0), 1, 4)
+    ss = o.subshapes
+    assert_array_almost_equal(ss['rectangle'].position, (0, 0))
+    assert_array_almost_equal(ss['circle1'].position, (0, 1.5))
+    assert_array_almost_equal(ss['circle2'].position, (0, -1.5))
+    o = Obround((0,0), 4, 1)
+    ss = o.subshapes
+    assert_array_almost_equal(ss['rectangle'].position, (0, 0))
+    assert_array_almost_equal(ss['circle1'].position, (1.5, 0))
+    assert_array_almost_equal(ss['circle2'].position, (-1.5, 0))
     
-    
-    
-    
+def test_polygon_ctor():
+    """ Test polygon creation
+    """
+    test_cases = (((0,0), 3, 5),
+                  ((0, 0), 5, 6),
+                  ((1,1), 7, 7))
+    for pos, sides, radius in test_cases:
+        p = Polygon(pos, sides, radius)
+        assert_equal(p.position, pos)
+        assert_equal(p.sides, sides)
+        assert_equal(p.radius, radius)
+        
+def test_polygon_bounds():
+    """ Test polygon bounding box calculation
+    """
+    p = Polygon((2,2), 3, 2)
+    xbounds, ybounds = p.bounding_box
+    assert_array_almost_equal(xbounds, (0, 4))
+    assert_array_almost_equal(ybounds, (0, 4))
+    p = Polygon((2,2),3, 4)
+    xbounds, ybounds = p.bounding_box
+    assert_array_almost_equal(xbounds, (-2, 6))
+    assert_array_almost_equal(ybounds, (-2, 6))
+
+
+

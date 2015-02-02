@@ -25,15 +25,15 @@ if __name__ == '__main__':
         sys.exit(1)
 
     ctx = GerberSvgContext()
-    ctx.set_alpha(0.95)
+    ctx.alpha = 0.95
     for filename in sys.argv[1:]:
         print "parsing %s" % filename
         if 'GTO' in filename or 'GBO' in filename:
-            ctx.set_color((1, 1, 1))
-            ctx.set_alpha(0.8)
+            ctx.color = (1, 1, 1)
+            ctx.alpha = 0.8
         elif 'GTS' in filename or 'GBS' in filename:
-            ctx.set_color((0.2, 0.2, 0.75))
-            ctx.set_alpha(0.8)
+            ctx.color = (0.2, 0.2, 0.75)
+            ctx.alpha = 0.8
         gerberfile = read(filename)
         gerberfile.render(ctx)
 

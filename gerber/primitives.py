@@ -345,20 +345,25 @@ class Obround(Primitive):
         self.position = position
         self.width = width
         self.height = height
+        # Axis-aligned width and height
+        self._abs_width = (math.cos(math.radians(self.rotation)) * self.width +
+                           math.sin(math.radians(self.rotation)) * self.height)
+        self._abs_height = (math.cos(math.radians(self.rotation)) * self.height +
+                            math.sin(math.radians(self.rotation)) * self.width)
+
+    @property
+    def lower_left(self):
+        return (self.position[0] - (self._abs_width / 2.), 
+                self.position[1] - (self._abs_height / 2.))
+
+    @property
+    def upper_right(self):
+        return (self.position[0] + (self._abs_width / 2.), 
+                self.position[1] + (self._abs_height / 2.))
 
     @property
     def orientation(self):
         return 'vertical' if self.height > self.width else 'horizontal'
-
-    @property
-    def lower_left(self):
-        return (self.position[0] - (self.width / 2.), 
-                self.position[1] - (self.height / 2.))
-
-    @property
-    def upper_right(self):
-        return (self.position[0] + (self.width / 2.), 
-                self.position[1] + (self.height / 2.))
 
     @property
     def bounding_box(self):
@@ -380,7 +385,7 @@ class Obround(Primitive):
         else:
             circle1 = Circle((self.position[0] - (self.height - self.width) / 2.,
                               self.position[1]), self.height)
-            circle2 = Circle((self.position[0] - (self.height - self.width) / 2.,
+            circle2 = Circle((self.position[0] + (self.height - self.width) / 2.,
                               self.position[1]), self.height)
             rect = Rectangle(self.position, (self.width - self.height),
                             self.height)

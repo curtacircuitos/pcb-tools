@@ -41,7 +41,7 @@ class GerberContext(object):
     Attributes
     ----------
     units : string
-        Measurement units
+        Measurement units. 'inch' or 'metric'
 
     color : tuple (<float>, <float>, <float>)
         Color used for rendering as a tuple of normalized (red, green, blue) values.
@@ -57,74 +57,70 @@ class GerberContext(object):
         Rendering opacity. Between 0.0 (transparent) and 1.0 (opaque.)
     """
     def __init__(self, units='inch'):
-        self.units = units
-        self.color = (0.7215, 0.451, 0.200)
-        self.drill_color = (0.25, 0.25, 0.25)
-        self.background_color = (0.0, 0.0, 0.0)
-        self.alpha = 1.0
+        self._units = units
+        self._color = (0.7215, 0.451, 0.200)
+        self._drill_color = (0.25, 0.25, 0.25)
+        self._background_color = (0.0, 0.0, 0.0)
+        self._alpha = 1.0
 
-    def set_units(self, units):
-        """ Set context measurement units
+    @property
+    def units(self):
+        return self._units
 
-        Parameters
-        ----------
-        unit : string
-            Measurement units. may be 'inch' or 'metric'
-
-        Raises
-        ------
-        ValueError
-            If `unit` is not 'inch' or 'metric'
-        """
+    @units.setter
+    def units(self, units):
         if units not in ('inch', 'metric'):
             raise ValueError('Units may be "inch" or "metric"')
-        self.units = units
+        self._units = units
 
-    def set_color(self, color):
-        """ Set rendering color.
+    @property
+    def color(self):
+        return self._color
 
-        Parameters
-        ----------
-        color : tuple (<float>, <float>, <float>)
-            Color as a tuple of (red, green, blue) values. Each channel is
-            represented as a float value in (0, 1)
-        """
-        self.color = color
+    @color.setter
+    def color(self, color):
+        if len(color) != 3:
+            raise TypeError('Color must be a tuple of R, G, and B values')
+        for c in color:
+            if c < 0 or c > 1:
+                raise ValueError('Channel values must be between 0.0 and 1.0')
+        self._color = color
 
-    def set_drill_color(self, color):
-        """ Set color used for rendering drill hits.
+    @property
+    def drill_color(self):
+        return self._drill_color
 
-        Parameters
-        ----------
-        color : tuple (<float>, <float>, <float>)
-            Color as a tuple of (red, green, blue) values. Each channel is
-            represented as a float value in (0, 1)
-        """
-        self.drill_color = color
+    @drill_color.setter
+    def drill_color(self, color):
+        if len(color) != 3:
+            raise TypeError('Drill color must be a tuple of R, G, and B values')
+        for c in color:
+            if c < 0 or c > 1:
+                raise ValueError('Channel values must be between 0.0 and 1.0')
+        self._drill_color = color
 
-    def set_background_color(self, color):
-        """ Set rendering background color
+    @property
+    def background_color(self):
+        return self._background_color
 
-        Parameters
-        ----------
-        color : tuple (<float>, <float>, <float>)
-            Color as a tuple of (red, green, blue) values. Each channel is
-            represented as a float value in (0, 1)
-        """
-        self.background_color = color
+    @background_color.setter
+    def background_color(self, color):
+        if len(color) != 3:
+            raise TypeError('Background color must be a tuple of R, G, and B values')
+        for c in color:
+            if c < 0 or c > 1:
+                raise ValueError('Channel values must be between 0.0 and 1.0')
+        self._background_color = color
 
-    def set_alpha(self, alpha):
-        """ Set layer rendering opacity
+    @property
+    def alpha(self):
+        return self._alpha
 
-        .. note::
-            Not all backends/rendering devices support this parameter.
-
-        Parameters
-        ----------
-        alpha : float
-            Rendering opacity. must be between 0.0 (transparent) and 1.0 (opaque)
-        """
-        self.alpha = alpha
+    @alpha.setter
+    def alpha(self, alpha):
+        if alpha < 0 or alpha > 1:
+            raise ValueError('Alpha must be between 0.0 and 1.0')
+        self._alpha = alpha
 
     def render(self, primitive):
         color = (self.color if primitive.level_polarity == 'dark'
