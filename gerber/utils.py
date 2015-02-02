@@ -220,3 +220,13 @@ def detect_file_format(filename):
         elif '%FS' in line:
             return'rs274x'
     return 'unknown'
+
+
+def validate_coordinates(position):
+    if position is not None:
+        if len(position) != 2:
+            raise TypeError('Position must be a tuple (n=2) of coordinates')
+        else:
+            for coord in position:
+                if not (isinstance(coord, int) or isinstance(coord, float)):
+                    raise TypeError('Coordinates must be integers or floats')

@@ -82,6 +82,12 @@ def test_MOParamStmt_factory():
         assert_equal(mo.param, 'MO')
         assert_equal(mo.mode, 'metric')
 
+    stmt = {'param': 'MO'}
+    mo = MOParamStmt.from_dict(stmt)
+    assert_equal(mo.mode, None)
+    stmt = {'param': 'MO', 'mo': 'degrees kelvin'}
+    assert_raises(ValueError, MOParamStmt.from_dict, stmt)
+
 
 def test_MOParamStmt():
     """ Test MOParamStmt initialization
@@ -181,6 +187,13 @@ def test_OFParamStmt_dump():
     of = OFParamStmt.from_dict(stmt)
     assert_equal(of.to_gerber(), '%OFA0.12345B0.12345*%')
 
+
+def test_OFParamStmt_string():
+    """ Test OFParamStmt __str__
+    """
+    stmt = {'param': 'OF', 'a': '0.123456', 'b': '0.123456'}
+    of = OFParamStmt.from_dict(stmt)
+    assert_equal(str(of), '<Offset: X: 0.123456 Y: 0.123456 >')
 
 def test_LPParamStmt_factory():
     """ Test LPParamStmt factory
@@ -377,38 +390,47 @@ def test_ADParamStmt_factory():
     assert_equal(ad.d, 1)
     assert_equal(ad.shape, 'R')
 
-    stmt = {'param': 'AD', 'd': 2, 'shape': 'O'}
-    ad = ADParamStmt.from_dict(stmt)
-    assert_equal(ad.d, 2)
-    assert_equal(ad.shape, 'O')
+def test_MIParamStmt_factory():
+    stmt = {'param': 'MI', 'a': 1, 'b': 1}
+    mi = MIParamStmt.from_dict(stmt)
+    assert_equal(mi.a, 1)
+    assert_equal(mi.b, 1)
+    
+def test_MIParamStmt_dump():
+    stmt = {'param': 'MI', 'a': 1, 'b': 1}
+    mi = MIParamStmt.from_dict(stmt)
+    assert_equal(mi.to_gerber(), '%MIA1B1*%')
+    stmt = {'param': 'MI', 'a': 1}
+    mi = MIParamStmt.from_dict(stmt)
+    assert_equal(mi.to_gerber(), '%MIA1B0*%')
+    stmt = {'param': 'MI', 'b': 1}
+    mi = MIParamStmt.from_dict(stmt)
+    assert_equal(mi.to_gerber(), '%MIA0B1*%')
+    
+def test_MIParamStmt_string():
+    stmt = {'param': 'MI', 'a': 1, 'b': 1}
+    mi = MIParamStmt.from_dict(stmt)
+    assert_equal(str(mi), '<Image Mirror: A=1 B=1>')
+    
+    stmt = {'param': 'MI', 'b': 1}
+    mi = MIParamStmt.from_dict(stmt)
+    assert_equal(str(mi), '<Image Mirror: A=0 B=1>')
+
+    stmt = {'param': 'MI', 'a': 1}
+    mi = MIParamStmt.from_dict(stmt)
+    assert_equal(str(mi), '<Image Mirror: A=1 B=0>')
 
 
-def test_ADParamStmt_dump():
-    """ Test ADParamStmt.to_gerber()
-    """
-    stmt = {'param': 'AD', 'd': 0, 'shape': 'C'}
-    ad = ADParamStmt.from_dict(stmt)
-    assert_equal(ad.to_gerber(),'%ADD0C*%')
 
-    stmt = {'param': 'AD', 'd': 1, 'shape': 'R'}
-    ad = ADParamStmt.from_dict(stmt)
-    assert_equal(ad.to_gerber(),'%ADD1R*%')
-
-    stmt = {'param': 'AD', 'd': 2, 'shape': 'O'}
-    ad = ADParamStmt.from_dict(stmt)
-    assert_equal(ad.to_gerber(),'%ADD2O*%')
-
-def test_ADParamStmt_string():
-    """ Test ADParamStmt.__str__()
-    """
-    stmt = {'param': 'AD', 'd': 0, 'shape': 'C'}
-    ad = ADParamStmt.from_dict(stmt)
-    assert_equal(str(ad), '<Aperture Definition: 0: circle>')
-
-    stmt = {'param': 'AD', 'd': 1, 'shape': 'R'}
-    ad = ADParamStmt.from_dict(stmt)
-    assert_equal(str(ad), '<Aperture Definition: 1: rectangle>')
-
-    stmt = {'param': 'AD', 'd': 2, 'shape': 'O'}
-    ad = ADParamStmt.from_dict(stmt)
-    assert_equal(str(ad), '<Aperture Definition: 2: obround>')
+def test_coordstmt_ctor():
+    cs = CoordStmt('G04', 0.0, 0.1, 0.2, 0.3, 'D01', FileSettings())
+    assert_equal(cs.function, 'G04')
+    assert_equal(cs.x, 0.0)
+    assert_equal(cs.y, 0.1)
+    assert_equal(cs.i, 0.2)
+    assert_equal(cs.j, 0.3)
+    assert_equal(cs.op, 'D01')
+    
+    
+    
+    

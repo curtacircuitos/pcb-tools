@@ -77,7 +77,6 @@ def test_zeros():
     assert_equal(fs.zero_suppression, 'trailing')
     assert_equal(fs.zeros, 'leading')
 
-
     fs['zero_suppression'] = 'leading'
     assert_equal(fs.zero_suppression, 'leading')
     assert_equal(fs.zeros, 'trailing')
@@ -90,10 +89,25 @@ def test_zeros():
     assert_equal(fs.zeros, 'trailing')
     assert_equal(fs.zero_suppression, 'leading')
 
-
     fs.zeros= 'leading'
     assert_equal(fs.zeros, 'leading')
     assert_equal(fs.zero_suppression, 'trailing')
+
+    fs = FileSettings(zeros='leading')
+    assert_equal(fs.zeros, 'leading')
+    assert_equal(fs.zero_suppression, 'trailing')
+
+    fs = FileSettings(zero_suppression='leading')
+    assert_equal(fs.zeros, 'trailing')
+    assert_equal(fs.zero_suppression, 'leading')
+
+    fs = FileSettings(zeros='leading', zero_suppression='trailing')
+    assert_equal(fs.zeros, 'leading')
+    assert_equal(fs.zero_suppression, 'trailing')
+
+    fs = FileSettings(zeros='trailing', zero_suppression='leading')
+    assert_equal(fs.zeros, 'trailing')
+    assert_equal(fs.zero_suppression, 'leading')
 
 
 def test_filesettings_validation():

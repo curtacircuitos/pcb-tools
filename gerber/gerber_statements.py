@@ -145,12 +145,14 @@ class MOParamStmt(ParamStmt):
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
-        if stmt_dict.get('mo').lower() == 'in':
-            mo = 'inch'
-        elif stmt_dict.get('mo').lower() == 'mm':
-            mo = 'metric'
-        else:
+        if stmt_dict.get('mo') is None:
             mo = None
+        elif stmt_dict.get('mo').lower() not in ('in', 'mm'):
+            raise ValueError('Mode may be mm or in')
+        elif stmt_dict.get('mo').lower() == 'in':
+            mo = 'inch'
+        else:
+            mo = 'metric'
         return cls(param, mo)
 
     def __init__(self, param, mo):
@@ -347,7 +349,7 @@ class AMOutlinePrimitive(AMPrimitive):
         return "{code},{exposure},{n_points},{start_point},{points},{rotation}".format(**data)
 
 
-class AMUnsupportPrimitive:
+class AMUnsupportPrimitive(object):
     @classmethod
     def from_gerber(cls, primitive):
         return cls(primitive)
@@ -652,9 +654,9 @@ class OFParamStmt(ParamStmt):
     def __str__(self):
         offset_str = ''
         if self.a is not None:
-            offset_str += ('X: %f' % self.a)
+            offset_str += ('X: %f ' % self.a)
         if self.b is not None:
-            offset_str += ('Y: %f' % self.b)
+            offset_str += ('Y: %f ' % self.b)
         return ('<Offset: %s>' % offset_str)
 
 

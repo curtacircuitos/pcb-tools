@@ -4,7 +4,7 @@
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
 from .tests import assert_equal, assert_raises
-from ..utils import decimal_string, parse_gerber_value, write_gerber_value, detect_file_format
+from ..utils import *
 
 
 def test_zero_suppression():
@@ -107,3 +107,11 @@ def test_detect_format_with_short_file():
     """ Verify file format detection works with short files
     """
     assert_equal('unknown', detect_file_format('gerber/tests/__init__.py'))
+    
+def test_validate_coordinates():
+    assert_raises(TypeError, validate_coordinates, 3)
+    assert_raises(TypeError, validate_coordinates, 3.1)
+    assert_raises(TypeError, validate_coordinates, '14')
+    assert_raises(TypeError, validate_coordinates, (0,))
+    assert_raises(TypeError, validate_coordinates, (0,1,2))
+    assert_raises(TypeError, validate_coordinates, (0,'string'))

@@ -6,6 +6,11 @@ from ..primitives import *
 from tests import *
 
 
+def test_primitive_implementation_warning():
+    p = Primitive()
+    assert_raises(NotImplementedError, p.bounding_box)
+
+
 def test_line_angle():
     """ Test Line primitive angle calculation
     """
@@ -277,4 +282,118 @@ def test_polygon_bounds():
     assert_array_almost_equal(ybounds, (-2, 6))
 
 
+def test_region_ctor():
+    """ Test Region creation
+    """
+    points = ((0, 0), (1,0), (1,1), (0,1))
+    r = Region(points)
+    for i, point in enumerate(points):
+        assert_array_almost_equal(r.points[i], point)
 
+
+def test_region_bounds():
+    """ Test region bounding box calculation
+    """
+    points = ((0, 0), (1,0), (1,1), (0,1))
+    r = Region(points)
+    xbounds, ybounds = r.bounding_box
+    assert_array_almost_equal(xbounds, (0, 1))
+    assert_array_almost_equal(ybounds, (0, 1))
+    
+    
+def test_round_butterfly_ctor():
+    """ Test round butterfly creation
+    """
+    test_cases = (((0,0), 3), ((0, 0), 5), ((1,1), 7))
+    for pos, diameter in test_cases:
+        b = RoundButterfly(pos, diameter)
+        assert_equal(b.position, pos)
+        assert_equal(b.diameter, diameter)
+        assert_equal(b.radius, diameter/2.)
+
+def test_round_butterfly_ctor_validation():
+    """ Test RoundButterfly argument validation
+    """
+    assert_raises(TypeError, RoundButterfly, 3, 5)
+    assert_raises(TypeError, RoundButterfly, (3,4,5), 5)
+
+def test_round_butterfly_bounds():
+    """ Test RoundButterfly bounding box calculation
+    """
+    b = RoundButterfly((0, 0), 2)
+    xbounds, ybounds = b.bounding_box
+    assert_array_almost_equal(xbounds, (-1, 1))
+    assert_array_almost_equal(ybounds, (-1, 1))
+    
+def test_square_butterfly_ctor():
+    """ Test SquareButterfly creation
+    """
+    test_cases = (((0,0), 3), ((0, 0), 5), ((1,1), 7))
+    for pos, side in test_cases:
+        b = SquareButterfly(pos, side)
+        assert_equal(b.position, pos)
+        assert_equal(b.side, side)
+
+def test_square_butterfly_ctor_validation():
+    """ Test SquareButterfly argument validation
+    """
+    assert_raises(TypeError, SquareButterfly, 3, 5)
+    assert_raises(TypeError, SquareButterfly, (3,4,5), 5)
+
+
+def test_square_butterfly_bounds():
+    """ Test SquareButterfly bounding box calculation
+    """
+    b = SquareButterfly((0, 0), 2)
+    xbounds, ybounds = b.bounding_box
+    assert_array_almost_equal(xbounds, (-1, 1))
+    assert_array_almost_equal(ybounds, (-1, 1))
+
+def test_donut_ctor():
+    """ Test Donut primitive creation
+    """
+    test_cases = (((0,0), 'round', 3, 5), ((0, 0), 'square', 5, 7),
+                  ((1,1), 'hexagon', 7, 9), ((2, 2), 'octagon', 9, 11))
+    for pos, shape, in_d, out_d in test_cases:
+        d = Donut(pos, shape, in_d, out_d)
+        assert_equal(d.position, pos)
+        assert_equal(d.shape, shape)
+        assert_equal(d.inner_diameter, in_d)
+        assert_equal(d.outer_diameter, out_d)
+
+def test_donut_ctor_validation():
+    assert_raises(TypeError, Donut, 3, 'round', 5, 7)
+    assert_raises(TypeError, Donut, (3, 4, 5), 'round', 5, 7)
+    assert_raises(ValueError, Donut, (0, 0), 'triangle', 3, 5)
+    assert_raises(ValueError, Donut, (0, 0), 'round', 5, 3)
+    
+def test_donut_bounds():
+    pass
+
+def test_drill_ctor():
+    """ Test drill primitive creation
+    """
+    test_cases = (((0, 0), 2), ((1, 1), 3), ((2, 2), 5))
+    for position, diameter in test_cases:
+        d = Drill(position, diameter)
+        assert_equal(d.position, position)
+        assert_equal(d.diameter, diameter)
+        assert_equal(d.radius, diameter/2.)
+    
+def test_drill_ctor_validation():
+    """ Test drill argument validation
+    """
+    assert_raises(TypeError, Drill, 3, 5)
+    assert_raises(TypeError, Drill, (3,4,5), 5)
+    
+def test_drill_bounds():
+    d = Drill((0, 0), 2)
+    xbounds, ybounds = d.bounding_box
+    assert_array_almost_equal(xbounds, (-1, 1))
+    assert_array_almost_equal(ybounds, (-1, 1))
+    d = Drill((1, 2), 2)
+    xbounds, ybounds = d.bounding_box
+    assert_array_almost_equal(xbounds, (0, 2))
+    assert_array_almost_equal(ybounds, (1, 3))
+    
+    

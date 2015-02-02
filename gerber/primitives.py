@@ -16,6 +16,7 @@
 # limitations under the License.
 import math
 from operator import sub
+from .utils import validate_coordinates
 
 
 class Primitive(object):
@@ -45,7 +46,7 @@ class Primitive(object):
 
         Return ((min x, max x), (min y, max y))
         """
-        pass
+        raise NotImplementedError('Bounding box calculation must be implemented in subclass')
 
 
 class Line(Primitive):
@@ -155,6 +156,7 @@ class Circle(Primitive):
     """
     def __init__(self, position, diameter, **kwargs):
         super(Circle, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.diameter = diameter
 
@@ -180,6 +182,7 @@ class Ellipse(Primitive):
     """
     def __init__(self, position, width, height, **kwargs):
         super(Ellipse, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
@@ -205,6 +208,7 @@ class Rectangle(Primitive):
     """
     def __init__(self, position, width, height, **kwargs):
         super(Rectangle, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
@@ -239,6 +243,7 @@ class Diamond(Primitive):
     """
     def __init__(self, position, width, height, **kwargs):
         super(Diamond, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
@@ -272,6 +277,7 @@ class ChamferRectangle(Primitive):
     """
     def __init__(self, position, width, height, chamfer, corners, **kwargs):
         super(ChamferRectangle, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
@@ -307,6 +313,7 @@ class RoundRectangle(Primitive):
     """
     def __init__(self, position, width, height, radius, corners, **kwargs):
         super(RoundRectangle, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
@@ -342,6 +349,7 @@ class Obround(Primitive):
     """
     def __init__(self, position, width, height, **kwargs):
         super(Obround, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
@@ -397,6 +405,7 @@ class Polygon(Primitive):
     """
     def __init__(self, position, sides, radius, **kwargs):
         super(Polygon, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.sides = sides
         self.radius = radius
@@ -432,6 +441,7 @@ class RoundButterfly(Primitive):
     """
     def __init__(self, position, diameter, **kwargs):
         super(RoundButterfly, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.diameter = diameter
 
@@ -452,6 +462,7 @@ class SquareButterfly(Primitive):
     """
     def __init__(self, position, side, **kwargs):
         super(SquareButterfly, self).__init__(**kwargs)
+        validate_coordinates(position)
         self.position = position
         self.side = side
 
@@ -470,8 +481,14 @@ class Donut(Primitive):
     """
     def __init__(self, position, shape, inner_diameter, outer_diameter, **kwargs):
         super(Donut, self).__init__(**kwargs)
+        if len(position) != 2:
+            raise TypeError('Position must be a tuple (n=2) of coordinates')
         self.position = position
+        if shape not in ('round', 'square', 'hexagon', 'octagon'):
+            raise ValueError('Valid shapes are round, square, hexagon or octagon')
         self.shape = shape
+        if inner_diameter >= outer_diameter:
+            raise ValueError('Outer diameter must be larger than inner diameter.')
         self.inner_diameter = inner_diameter
         self.outer_diameter = outer_diameter
         if self.shape in ('round', 'square', 'octagon'):
@@ -507,6 +524,8 @@ class Drill(Primitive):
     """
     def __init__(self, position, diameter):
         super(Drill, self).__init__('dark')
+        if len(position) != 2:
+            raise TypeError('Position must be a tuple (n=2) of coordinates')
         self.position = position
         self.diameter = diameter
 
