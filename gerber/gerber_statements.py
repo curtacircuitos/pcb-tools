@@ -21,6 +21,7 @@ Gerber (RS-274X) Statements
 
 """
 from .utils import parse_gerber_value, write_gerber_value, decimal_string
+from .am_statements import *
 
 
 class Statement(object):
@@ -290,77 +291,6 @@ class ADParamStmt(ParamStmt):
         return '<Aperture Definition: %d: %s>' % (self.d, shape)
 
 
-class AMPrimitive(object):
-
-    def __init__(self, code, exposure):
-        self.code = code
-        self.exposure = exposure
-
-    def to_inch(self):
-        pass
-
-    def to_metric(self):
-        pass
-
-
-class AMOutlinePrimitive(AMPrimitive):
-
-    @classmethod
-    def from_gerber(cls, primitive):
-        modifiers = primitive.split(",")
-
-        code = int(modifiers[0])
-        exposure = "on" if modifiers[1] == "1" else "off"
-        n = int(modifiers[2])
-        start_point = (float(modifiers[3]), float(modifiers[4]))
-        points = []
-
-        for i in range(n):
-            points.append((float(modifiers[5 + i*2]), float(modifiers[5 + i*2 + 1])))
-
-        rotation = float(modifiers[-1])
-
-        return cls(code, exposure, start_point, points, rotation)
-
-    def __init__(self, code, exposure, start_point, points, rotation):
-        super(AMOutlinePrimitive, self).__init__(code, exposure)
-
-        self.start_point = start_point
-        self.points = points
-        self.rotation = rotation
-
-    def to_inch(self):
-        self.start_point = tuple([x / 25.4 for x in self.start_point])
-        self.points = tuple([(x / 25.4, y / 25.4) for x, y in self.points])
-
-    def to_metric(self):
-        self.start_point = tuple([x * 25.4 for x in self.start_point])
-        self.points = tuple([(x * 25.4, y * 25.4) for x, y in self.points])
-
-    def to_gerber(self, settings=None):
-        data = dict(
-            code=self.code,
-            exposure="1" if self.exposure == "on" else "0",
-            n_points=len(self.points),
-            start_point="%.4f,%.4f" % self.start_point,
-            points=",".join(["%.4f,%.4f" % point for point in self.points]),
-            rotation=str(self.rotation)
-        )
-        return "{code},{exposure},{n_points},{start_point},{points},{rotation}".format(**data)
-
-
-class AMUnsupportPrimitive(object):
-    @classmethod
-    def from_gerber(cls, primitive):
-        return cls(primitive)
-
-    def __init__(self, primitive):
-        self.primitive = primitive
-
-    def to_gerber(self, settings=None):
-        return self.primitive
-
-
 class AMParamStmt(ParamStmt):
     """ AM - Aperture Macro Statement
     """
@@ -396,9 +326,12 @@ class AMParamStmt(ParamStmt):
 
     def _parsePrimitives(self, macro):
         primitives = []
-
-        for primitive in macro.split("*"):
-            if primitive[0] == "4":
+        for primitive in macro.split('*'):
+            # Couldn't find anything explicit about leading whitespace in the spec...
+            primitive = primitive.lstrip()
+            if primitive[0] == '0':
+                primitives.append(AMCommentPrimitive.from_gerber(primitive))
+            if primitive[0] == '4':
                 primitives.append(AMOutlinePrimitive.from_gerber(primitive))
             else:
                 primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
@@ -414,7 +347,7 @@ class AMParamStmt(ParamStmt):
             primitive.to_metric()
 
     def to_gerber(self, settings=None):
-        return '%AM{0}*{1}*%'.format(self.name, "".join([primitive.to_gerber(settings) for primitive in self.primitives]))
+        return '%AM{0}*{1}%'.format(self.name, '\n'.join([primitive.to_gerber(settings) for primitive in self.primitives]))
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, self.macro)
