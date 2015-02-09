@@ -362,7 +362,7 @@ class ASParamStmt(ParamStmt):
         mode = stmt_dict.get('mode')
         return cls(param, mode)
 
-    def __init__(self, param, ip):
+    def __init__(self, param, mode):
         """ Initialize ASParamStmt class
 
         Parameters
