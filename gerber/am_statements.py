@@ -23,31 +23,29 @@ from .utils import validate_coordinates
 
 class AMPrimitive(object):
     """ Aperture Macro Primitive Base Class
+
+    Parameters
+    ----------
+    code : int
+        primitive shape code
+
+    exposure : str
+        on or off Primitives with exposure on create a slid part of
+        the macro aperture, and primitives with exposure off erase the
+        solid part created previously in the aperture macro definition.
+        .. note::
+            The erasing effect is limited to the aperture definition in
+            which it occurs.
+
+    Returns
+    -------
+    primitive : :class: `gerber.am_statements.AMPrimitive`
+
+    Raises
+    ------
+    TypeError, ValueError
     """
     def __init__(self, code, exposure=None):
-        """ Initialize Aperture Macro Primitive base class
-
-        Parameters
-        ----------
-        code : int
-            primitive shape code
-
-        exposure : str
-            on or off Primitives with exposure on create a slid part of
-            the macro aperture, and primitives with exposure off erase the
-            solid part created previously in the aperture macro definition.
-            .. note::
-                The erasing effect is limited to the aperture definition in
-                which it occurs.
-
-        Returns
-        -------
-        primitive : :class: `gerber.am_statements.AMPrimitive`
-
-        Raises
-        ------
-        TypeError, ValueError
-        """
         VALID_CODES = (0, 1, 2, 4, 5, 6, 7, 20, 21, 22)
         if not isinstance(code, int):
             raise TypeError('Aperture Macro Primitive code must be an integer')
@@ -67,6 +65,30 @@ class AMPrimitive(object):
 
 class AMCommentPrimitive(AMPrimitive):
     """ Aperture Macro Comment primitive. Code 0
+
+    The comment primitive has no image meaning. It is used to include human-
+    readable comments into the AM command.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.1:** Comment, primitive code 0
+
+    Parameters
+    ----------
+    code : int
+        Aperture Macro primitive code. 0 Indicates an AMCommentPrimitive
+
+    comment : str
+        The comment as a string.
+
+    Returns
+    -------
+    CommentPrimitive : :class:`gerber.am_statements.AMCommentPrimitive`
+        An Initialized AMCommentPrimitive
+
+    Raises
+    ------
+    ValueError
     """
     @classmethod
     def from_gerber(cls, primitive):
@@ -76,25 +98,6 @@ class AMCommentPrimitive(AMPrimitive):
         return cls(code, comment)
 
     def __init__(self, code, comment):
-        """ Initialize AMCommentPrimitive class
-
-        Parameters
-        ----------
-        code : int
-            Aperture Macro primitive code. 0 Indicates an AMCommentPrimitive
-
-        comment : str
-            The comment as a string.
-
-        Returns
-        -------
-        CommentPrimitive : :class:`gerber.am_statements.AMCommentPrimitive`
-            An Initialized AMCommentPrimitive
-
-        Raises
-        ------
-        ValueError
-        """
         if code != 0:
             raise ValueError('Not a valid Aperture Macro Comment statement')
         super(AMCommentPrimitive, self).__init__(code)
@@ -109,6 +112,35 @@ class AMCommentPrimitive(AMPrimitive):
 
 class AMCirclePrimitive(AMPrimitive):
     """ Aperture macro Circle primitive. Code 1
+
+    A circle primitive is defined by its center point and diameter.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.2:** Circle, primitive code 1
+
+    Parameters
+    ----------
+    code : int
+        Circle Primitive code. Must be 1
+
+    exposure : string
+        'on' or 'off'
+
+    diameter : float
+        Circle diameter
+
+    position : tuple (<float>, <float>)
+        Position of the circle relative to the macro origin
+
+    Returns
+    -------
+    CirclePrimitive : :class:`gerber.am_statements.AMCirclePrimitive`
+        An initialized AMCirclePrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
     """
     @classmethod
     def from_gerber(cls, primitive):
@@ -120,31 +152,6 @@ class AMCirclePrimitive(AMPrimitive):
         return cls(code, exposure, diameter, position)
 
     def __init__(self, code, exposure, diameter, position):
-        """ Initialize AMCirclePrimitive
-
-        Parameters
-        ----------
-        code : int
-            Circle Primitive code. Must be 1
-
-        exposure : string
-            'on' or 'off'
-
-        diameter : float
-            Circle diameter
-
-        position : tuple (<float>, <float>)
-            Position of the circle relative to the macro origin
-
-        Returns
-        -------
-        CirclePrimitive : :class:`gerber.am_statements.AMCirclePrimitive`
-            An initialized AMCirclePrimitive
-
-        Raises
-        ------
-        ValueError, TypeError
-        """
         validate_coordinates(position)
         if code != 1:
             raise ValueError('Not a valid Aperture Macro Circle statement')
@@ -162,7 +169,43 @@ class AMCirclePrimitive(AMPrimitive):
 
 
 class AMVectorLinePrimitive(AMPrimitive):
-    """ Aperture Macro Vector Line primitive. Code 2 or 20
+    """ Aperture Macro Vector Line primitive. Code 2 or 20.
+
+    A vector line is a rectangle defined by its line width, start, and end
+    points. The line ends are rectangular.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.3:** Vector Line, primitive code 2 or 20.
+
+    Parameters
+    ----------
+    code : int
+        Vector Line Primitive code. Must be either 2 or 20.
+
+    exposure : string
+        'on' or 'off'
+
+    width : float
+        Line width
+
+    start : tuple (<float>, <float>)
+        coordinate of line start point
+
+    end : tuple (<float>, <float>)
+        coordinate of line end point
+
+    rotation : float
+        Line rotation about the origin.
+
+    Returns
+    -------
+    LinePrimitive : :class:`gerber.am_statements.AMVectorLinePrimitive`
+        An initialized AMVectorLinePrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
     """
     @classmethod
     def from_gerber(cls, primitive):
@@ -170,43 +213,12 @@ class AMVectorLinePrimitive(AMPrimitive):
         code = int(modifiers[0])
         exposure = 'on' if modifiers[1].strip() == '1' else 'off'
         width = float(modifiers[2])
-        start (float(modifiers[3]), float(modifiers[4]))
+        start = (float(modifiers[3]), float(modifiers[4]))
         end = (float(modifiers[5]), float(modifiers[6]))
         rotation = float(modifiers[7])
         return cls(code, exposure, width, start, end, rotation)
 
     def __init__(self, code, exposure, width, start, end, rotation):
-        """ Initialize AMVectorLinePrimitive
-
-        Parameters
-        ----------
-        code : int
-            Vector Line Primitive code. Must be either 2 or 20.
-
-        exposure : string
-            'on' or 'off'
-
-        width : float
-            Line width
-
-        start : tuple (<float>, <float>)
-            coordinate of line start point
-
-        end : tuple (<float>, <float>)
-            coordinate of line end point
-
-        rotation : float
-            Line rotation about the origin.
-
-        Returns
-        -------
-        LinePrimitive : :class:`gerber.am_statements.AMVectorLinePrimitive`
-            An initialized AMVectorLinePrimitive
-
-        Raises
-        ------
-        ValueError, TypeError
-        """
         validate_coordinates(start)
         validate_coordinates(end)
         if code not in (2, 20):
@@ -230,7 +242,43 @@ class AMVectorLinePrimitive(AMPrimitive):
 
 # Code 4
 class AMOutlinePrimitive(AMPrimitive):
+    """ Aperture Macro Outline primitive. Code 6.
 
+    An outline primitive is an area enclosed by an n-point polygon defined by
+    its start point and n subsequent points. The outline must be closed, i.e.
+    the last point must be equal to the start point. Self intersecting
+    outlines are not allowed.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.6:** Outline, primitive code 4.
+
+     Parameters
+    ----------
+    code : int
+        OutlinePrimitive code. Must be 4.
+
+    exposure : string
+        'on' or 'off'
+
+    start_point : tuple (<float>, <float>)
+        coordinate of outline start point
+
+    points : list of tuples (<float>, <float>)
+        coordinates of subsequent points
+
+    rotation : float
+        outline rotation about the origin.
+
+    Returns
+    -------
+    OutlinePrimitive : :class:`gerber.am_statements.AMOutlineinePrimitive`
+        An initialized AMOutlinePrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
+    """
     @classmethod
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")
@@ -240,42 +288,13 @@ class AMOutlinePrimitive(AMPrimitive):
         n = int(modifiers[2])
         start_point = (float(modifiers[3]), float(modifiers[4]))
         points = []
-
         for i in range(n):
             points.append((float(modifiers[5 + i*2]), float(modifiers[5 + i*2 + 1])))
-
         rotation = float(modifiers[-1])
-
         return cls(code, exposure, start_point, points, rotation)
 
     def __init__(self, code, exposure, start_point, points, rotation):
         """ Initialize AMOutlinePrimitive
-
-        Parameters
-        ----------
-        code : int
-            OutlinePrimitive code. Must be 4.
-
-        exposure : string
-            'on' or 'off'
-
-        start_point : tuple (<float>, <float>)
-            coordinate of outline start point
-
-        points : list of tuples (<float>, <float>)
-            coordinates of subsequent points
-
-        rotation : float
-            outline rotation about the origin.
-
-        Returns
-        -------
-        OutlinePrimitive : :class:`gerber.am_statements.AMOutlineinePrimitive`
-            An initialized AMOutlinePrimitive
-
-        Raises
-        ------
-        ValueError, TypeError
         """
         validate_coordinates(start_point)
         for point in points:
@@ -306,27 +325,445 @@ class AMOutlinePrimitive(AMPrimitive):
 
 # Code 5
 class AMPolygonPrimitive(AMPrimitive):
-    pass
+    """ Aperture Macro Polygon primitive. Code 5.
+
+    A polygon primitive is a regular polygon defined by the number of
+    vertices, the center point, and the diameter of the circumscribed circle.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.8:** Polygon, primitive code 5.
+
+    Parameters
+    ----------
+    code : int
+        PolygonPrimitive code. Must be 5.
+
+    exposure : string
+        'on' or 'off'
+
+    vertices : int, 3 <= vertices <= 12
+        Number of vertices
+
+    position : tuple (<float>, <float>)
+        X and Y coordinates of polygon center
+
+    diameter : float
+        diameter of circumscribed circle.
+
+    rotation : float
+        polygon rotation about the origin.
+
+    Returns
+    -------
+    PolygonPrimitive : :class:`gerber.am_statements.AMPolygonPrimitive`
+        An initialized AMPolygonPrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
+    """
+    @classmethod
+    def from_gerber(cls, primitive):
+        modifiers = primitive.strip(' *').split(",")
+        code = int(modifiers[0])
+        exposure = "on" if modifiers[1].strip() == "1" else "off"
+        vertices = int(modifiers[2])
+        position = (float(modifiers[3]), float(modifiers[4]))
+        diameter = float(modifiers[5])
+        rotation = float(modifiers[6])
+        return cls(code, exposure, vertices, position, diameter, rotation)
+
+
+    def __init__(self, code, exposure, vertices, position, diameter, rotation):
+        """ Initialize AMPolygonPrimitive
+        """
+        super(AMPolygonPrimitive, self).__init__(code, exposure)
+        if vertices < 3 or vertices > 12:
+            raise ValueError('Number of vertices must be between 3 and 12')
+        self.vertices = vertices
+        validate_coordinates(position)
+        self.position = position
+        self.diameter = diameter
+        self.rotation = rotation
+
+    def to_inch(self):
+        self.position = tuple([x / 25.4 for x in self.position])
+        self.diameter = self.diameter / 25.4
+
+    def to_metric(self):
+        self.position = tuple([x * 25.4 for x in self.position])
+        self.diameter = self.diameter * 25.4
+
+    def to_gerber(self, settings=None):
+        data = dict(
+            code=self.code,
+            exposure="1" if self.exposure == "on" else "0",
+            vertices=self.vertices,
+            position="%.4f,%.4f" % self.position,
+            diameter = '%.4f' % self.diameter,
+            rotation=str(self.rotation)
+        )
+        fmt = "{code},{exposure},{vertices},{position},{diameter},{rotation}*"
+        return fmt.format(**data)
 
 
 # Code 6
 class AMMoirePrimitive(AMPrimitive):
-    pass
+    """ Aperture Macro Moire primitive. Code 6.
 
+    The moire primitive is a cross hair centered on concentric rings (annuli).
+    Exposure is always on.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.9:** Moire, primitive code 6.
+
+    Parameters
+    ----------
+    code : int
+        Moire Primitive code. Must be 6.
+
+    position : tuple (<float>, <float>)
+        X and Y coordinates of moire center
+
+    diameter : float
+        outer diameter of outer ring.
+
+    ring_thickness : float
+        thickness of concentric rings.
+
+    gap : float
+        gap between concentric rings.
+
+    max_rings : float
+        maximum number of rings
+
+    crosshair_thickness : float
+        thickness of crosshairs
+
+    crosshair_length : float
+        length of crosshairs
+
+    rotation : float
+        moire rotation about the origin.
+
+    Returns
+    -------
+    MoirePrimitive : :class:`gerber.am_statements.AMMoirePrimitive`
+        An initialized AMMoirePrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
+    """
+    @classmethod
+    def from_gerber(cls, primitive):
+        modifiers = primitive.strip(' *').split(",")
+        code = int(modifiers[0])
+        position = (float(modifiers[1]), float(modifiers[2]))
+        diameter = float(modifiers[3])
+        ring_thickness = float(modifiers[4])
+        gap = float(modifiers[5])
+        max_rings = int(modifiers[6])
+        crosshair_thickness = float(modifiers[7])
+        crosshair_length = float(modifiers[8])
+        rotation = float(modifiers[9])
+        return cls(code, position, diameter, ring_thickness, gap, max_rings, crosshair_thickness, crosshair_length, rotation)
+
+    def __init__(self, code, position, diameter, ring_thickness, gap, max_rings, crosshair_thickness, crosshair_length, rotation):
+        """ Initialize AMoirePrimitive
+        """
+        super(AMMoirePrimitive, self).__init__(code, 'on')
+        validate_coordinates(position)
+        self.position = position
+        self.diameter = diameter
+        self.ring_thickness = ring_thickness
+        self.gap = gap
+        self.max_rings = max_rings
+        self.crosshair_thickness = crosshair_thickness
+        self.crosshair_length = crosshair_length
+        self.rotation = rotation
+
+    def to_inch(self):
+        self.position = tuple([x / 25.4 for x in self.position])
+        self.diameter = self.diameter / 25.4
+        self.ring_thickness = self.ring_thickness / 25.4
+        self.gap = self.gap / 25.4
+        self.crosshair_thickness = self.crosshair_thickness / 25.4
+        self.crosshair_length = self.crosshair_length / 25.4
+
+    def to_metric(self):
+        self.position = tuple([x * 25.4 for x in self.position])
+        self.diameter = self.diameter * 25.4
+        self.ring_thickness = self.ring_thickness * 25.4
+        self.gap = self.gap / 25.4
+        self.crosshair_thickness = self.crosshair_thickness * 25.4
+        self.crosshair_length = self.crosshair_length * 25.4
+
+
+    def to_gerber(self, settings=None):
+        data = dict(
+            code=self.code,
+            position="%.4f,%.4f" % self.position,
+            diameter = '%.4f' % self.diameter,
+            ring_thickness = '%.4f' % self.ring_thickness,
+            gap = '%.4f' % self.gap,
+            max_rings = str(self.max_rings),
+            crosshair_thickness = '%.4f' % self.crosshair_thickness,
+            crosshair_length = '%.4f' % self.crosshair_length,
+            rotation=str(self.rotation)
+        )
+        fmt = "{code},{position},{diameter},{ring_thickness},{gap},{max_rings},{crosshair_thickness},{crosshair_length},{rotation}*"
+        return fmt.format(**data)
 
 # Code 7
 class AMThermalPrimitive(AMPrimitive):
-    pass
+    """ Aperture Macro Thermal primitive. Code 7.
+
+    The thermal primitive is a ring (annulus) interrupted by four gaps.
+    Exposure is always on.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.10:** Thermal, primitive code 7.
+
+    Parameters
+    ----------
+    code : int
+        Thermal Primitive code. Must be 7.
+
+    position : tuple (<float>, <float>)
+        X and Y coordinates of thermal center
+
+    outer_diameter : float
+        outer diameter of thermal.
+
+    inner_diameter : float
+        inner diameter of thermal.
+
+    gap : float
+        gap thickness
+
+    rotation : float
+        thermal rotation about the origin.
+
+    Returns
+    -------
+    ThermalPrimitive : :class:`gerber.am_statements.AMThermalPrimitive`
+        An initialized AMThermalPrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
+    """
+    @classmethod
+    def from_gerber(cls, primitive):
+        modifiers = primitive.strip(' *').split(",")
+        code = int(modifiers[0])
+        position = (float(modifiers[1]), float(modifiers[2]))
+        outer_diameter = float(modifiers[3])
+        inner_diameter= float(modifiers[4])
+        gap = float(modifiers[5])
+        rotation = float(modifiers[6])
+        return cls(code, position, outer_diameter, inner_diameter, gap, rotation)
+
+    def __init__(self, code, position, outer_diameter, inner_diameter, gap, rotation):
+        super(AMThermalPrimitive, self).__init(code, 'on')
+        validate_coordinates(position)
+        self.position = position
+        self.outer_diameter = outer_diameter
+        self.inner_diameter = inner_diameter
+        self.gap = gap
+        self.rotation = rotation
+
+    def to_inch(self):
+        self.position = tuple([x / 25.4 for x in self.position])
+        self.outer_diameter = self.outer_diameter / 25.4
+        self.inner_diameter = self.inner_diameter / 25.4
+        self.gap = self.gap / 25.4
+
+
+    def to_metric(self):
+        self.position = tuple([x * 25.4 for x in self.position])
+        self.outer_diameter = self.outer_diameter * 25.4
+        self.inner_diameter = self.inner_diameter * 25.4
+        self.gap = self.gap * 25.4
+
+    def to_gerber(self, settings=None):
+        data = dict(
+            code=self.code,
+            position="%.4f,%.4f" % self.position,
+            outer_diameter = '%.4f' % self.outer_diameter,
+            inner_diameter = '%.4f' % self.inner_diameter,
+            gap = '%.4f' % self.gap,
+            rotation=str(self.rotation)
+        )
+        fmt = "{code},{position},{outer_diameter},{inner_diameter},{gap},{rotation}*"
+        return fmt.format(**data)
 
 
 # Code 21
 class AMCenterLinePrimitive(AMPrimitive):
-    pass
+    """ Aperture Macro Center Line primitive. Code 21.
+
+    The center line primitive is a rectangle defined by its width, height, and center point.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.4:** Center Line, primitive code 21.
+
+    Parameters
+    ----------
+    code : int
+        Center Line Primitive code. Must be 21.
+
+    exposure : str
+        'on' or 'off'
+
+    width : float
+        Width of rectangle
+
+    height : float
+        Height of rectangle
+
+    center : tuple (<float>, <float>)
+        X and Y coordinates of line center
+
+    rotation : float
+        rectangle rotation about its center.
+
+    Returns
+    -------
+    CenterLinePrimitive : :class:`gerber.am_statements.AMCenterLinePrimitive`
+        An initialized AMCenterLinePrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
+    """
+
+    @classmethod
+    def from_gerber(cls, primitive):
+        modifiers = primitive.strip(' *').split(",")
+        code = int(modifiers[0])
+        exposure = 'on' if modifiers[1].strip() == '1' else 'off'
+        width = float(modifiers[2])
+        height = float(modifiers[3])
+        center= (float(modifiers[4]), float(modifiers[5]))
+        rotation = float(modifiers[6])
+        return cls(code, exposure, width, height, center, rotation)
+
+    def __init__(self, code, exposure, width, height, center, rotation):
+        super (AMCenterLinePrimitive, self).__init__(code, exposure)
+        self.width = width
+        self.height = height
+        validate_coordinates(center)
+        self.center = center
+        self.rotation = rotation
+
+    def to_inch(self):
+        self.center = tuple([x / 25.4 for x in self.center])
+        self.width = self.width / 25.4
+        self.heignt = self.height / 25.4
+
+    def to_metric(self):
+        self.center = tuple([x * 25.4 for x in self.center])
+        self.width = self.width * 25.4
+        self.heignt = self.height * 25.4
+
+    def to_gerber(self, settings=None):
+        data = dict(
+            code=self.code,
+            exposure = '1' if self.exposure == 'on' else '0',
+            width = '%.4f' % self.width,
+            height = '%.4f' % self.height,
+            center="%.4f,%.4f" % self.center,
+            rotation=str(self.rotation)
+        )
+        fmt = "{code},{exposure},{width},{height},{center},{rotation}*"
+        return fmt.format(**data)
 
 
 # Code 22
 class AMLowerLeftLinePrimitive(AMPrimitive):
-    pass
+    """ Aperture Macro Lower Left Line primitive. Code 22.
+
+    The lower left line primitive is a rectangle defined by its width, height, and the lower left point.
+
+    .. seealso::
+        `The Gerber File Format Specification <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_
+            **Section 4.12.3.5:** Lower Left Line, primitive code 22.
+
+    Parameters
+    ----------
+    code : int
+        Center Line Primitive code. Must be 21.
+
+    exposure : str
+        'on' or 'off'
+
+    width : float
+        Width of rectangle
+
+    height : float
+        Height of rectangle
+
+    lower_left : tuple (<float>, <float>)
+        X and Y coordinates of lower left corner
+
+    rotation : float
+        rectangle rotation about its origin.
+
+    Returns
+    -------
+    LowerLeftLinePrimitive : :class:`gerber.am_statements.AMLowerLeftLinePrimitive`
+        An initialized AMLowerLeftLinePrimitive
+
+    Raises
+    ------
+    ValueError, TypeError
+    """
+    @classmethod
+    def from_gerber(cls, primitive):
+        modifiers = primitive.strip(' *').split(",")
+        code = int(modifiers[0])
+        exposure = 'on' if modifiers[1].strip() == '1' else 'off'
+        width = float(modifiers[2])
+        height = float(modifiers[3])
+        lower_left = (float(modifiers[4]), float(modifiers[5]))
+        rotation = float(modifiers[6])
+        return cls(code, exposure, width, height, lower_left, rotation)
+
+    def __init__(self, code, exposure, width, height, lower_left, rotation):
+        super (AMCenterLinePrimitive, self).__init__(code, exposure)
+        self.width = width
+        self.height = height
+        validate_coordinates(lower_left)
+        self.lower_left = lower_left
+        self.rotation = rotation
+
+    def to_inch(self):
+        self.lower_left = tuple([x / 25.4 for x in self.lower_left])
+        self.width = self.width / 25.4
+        self.heignt = self.height / 25.4
+
+    def to_metric(self):
+        self.lower_left = tuple([x * 25.4 for x in self.lower_left])
+        self.width = self.width * 25.4
+        self.heignt = self.height * 25.4
+
+    def to_gerber(self, settings=None):
+        data = dict(
+            code=self.code,
+            exposure = '1' if self.exposure == 'on' else '0',
+            width = '%.4f' % self.width,
+            height = '%.4f' % self.height,
+            lower_left="%.4f,%.4f" % self.lower_left,
+            rotation=str(self.rotation)
+        )
+        fmt = "{code},{exposure},{width},{height},{lower_left},{rotation}*"
+        return fmt.format(**data)
 
 
 class AMUnsupportPrimitive(AMPrimitive):
