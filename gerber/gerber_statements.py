@@ -262,19 +262,19 @@ class ADParamStmt(ParamStmt):
         self.d = d
         self.shape = shape
         if modifiers is not None:
-            self.modifiers = [[float(x) for x in m.split("X")] for m in modifiers.split(",") if len(m)]
+            self.modifiers = [tuple([float(x) for x in m.split("X")]) for m in modifiers.split(",") if len(m)]
         else:
             self.modifiers = []
 
     def to_inch(self):
-        self.modifiers = [[x / 25.4 for x in modifier] for modifier in self.modifiers]
+        self.modifiers = [tuple([x / 25.4 for x in modifier]) for modifier in self.modifiers]
 
     def to_metric(self):
-        self.modifiers = [[x * 25.4 for x in modifier] for modifier in self.modifiers]
+        self.modifiers = [tuple([x * 25.4 for x in modifier]) for modifier in self.modifiers]
 
     def to_gerber(self, settings=None):
         if len(self.modifiers):
-            return '%ADD{0}{1},{2}*%'.format(self.d, self.shape, ','.join(['X'.join(["%.4f" % x for x in modifier]) for modifier in self.modifiers]))
+            return '%ADD{0}{1},{2}*%'.format(self.d, self.shape, ','.join(['X'.join(["%.4g" % x for x in modifier]) for modifier in self.modifiers]))
         else:
             return '%ADD{0}{1}*%'.format(self.d, self.shape)
 
@@ -326,16 +326,30 @@ class AMParamStmt(ParamStmt):
 
     def _parsePrimitives(self, macro):
         primitives = []
-        for primitive in macro.split('*'):
+        for primitive in macro.strip('%\n').split('*'):
             # Couldn't find anything explicit about leading whitespace in the spec...
-            primitive = primitive.lstrip()
-            if primitive[0] == '0':
-                primitives.append(AMCommentPrimitive.from_gerber(primitive))
-            if primitive[0] == '4':
-                primitives.append(AMOutlinePrimitive.from_gerber(primitive))
-            else:
-                primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
-
+            primitive = primitive.strip(' *%\n')
+            if len(primitive):
+                if primitive[0] == '0':
+                    primitives.append(AMCommentPrimitive.from_gerber(primitive))
+                elif primitive[0] == '1':
+                    primitives.append(AMCirclePrimitive.from_gerber(primitive))
+                elif primitive[0:2] in ('2,', '20'):
+                    primitives.append(AMVectorLinePrimitive.from_gerber(primitive))
+                elif primitive[0:2] == '21':
+                    primitives.append(AMCenterLinePrimitive.from_gerber(primitive))
+                elif primitive[0:2] == '22':
+                    primitives.append(AMLowerLeftLinePrimitive.from_gerber(primitive))
+                elif primitive[0] == '4':
+                    primitives.append(AMOutlinePrimitive.from_gerber(primitive))
+                elif primitive[0] == '5':
+                    primitives.append(AMPolygonPrimitive.from_gerber(primitive))
+                elif primitive[0] =='6':
+                    primitives.append(AMMoirePrimitive.from_gerber(primitive))
+                elif primitive[0] == '7':
+                    primitives.append(AMThermalPrimitive.from_gerber(primitive))
+                else:
+                    primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
         return primitives
 
     def to_inch(self):
@@ -465,7 +479,8 @@ class IRParamStmt(ParamStmt):
     """
     @classmethod
     def from_dict(cls, stmt_dict):
-        return cls(**stmt_dict)
+        angle = int(stmt_dict['angle'])
+        return cls(stmt_dict['param'], angle)
 
     def __init__(self, param, angle):
         """ Initialize IRParamStmt class
@@ -639,9 +654,9 @@ class SFParamStmt(ParamStmt):
     def __str__(self):
         scale_factor = ''
         if self.a is not None:
-            scale_factor += ('X: %f' % self.a)
+            scale_factor += ('X: %g' % self.a)
         if self.b is not None:
-            scale_factor += ('Y: %f' % self.b)
+            scale_factor += ('Y: %g' % self.b)
         return ('<Scale Factor: %s>' % scale_factor)
 
 

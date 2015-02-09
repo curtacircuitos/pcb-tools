@@ -159,6 +159,31 @@ def test_IPParamStmt_dump():
     ip = IPParamStmt.from_dict(stmt)
     assert_equal(ip.to_gerber(), '%IPNEG*%')
 
+def test_IPParamStmt_string():
+    stmt = {'param': 'IP', 'ip': 'POS'}
+    ip = IPParamStmt.from_dict(stmt)
+    assert_equal(str(ip), '<Image Polarity: positive>')
+
+    stmt = {'param': 'IP', 'ip': 'NEG'}
+    ip = IPParamStmt.from_dict(stmt)
+    assert_equal(str(ip), '<Image Polarity: negative>')
+
+def test_IRParamStmt_factory():
+    stmt = {'param': 'IR', 'angle': '45'}
+    ir = IRParamStmt.from_dict(stmt)
+    assert_equal(ir.param, 'IR')
+    assert_equal(ir.angle, 45)
+
+def test_IRParamStmt_dump():
+    stmt = {'param': 'IR', 'angle': '45'}
+    ir = IRParamStmt.from_dict(stmt)
+    assert_equal(ir.to_gerber(), '%IR45*%')
+
+def test_IRParamStmt_string():
+    stmt = {'param': 'IR', 'angle': '45'}
+    ir = IRParamStmt.from_dict(stmt)
+    assert_equal(str(ir), '<Image Angle: 45>')
+
 
 def test_OFParamStmt_factory():
     """ Test OFParamStmt factory
@@ -194,6 +219,24 @@ def test_OFParamStmt_string():
     stmt = {'param': 'OF', 'a': '0.123456', 'b': '0.123456'}
     of = OFParamStmt.from_dict(stmt)
     assert_equal(str(of), '<Offset: X: 0.123456 Y: 0.123456 >')
+
+def test_SFParamStmt_factory():
+    stmt = {'param': 'SF', 'a': '1.4', 'b': '0.9'}
+    sf = SFParamStmt.from_dict(stmt)
+    assert_equal(sf.param, 'SF')
+    assert_equal(sf.a, 1.4)
+    assert_equal(sf.b, 0.9)
+
+def test_SFParamStmt_dump():
+    stmt = {'param': 'SF', 'a': '1.4', 'b': '0.9'}
+    sf = SFParamStmt.from_dict(stmt)
+    assert_equal(sf.to_gerber(), '%SFA1.4B0.9*%')
+
+def test_SFParamStmt_string():
+    stmt = {'param': 'SF', 'a': '1.4', 'b': '0.9'}
+    sf = SFParamStmt.from_dict(stmt)
+    assert_equal(str(sf), '<Scale Factor: X: 1.4Y: 0.9>')
+
 
 def test_LPParamStmt_factory():
     """ Test LPParamStmt factory
@@ -231,13 +274,81 @@ def test_LPParamStmt_string():
     assert_equal(str(lp), '<Level Polarity: clear>')
 
 
+def test_AMParamStmt_factory():
+    name = 'DONUTVAR'
+    macro = (
+'''0 Test Macro. *
+1,1,1.5,0,0*
+20,1,0.9,0,0.45,12,0.45,0*
+21,1,6.8,1.2,3.4,0.6,0*
+22,1,6.8,1.2,0,0,0*
+4,1,4,0.1,0.1,0.5,0.1,0.5,0.5,0.1,0.5,0.1,0.1,0*
+5,1,8,0,0,8,0*
+6,0,0,5,0.5,0.5,2,0.1,6,0*
+7,0,0,7,6,0.2,0*
+8,THIS IS AN UNSUPPORTED PRIMITIVE*
+''')
+    s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    assert_equal(len(s.primitives), 10)
+    assert_true(isinstance(s.primitives[0], AMCommentPrimitive))
+    assert_true(isinstance(s.primitives[1], AMCirclePrimitive))
+    assert_true(isinstance(s.primitives[2], AMVectorLinePrimitive))
+    assert_true(isinstance(s.primitives[3], AMCenterLinePrimitive))
+    assert_true(isinstance(s.primitives[4], AMLowerLeftLinePrimitive))
+    assert_true(isinstance(s.primitives[5], AMOutlinePrimitive))
+    assert_true(isinstance(s.primitives[6], AMPolygonPrimitive))
+    assert_true(isinstance(s.primitives[7], AMMoirePrimitive))
+    assert_true(isinstance(s.primitives[8], AMThermalPrimitive))
+    assert_true(isinstance(s.primitives[9], AMUnsupportPrimitive))
+
+def testAMParamStmt_conversion():
+    name = 'POLYGON'
+    macro = '5,1,8,25.4,25.4,25.4,0*%'
+    s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    s.to_inch()
+    assert_equal(s.primitives[0].position, (1., 1.))
+    assert_equal(s.primitives[0].diameter, 1.)
+
+    macro = '5,1,8,1,1,1,0*%'
+    s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    s.to_metric()
+    assert_equal(s.primitives[0].position, (25.4, 25.4))
+    assert_equal(s.primitives[0].diameter, 25.4)
+
+def test_AMParamStmt_dump():
+    name = 'POLYGON'
+    macro = '5,1,8,25.4,25.4,25.4,0*%'
+    s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0.0*%')
+
+def test_AMParamStmt_string():
+    name = 'POLYGON'
+    macro = '5,1,8,25.4,25.4,25.4,0*%'
+    s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    assert_equal(str(s), '<Aperture Macro POLYGON: 5,1,8,25.4,25.4,25.4,0*%>')
+
+def test_ASParamStmt_factory():
+    stmt = {'param': 'AS', 'mode': 'AXBY'}
+    s = ASParamStmt.from_dict(stmt)
+    assert_equal(s.param, 'AS')
+    assert_equal(s.mode, 'AXBY')
+
+def test_ASParamStmt_dump():
+    stmt = {'param': 'AS', 'mode': 'AXBY'}
+    s = ASParamStmt.from_dict(stmt)
+    assert_equal(s.to_gerber(), '%ASAXBY*%')
+
+def test_ASParamStmt_string():
+    stmt = {'param': 'AS', 'mode': 'AXBY'}
+    s = ASParamStmt.from_dict(stmt)
+    assert_equal(str(s), '<Axis Select: AXBY>')
+
 def test_INParamStmt_factory():
     """ Test INParamStmt factory
     """
     stmt = {'param': 'IN', 'name': 'test'}
     inp = INParamStmt.from_dict(stmt)
     assert_equal(inp.name, 'test')
-
 
 def test_INParamStmt_dump():
     """ Test INParamStmt to_gerber()
@@ -246,6 +357,10 @@ def test_INParamStmt_dump():
     inp = INParamStmt.from_dict(stmt)
     assert_equal(inp.to_gerber(), '%INtest*%')
 
+def test_INParamStmt_string():
+    stmt = {'param': 'IN', 'name': 'test'}
+    inp = INParamStmt.from_dict(stmt)
+    assert_equal(str(inp), '<Image Name: test>')
 
 def test_LNParamStmt_factory():
     """ Test LNParamStmt factory
@@ -254,7 +369,6 @@ def test_LNParamStmt_factory():
     lnp = LNParamStmt.from_dict(stmt)
     assert_equal(lnp.name, 'test')
 
-
 def test_LNParamStmt_dump():
     """ Test LNParamStmt to_gerber()
     """
@@ -262,6 +376,10 @@ def test_LNParamStmt_dump():
     lnp = LNParamStmt.from_dict(stmt)
     assert_equal(lnp.to_gerber(), '%LNtest*%')
 
+def test_LNParamStmt_string():
+    stmt = {'param': 'LN', 'name': 'test'}
+    lnp = LNParamStmt.from_dict(stmt)
+    assert_equal(str(lnp), '<Level Name: test>')
 
 def test_comment_stmt():
     """ Test comment statement
@@ -270,13 +388,11 @@ def test_comment_stmt():
     assert_equal(stmt.type, 'COMMENT')
     assert_equal(stmt.comment, 'A comment')
 
-
 def test_comment_stmt_dump():
     """ Test CommentStmt to_gerber()
     """
     stmt = CommentStmt('A comment')
     assert_equal(stmt.to_gerber(), 'G04A comment*')
-
 
 def test_eofstmt():
     """ Test EofStmt
@@ -284,13 +400,11 @@ def test_eofstmt():
     stmt = EofStmt()
     assert_equal(stmt.type, 'EOF')
 
-
 def test_eofstmt_dump():
     """ Test EofStmt to_gerber()
     """
     stmt = EofStmt()
     assert_equal(stmt.to_gerber(), 'M02*')
-
 
 def test_quadmodestmt_factory():
     """ Test QuadrantModeStmt.from_gerber()
@@ -390,12 +504,50 @@ def test_ADParamStmt_factory():
     assert_equal(ad.d, 1)
     assert_equal(ad.shape, 'R')
 
+def test_ADParamStmt_conversion():
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C', 'modifiers': '25.4X25.4,25.4X25.4'}
+    ad = ADParamStmt.from_dict(stmt)
+    ad.to_inch()
+    assert_equal(ad.modifiers[0], (1., 1.))
+    assert_equal(ad.modifiers[1], (1., 1.))
+
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C', 'modifiers': '1X1,1X1'}
+    ad = ADParamStmt.from_dict(stmt)
+    ad.to_metric()
+    assert_equal(ad.modifiers[0], (25.4, 25.4))
+    assert_equal(ad.modifiers[1], (25.4, 25.4))
+
+def test_ADParamStmt_dump():
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.to_gerber(), '%ADD0C*%')
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C', 'modifiers': '1X1,1X1'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.to_gerber(), '%ADD0C,1X1,1X1*%')
+
+def test_ADPamramStmt_string():
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'C'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(str(ad), '<Aperture Definition: 0: circle>')
+
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'R'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(str(ad), '<Aperture Definition: 0: rectangle>')
+
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'O'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(str(ad), '<Aperture Definition: 0: obround>')
+
+    stmt = {'param': 'AD', 'd': 0, 'shape': 'test'}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(str(ad), '<Aperture Definition: 0: test>')
+
 def test_MIParamStmt_factory():
     stmt = {'param': 'MI', 'a': 1, 'b': 1}
     mi = MIParamStmt.from_dict(stmt)
     assert_equal(mi.a, 1)
     assert_equal(mi.b, 1)
-    
+
 def test_MIParamStmt_dump():
     stmt = {'param': 'MI', 'a': 1, 'b': 1}
     mi = MIParamStmt.from_dict(stmt)
@@ -406,12 +558,12 @@ def test_MIParamStmt_dump():
     stmt = {'param': 'MI', 'b': 1}
     mi = MIParamStmt.from_dict(stmt)
     assert_equal(mi.to_gerber(), '%MIA0B1*%')
-    
+
 def test_MIParamStmt_string():
     stmt = {'param': 'MI', 'a': 1, 'b': 1}
     mi = MIParamStmt.from_dict(stmt)
     assert_equal(str(mi), '<Image Mirror: A=1 B=1>')
-    
+
     stmt = {'param': 'MI', 'b': 1}
     mi = MIParamStmt.from_dict(stmt)
     assert_equal(str(mi), '<Image Mirror: A=0 B=1>')
@@ -430,7 +582,6 @@ def test_coordstmt_ctor():
     assert_equal(cs.i, 0.2)
     assert_equal(cs.j, 0.3)
     assert_equal(cs.op, 'D01')
-    
-    
-    
-    
+
+
+

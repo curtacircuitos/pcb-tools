@@ -820,5 +820,11 @@ class AMUnsupportPrimitive(AMPrimitive):
     def __init__(self, primitive):
         self.primitive = primitive
 
+    def to_inch(self):
+        pass
+    
+    def to_metric(self):
+        pass
+
     def to_gerber(self, settings=None):
         return self.primitive
