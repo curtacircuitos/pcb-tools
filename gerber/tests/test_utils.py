@@ -37,6 +37,9 @@ def test_zero_suppression():
         assert_equal(value, parse_gerber_value(string, fmt, zero_suppression))
         assert_equal(string, write_gerber_value(value, fmt, zero_suppression))
 
+    assert_equal(write_gerber_value(0.000000001, fmt, 'leading'), '0')
+    assert_equal(write_gerber_value(0.000000001, fmt, 'trailing'), '0')
+
 
 def test_format():
     """ Test gerber value parser and writer handle format correctly

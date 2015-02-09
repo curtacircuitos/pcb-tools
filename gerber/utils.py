@@ -138,6 +138,11 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     fmtstring = '%%0%d.0%df' % (MAX_DIGITS + 1, decimal_digits)
     digits = [val for val in fmtstring % value if val != '.']
 
+    # If all the digits are 0, return '0'.
+    digit_sum = reduce(lambda x,y:x+int(y), digits, 0)
+    if digit_sum == 0:
+        return '0'
+
     # Suppression...
     if zero_suppression == 'trailing':
         while digits and digits[-1] == '0':
