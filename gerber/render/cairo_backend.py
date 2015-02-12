@@ -20,6 +20,8 @@ from operator import mul
 import cairocffi as cairo
 import math
 
+from ..primitives import *
+
 SCALE = 400.
 
 
@@ -48,13 +50,17 @@ class GerberCairoContext(GerberContext):
     def _render_line(self, line, color):
         start = map(mul, line.start, self.scale)
         end = map(mul, line.end, self.scale)
-        width = line.width if line.width != 0 else 0.001
-        self.ctx.set_source_rgba(*color, alpha=self.alpha)
-        self.ctx.set_line_width(width * SCALE)
-        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-        self.ctx.move_to(*start)
-        self.ctx.line_to(*end)
-        self.ctx.stroke()
+        if isinstance(line.aperture, Circle):
+            width = line.aperture.diameter if line.aperture.diameter != 0 else 0.001
+            self.ctx.set_source_rgba(*color, alpha=self.alpha)
+            self.ctx.set_line_width(width * SCALE)
+            self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+            self.ctx.move_to(*start)
+            self.ctx.line_to(*end)
+            self.ctx.stroke()
+        elif isinstance(line.aperture, rectangle):
+            # TODO: Render rectangle strokes as a polygon...
+            pass
 
     def _render_arc(self, arc, color):
         center = map(mul, arc.center, self.scale)

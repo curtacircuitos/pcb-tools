@@ -52,11 +52,11 @@ class Primitive(object):
 class Line(Primitive):
     """
     """
-    def __init__(self, start, end, width, **kwargs):
+    def __init__(self, start, end, aperture, **kwargs):
         super(Line, self).__init__(**kwargs)
         self.start = start
         self.end = end
-        self.width = width
+        self.aperture = aperture
 
     @property
     def angle(self):
@@ -64,26 +64,26 @@ class Line(Primitive):
         angle = math.atan2(delta_y, delta_x)
         return angle
 
-    @property
-    def bounding_box(self):
-        width_2 = self.width / 2.
-        min_x = min(self.start[0], self.end[0]) - width_2
-        max_x = max(self.start[0], self.end[0]) + width_2
-        min_y = min(self.start[1], self.end[1]) - width_2
-        max_y = max(self.start[1], self.end[1]) + width_2
-        return ((min_x, max_x), (min_y, max_y))
+    #@property
+    #def bounding_box(self):
+    #    width_2 = self.width / 2.
+    #    min_x = min(self.start[0], self.end[0]) - width_2
+    #    max_x = max(self.start[0], self.end[0]) + width_2
+    #    min_y = min(self.start[1], self.end[1]) - width_2
+    #    max_y = max(self.start[1], self.end[1]) + width_2
+    #    return ((min_x, max_x), (min_y, max_y))
 
 
 class Arc(Primitive):
     """
     """
-    def __init__(self, start, end, center, direction, width, **kwargs):
+    def __init__(self, start, end, center, direction, aperture, **kwargs):
         super(Arc, self).__init__(**kwargs)
         self.start = start
         self.end = end
         self.center = center
         self.direction = direction
-        self.width = width
+        self.aperture = aperture
 
     @property
     def radius(self):

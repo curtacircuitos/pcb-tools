@@ -416,12 +416,12 @@ class GerberParser(object):
             else:
                 start = (self.x, self.y)
                 end = (x, y)
-                width = self.apertures[self.aperture].stroke_width
+                #width = self.apertures[self.aperture].stroke_width
                 if self.interpolation == 'linear':
-                    self.primitives.append(Line(start, end, width, level_polarity=self.level_polarity))
+                    self.primitives.append(Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity))
                 else:
                     center = (start[0] + stmt.i, start[1] + stmt.j)
-                    self.primitives.append(Arc(start, end, center, self.direction, width, level_polarity=self.level_polarity))
+                    self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity))
 
         elif stmt.op == "D02":
             pass

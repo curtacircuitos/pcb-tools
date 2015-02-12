@@ -21,6 +21,8 @@ from operator import mul
 import math
 import svgwrite
 
+from ..primitives import *
+
 SCALE = 400.
 
 
@@ -57,13 +59,17 @@ class GerberSvgContext(GerberContext):
     def _render_line(self, line, color):
         start = map(mul, line.start, self.scale)
         end = map(mul, line.end, self.scale)
-        width = line.width if line.width != 0 else 0.001
-        aline = self.dwg.line(start=start, end=end,
-                              stroke=svg_color(color),
-                              stroke_width=SCALE * width,
-                              stroke_linecap='round')
-        aline.stroke(opacity=self.alpha)
-        self.dwg.add(aline)
+        if isinstance(line.aperture, Circle):
+            width = line.aperture.diameter if line.aperture.diameter != 0 else 0.001
+            aline = self.dwg.line(start=start, end=end,
+                                  stroke=svg_color(color),
+                                  stroke_width=SCALE * width,
+                                  stroke_linecap='round')
+            aline.stroke(opacity=self.alpha)
+            self.dwg.add(aline)
+        elif isinstance(line.aperture, Rectangle):
+            # TODO: Render rectangle strokes as a polygon...
+            pass
 
     def _render_arc(self, arc, color):
         start = tuple(map(mul, arc.start, self.scale))
