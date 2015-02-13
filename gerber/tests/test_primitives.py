@@ -27,17 +27,30 @@ def test_line_angle():
         line_angle = (l.angle + 2 * math.pi) % (2 * math.pi)
         assert_almost_equal(line_angle, expected)
 
-# Need to update bounds calculation using aperture
-#def test_line_bounds():
-#    """ Test Line primitive bounding box calculation
-#    """
-#    cases = [((0, 0), (1, 1), ((0, 1), (0, 1))),
-#             ((-1, -1), (1, 1), ((-1, 1), (-1, 1))),
-#             ((1, 1), (-1, -1), ((-1, 1), (-1, 1))),
-#             ((-1, 1), (1, -1), ((-1, 1), (-1, 1))),]
-#    for start, end, expected in cases:
-#        l = Line(start, end, 0)
-#        assert_equal(l.bounding_box, expected)
+def test_line_bounds():
+    """ Test Line primitive bounding box calculation
+    """
+    cases = [((0, 0), (1, 1), ((-1, 2), (-1, 2))),
+             ((-1, -1), (1, 1), ((-2, 2), (-2, 2))),
+             ((1, 1), (-1, -1), ((-2, 2), (-2, 2))),
+             ((-1, 1), (1, -1), ((-2, 2), (-2, 2))),]
+
+    c = Circle((0, 0), 2)
+    r = Rectangle((0, 0), 2, 2)
+    for shape in (c, r):
+        for start, end, expected in cases:
+            l = Line(start, end, shape)
+            assert_equal(l.bounding_box, expected)
+    # Test a non-square rectangle
+    r = Rectangle((0, 0), 3, 2)
+    cases = [((0, 0), (1, 1), ((-1.5, 2.5), (-1, 2))),
+             ((-1, -1), (1, 1), ((-2.5, 2.5), (-2, 2))),
+             ((1, 1), (-1, -1), ((-2.5, 2.5), (-2, 2))),
+             ((-1, 1), (1, -1), ((-2.5, 2.5), (-2, 2))),]
+    for start, end, expected in cases:
+        l = Line(start, end, r)
+        assert_equal(l.bounding_box, expected)
+
 
 
 def test_arc_radius():

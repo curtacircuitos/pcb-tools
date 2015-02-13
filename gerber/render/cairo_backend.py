@@ -26,7 +26,7 @@ SCALE = 400.
 
 
 class GerberCairoContext(GerberContext):
-    def __init__(self, surface=None, size=(1000, 1000)):
+    def __init__(self, surface=None, size=(10000, 10000)):
         GerberContext.__init__(self)
         if surface is None:
             self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32,
@@ -58,9 +58,14 @@ class GerberCairoContext(GerberContext):
             self.ctx.move_to(*start)
             self.ctx.line_to(*end)
             self.ctx.stroke()
-        elif isinstance(line.aperture, rectangle):
-            # TODO: Render rectangle strokes as a polygon...
-            pass
+        elif isinstance(line.aperture, Rectangle):
+            points = [tuple(map(mul, x, self.scale)) for x in line.vertices]
+            self.ctx.set_source_rgba(*color, alpha=self.alpha)
+            self.ctx.set_line_width(0)
+            self.ctx.move_to(*points[0])
+            for point in points[1:]:
+                self.ctx.line_to(*point)
+            self.ctx.fill()
 
     def _render_arc(self, arc, color):
         center = map(mul, arc.center, self.scale)

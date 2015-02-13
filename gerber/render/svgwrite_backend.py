@@ -68,8 +68,14 @@ class GerberSvgContext(GerberContext):
             aline.stroke(opacity=self.alpha)
             self.dwg.add(aline)
         elif isinstance(line.aperture, Rectangle):
-            # TODO: Render rectangle strokes as a polygon...
-            pass
+            points = [tuple(map(mul, point, self.scale)) for point in line.vertices]
+            path = self.dwg.path(d='M %f, %f' % points[0],
+                                 fill=svg_color(color),
+                                 stroke='none')
+            path.fill(opacity=self.alpha)
+            for point in points[1:]:
+                path.push('L %f, %f' % point)
+            self.dwg.add(path)
 
     def _render_arc(self, arc, color):
         start = tuple(map(mul, arc.start, self.scale))

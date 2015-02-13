@@ -64,14 +64,70 @@ class Line(Primitive):
         angle = math.atan2(delta_y, delta_x)
         return angle
 
-    #@property
-    #def bounding_box(self):
-    #    width_2 = self.width / 2.
-    #    min_x = min(self.start[0], self.end[0]) - width_2
-    #    max_x = max(self.start[0], self.end[0]) + width_2
-    #    min_y = min(self.start[1], self.end[1]) - width_2
-    #    max_y = max(self.start[1], self.end[1]) + width_2
-    #    return ((min_x, max_x), (min_y, max_y))
+    @property
+    def bounding_box(self):
+        if isinstance(self.aperture, Circle):
+            width_2 = self.aperture.radius
+            height_2 = width_2
+        else:
+            width_2 = self.aperture.width / 2.
+            height_2 = self.aperture.height / 2.
+        min_x = min(self.start[0], self.end[0]) - width_2
+        max_x = max(self.start[0], self.end[0]) + width_2
+        min_y = min(self.start[1], self.end[1]) - height_2
+        max_y = max(self.start[1], self.end[1]) + height_2
+        return ((min_x, max_x), (min_y, max_y))
+
+    @property
+    def vertices(self):
+        if not isinstance(self.aperture, Rectangle):
+            return None
+        else:
+            start = self.start
+            end = self.end
+            width = self.aperture.width
+            height = self.aperture.height
+
+            # Find all the corners of the start and end position
+            start_ll = (start[0] - (width / 2.),
+                        start[1] - (height / 2.))
+            start_lr = (start[0] - (width / 2.),
+                        start[1] + (height / 2.))
+            start_ul = (start[0] + (width / 2.),
+                        start[1] - (height / 2.))
+            start_ur = (start[0] + (width / 2.),
+                        start[1] + (height / 2.))
+            end_ll = (end[0] - (width / 2.),
+                      end[1] - (height / 2.))
+            end_lr = (end[0] - (width / 2.),
+                      end[1] + (height / 2.))
+            end_ul = (end[0] + (width / 2.),
+                      end[1] - (height / 2.))
+            end_ur = (end[0] + (width / 2.),
+                      end[1] + (height / 2.))
+
+            if end[0] == start[0] and end[1] == start[1]:
+                return (start_ll, start_lr, start_ur, start_ul)
+            elif end[0] == start[0] and end[1] > start[1]:
+                return (start_ll, start_lr, end_ur, end_ul)
+            elif end[0] > start[0] and end[1] > start[1]:
+                return (start_ll, start_lr, end_lr, end_ur, end_ul, start_ul)
+            elif end[0] > start[0] and end[1] == start[1]:
+                return (start_ll, end_lr, end_ur, start_ul)
+            elif end[0] > start[0] and end[1] < start[1]:
+                return (start_ll, end_ll, end_lr, end_ur, start_ur, start_ul)
+            elif end[0] == start[0] and end[1] < start[1]:
+                return (end_ll, end_lr, start_ur, start_ul)
+            elif end[0] < start[0] and end[1] < start[1]:
+                return (end_ll, end_lr, start_lr, start_ur, start_ul, end_ul)
+            elif end[0] < start[0] and end[1] == start[1]:
+                return (end_ll, start_lr, start_ur, end_ul)
+            elif end[0] < start[0] and end[1] > start[1]:
+                return (start_ll, start_lr, start_ur, end_ur, end_ul, end_ll)
+            else:
+                return None
+
+
 
 
 class Arc(Primitive):

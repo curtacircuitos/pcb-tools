@@ -21,7 +21,7 @@ CAM File
 
 This module provides common base classes for Excellon/Gerber CNC files
 """
-
+from operator import mul
 
 class FileSettings(object):
     """ CAM File Settings
@@ -241,7 +241,8 @@ class CamFile(object):
         filename : string <optional>
             If provided, save the rendered image to `filename`
         """
-        ctx.set_bounds(self.bounds)
+        bounds = [tuple([x * 1.2, y*1.2]) for x, y in self.bounds]
+        ctx.set_bounds(bounds)
         for p in self.primitives:
             ctx.render(p)
         if filename is not None:
