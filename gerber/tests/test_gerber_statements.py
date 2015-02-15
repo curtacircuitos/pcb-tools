@@ -394,6 +394,10 @@ def test_comment_stmt_dump():
     stmt = CommentStmt('A comment')
     assert_equal(stmt.to_gerber(), 'G04A comment*')
 
+def test_comment_stmt_string():
+    stmt = CommentStmt('A comment')
+    assert_equal(str(stmt), '<Comment: A comment>')
+
 def test_eofstmt():
     """ Test EofStmt
     """
@@ -405,6 +409,9 @@ def test_eofstmt_dump():
     """
     stmt = EofStmt()
     assert_equal(stmt.to_gerber(), 'M02*')
+
+def test_eofstmt_string():
+    assert_equal(str(EofStmt()), '<EOF Statement>')
 
 def test_quadmodestmt_factory():
     """ Test QuadrantModeStmt.from_gerber()
@@ -572,8 +579,6 @@ def test_MIParamStmt_string():
     mi = MIParamStmt.from_dict(stmt)
     assert_equal(str(mi), '<Image Mirror: A=1 B=0>')
 
-
-
 def test_coordstmt_ctor():
     cs = CoordStmt('G04', 0.0, 0.1, 0.2, 0.3, 'D01', FileSettings())
     assert_equal(cs.function, 'G04')
@@ -583,5 +588,67 @@ def test_coordstmt_ctor():
     assert_equal(cs.j, 0.3)
     assert_equal(cs.op, 'D01')
 
+def test_coordstmt_factory():
+    stmt = {'function': 'G04', 'x': '0', 'y': '001', 'i': '002', 'j': '003', 'op': 'D01'}
+    cs = CoordStmt.from_dict(stmt, FileSettings())
+    assert_equal(cs.function, 'G04')
+    assert_equal(cs.x, 0.0)
+    assert_equal(cs.y, 0.1)
+    assert_equal(cs.i, 0.2)
+    assert_equal(cs.j, 0.3)
+    assert_equal(cs.op, 'D01')
+
+def test_coordstmt_dump():
+    cs = CoordStmt('G04', 0.0, 0.1, 0.2, 0.3, 'D01', FileSettings())
+    assert_equal(cs.to_gerber(FileSettings()), 'G04X0Y001I002J003D01*')
+
+def test_coordstmt_conversion():
+    cs = CoordStmt('G71', 25.4, 25.4, 25.4, 25.4, 'D01', FileSettings())
+    cs.to_inch()
+    assert_equal(cs.x, 1.)
+    assert_equal(cs.y, 1.)
+    assert_equal(cs.i, 1.)
+    assert_equal(cs.j, 1.)
+    assert_equal(cs.function, 'G70')
+
+    cs = CoordStmt('G70', 1., 1., 1., 1., 'D01', FileSettings())
+    cs.to_metric()
+    assert_equal(cs.x, 25.4)
+    assert_equal(cs.y, 25.4)
+    assert_equal(cs.i, 25.4)
+    assert_equal(cs.j, 25.4)
+    assert_equal(cs.function, 'G71')
+
+def test_coordstmt_string():
+    cs = CoordStmt('G04', 0, 1, 2, 3, 'D01', FileSettings())
+    assert_equal(str(cs), '<Coordinate Statement: Fn: G04 X: 0 Y: 1 I: 2 J: 3 Op: Lights On>')
+    cs = CoordStmt('G04', None, None, None, None, 'D02', FileSettings())
+    assert_equal(str(cs), '<Coordinate Statement: Fn: G04 Op: Lights Off>')
+    cs = CoordStmt('G04', None, None, None, None, 'D03', FileSettings())
+    assert_equal(str(cs), '<Coordinate Statement: Fn: G04 Op: Flash>')
+    cs = CoordStmt('G04', None, None, None, None, 'TEST', FileSettings())
+    assert_equal(str(cs), '<Coordinate Statement: Fn: G04 Op: TEST>')
+
+def test_aperturestmt_ctor():
+    ast = ApertureStmt(3, False)
+    assert_equal(ast.d, 3)
+    assert_equal(ast.deprecated, False)
+    ast = ApertureStmt(4, True)
+    assert_equal(ast.d, 4)
+    assert_equal(ast.deprecated, True)
+    ast = ApertureStmt(4, 1)
+    assert_equal(ast.d, 4)
+    assert_equal(ast.deprecated, True)
+    ast = ApertureStmt(3)
+    assert_equal(ast.d, 3)
+    assert_equal(ast.deprecated, False)
+
+def test_aperturestmt_dump():
+    ast = ApertureStmt(3, False)
+    assert_equal(ast.to_gerber(), 'D3*')
+    ast = ApertureStmt(3, True)
+    assert_equal(ast.to_gerber(), 'G54D3*')
+    assert_equal(str(ast), '<Aperture: 3>')
 
 
+    

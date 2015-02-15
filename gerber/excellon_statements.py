@@ -29,7 +29,7 @@ __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'RewindStopStmt', 'EndOfProgramStmt', 'UnitStmt',
            'IncrementalModeStmt', 'VersionStmt', 'FormatStmt', 'LinkToolStmt',
            'MeasuringModeStmt', 'RouteModeStmt', 'DrillModeStmt', 'AbsoluteModeStmt',
-           'RepeatHoleStmt', 'UnknownStmt',
+           'RepeatHoleStmt', 'UnknownStmt', 'ExcellonStatement'
            ]
 
 
@@ -38,10 +38,10 @@ class ExcellonStatement(object):
     """
     @classmethod
     def from_excellon(cls, line):
-        pass
+        raise NotImplementedError('`from_excellon` must be implemented in a subclass')
 
     def to_excellon(self, settings=None):
-        pass
+        raise NotImplementedError('`to_excellon` must be implemented in a subclass')
 
 
 class ExcellonTool(ExcellonStatement):
@@ -144,7 +144,7 @@ class ExcellonTool(ExcellonStatement):
         tool : ExcellonTool
             An ExcellonTool initialized with the parameters in tool_dict.
         """
-        return cls(settings, tool_dict)
+        return cls(settings, **tool_dict)
 
     def __init__(self, settings, **kwargs):
         self.settings = settings
@@ -159,7 +159,7 @@ class ExcellonTool(ExcellonStatement):
 
     def to_excellon(self, settings=None):
         fmt = self.settings.format
-        zs = self.settings.format
+        zs = self.settings.zero_suppression
         stmt = 'T%02d' % self.number
         if self.retract_rate is not None:
             stmt += 'B%s' % write_gerber_value(self.retract_rate, fmt, zs)
@@ -171,7 +171,7 @@ class ExcellonTool(ExcellonStatement):
             if self.rpm < 100000.:
                 stmt += 'S%s' % write_gerber_value(self.rpm / 1000., fmt, zs)
             else:
-                stmt += 'S%g' % self.rpm / 1000.
+                stmt += 'S%g' % (self.rpm / 1000.)
         if self.diameter is not None:
             stmt += 'C%s' % decimal_string(self.diameter, fmt[1], True)
         if self.depth_offset is not None:
@@ -191,7 +191,8 @@ class ExcellonTool(ExcellonStatement):
 
     def __repr__(self):
         unit = 'in.' if self.settings.units == 'inch' else 'mm'
-        return '<ExcellonTool %02d: %0.3f%s dia.>' % (self.number, self.diameter, unit)
+        fmtstr = '<ExcellonTool %%02d: %%%d.%dg%%s dia.>' % self.settings.format
+        return fmtstr % (self.number, self.diameter, unit)
 
 
 class ToolSelectionStmt(ExcellonStatement):
@@ -273,9 +274,9 @@ class CoordinateStmt(ExcellonStatement):
     def __str__(self):
         coord_str = ''
         if self.x is not None:
-            coord_str += 'X: %f ' % self.x
+            coord_str += 'X: %g ' % self.x
         if self.y is not None:
-            coord_str += 'Y: %f ' % self.y
+            coord_str += 'Y: %g ' % self.y
 
         return '<Coordinate Statement: %s>' % coord_str
 
@@ -284,16 +285,32 @@ class RepeatHoleStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line, settings):
-        return cls(line)
+        match = re.compile(r'R(?P<rcount>[0-9]*)X?(?P<xdelta>\d*\.?\d*)?Y?(?P<ydelta>\d*\.?\d*)?').match(line)
+        stmt = match.groupdict()
+        count = int(stmt['rcount'])
+        xdelta = (parse_gerber_value(stmt['xdelta'], settings.format,
+                                     settings.zero_suppression)
+                  if stmt['xdelta']  is not '' else None)
+        ydelta = (parse_gerber_value(stmt['ydelta'], settings.format,
+                                     settings.zero_suppression)
+                  if stmt['ydelta']  is not '' else None)
+        return cls(count, xdelta, ydelta)
 
-    def __init__(self, line):
-        self.line = line
+    def __init__(self, count, xdelta=None, ydelta=None):
+        self.count = count
+        self.xdelta = xdelta
+        self.ydelta = ydelta
 
     def to_excellon(self, settings):
-        return self.line
+        stmt = 'R%d' % self.count
+        if self.xdelta is not None:
+            stmt += 'X%s' % write_gerber_value(self.xdelta, settings.format, settings.zero_suppression)
+        if self.ydelta is not None:
+            stmt += 'Y%s' % write_gerber_value(self.ydelta, settings.format, settings.zero_suppression)
+        return stmt
 
     def __str__(self):
-        return '<Repeat Hole: %s>' % self.line
+        return '<Repeat Hole: %d times>' % self.count
 
 
 class CommentStmt(ExcellonStatement):
@@ -339,8 +356,16 @@ class RewindStopStmt(ExcellonStatement):
 class EndOfProgramStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
-        return cls()
+    def from_excellon(cls, line, settings):
+        match = re.compile(r'M30X?(?P<x>\d*\.?\d*)?Y?(?P<y>\d*\.?\d*)?').match(line)
+        stmt = match.groupdict()
+        x = (parse_gerber_value(stmt['x'], settings.format,
+                                settings.zero_suppression)
+             if stmt['x'] is not '' else None)
+        y = (parse_gerber_value(stmt['y'], settings.format,
+                                settings.zero_suppression)
+             if stmt['y'] is not '' else None)
+        return cls(x, y)
 
     def __init__(self, x=None, y=None):
         self.x = x
@@ -495,7 +520,7 @@ class UnknownStmt(ExcellonStatement):
         return self.stmt
 
     def __str__(self):
-        return "<UnknownStmt: %s >" % self.stmt
+        return "<Unknown Statement: %s>" % self.stmt
 
 
 def pairwise(iterator):

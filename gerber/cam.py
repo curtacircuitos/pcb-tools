@@ -21,7 +21,6 @@ CAM File
 
 This module provides common base classes for Excellon/Gerber CNC files
 """
-from operator import mul
 
 class FileSettings(object):
     """ CAM File Settings
@@ -62,14 +61,14 @@ class FileSettings(object):
         if units not in ['inch', 'metric']:
             raise ValueError('Units must be either inch or metric')
         self.units = units
-        
+
         if zero_suppression is None and zeros is None:
             self.zero_suppression = 'trailing'
-        
+
         elif zero_suppression == zeros:
             raise ValueError('Zeros and Zero Suppression must be different. \
                              Best practice is to specify only one.')
-        
+
         elif zero_suppression is not None:
             if zero_suppression not in ['leading', 'trailing']:
                 raise ValueError('Zero suppression must be either leading or \

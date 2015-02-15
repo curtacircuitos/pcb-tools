@@ -73,20 +73,21 @@ def test_arc_sweep_angle():
              ((1, 0), (-1, 0), (0, 0), 'counterclockwise', math.radians(180)),]
 
     for start, end, center, direction, sweep in cases:
-        a = Arc(start, end, center, direction, 0)
+        c = Circle((0,0), 1)
+        a = Arc(start, end, center, direction, c)
         assert_equal(a.sweep_angle, sweep)
 
-# Need to update bounds calculation using aperture
-#def test_arc_bounds():
-#    """ Test Arc primitive bounding box calculation
-#    """
-#    cases = [((1, 0), (0, 1), (0, 0), 'clockwise',  ((-1, 1), (-1, 1))),
-#             ((1, 0), (0, 1), (0, 0), 'counterclockwise',  ((0, 1), (0, 1))),
-#             #TODO: ADD MORE TEST CASES HERE
-#             ]
-#    for start, end, center, direction, bounds in cases:
-#        a = Arc(start, end, center, direction, 0)
-#        assert_equal(a.bounding_box, bounds)
+def test_arc_bounds():
+    """ Test Arc primitive bounding box calculation
+    """
+    cases = [((1, 0), (0, 1), (0, 0), 'clockwise',  ((-1.5, 1.5), (-1.5, 1.5))),
+             ((1, 0), (0, 1), (0, 0), 'counterclockwise',  ((-0.5, 1.5), (-0.5, 1.5))),
+             #TODO: ADD MORE TEST CASES HERE
+             ]
+    for start, end, center, direction, bounds in cases:
+        c = Circle((0,0), 1)
+        a = Arc(start, end, center, direction, c)
+        assert_equal(a.bounding_box, bounds)
 
 
 def test_circle_radius():

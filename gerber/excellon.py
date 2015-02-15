@@ -95,11 +95,27 @@ class ExcellonFile(CamFile):
             ymax = max(y + radius, ymax)
         return ((xmin, xmax), (ymin, ymax))
 
-    def report(self):
-        """ Print drill report
+    def report(self, filename=None):
+        """ Print or save drill report
         """
-        pass
-
+        toolfmt = '  T%%02d       %%%d.%df       %%d\n' % self.settings.format
+        rprt = 'Excellon Drill Report\n\n'
+        if self.filename is not None:
+            rprt += 'NC Drill File: %s\n\n' % self.filename
+        rprt += 'Drill File Info:\n\n'
+        rprt += ('  Data Mode         %s\n' % 'Absolute'
+                 if self.settings.notation == 'absolute' else 'Incremental')
+        rprt += ('  Units             %s\n' % 'Inches'
+                 if self.settings.units == 'inch' else 'Millimeters')
+        rprt += '\nTool List:\n\n'
+        rprt += '  Code      Size        Hits\n'
+        rprt += '  --------------------------\n'
+        for tool in self.tools.itervalues():
+            rprt += toolfmt % (tool.number, tool.diameter, tool.hit_count)
+        if filename is not None:
+            with open(filename, 'w') as f:
+                f.write(rprt)
+        return rprt
 
     def write(self, filename):
         with open(filename, 'w') as f:
@@ -195,7 +211,7 @@ class ExcellonParser(object):
                 self.state = 'DRILL'
 
         elif line[:3] == 'M30':
-            stmt = EndOfProgramStmt.from_excellon(line)
+            stmt = EndOfProgramStmt.from_excellon(line, self._settings())
             self.statements.append(stmt)
 
         elif line[:3] == 'G00':
@@ -230,8 +246,9 @@ class ExcellonParser(object):
             stmt = FormatStmt.from_excellon(line)
             self.statements.append(stmt)
 
-        elif line[:4] == 'G90':
+        elif line[:3] == 'G90':
             self.statements.append(AbsoluteModeStmt())
+            self.notation = 'absolute'
 
         elif line[0] == 'T' and self.state == 'HEADER':
             tool = ExcellonTool.from_excellon(line, self._settings())

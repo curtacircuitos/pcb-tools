@@ -802,13 +802,13 @@ class CoordStmt(Statement):
         if self.function:
             coord_str += 'Fn: %s ' % self.function
         if self.x is not None:
-            coord_str += 'X: %f ' % self.x
+            coord_str += 'X: %g ' % self.x
         if self.y is not None:
-            coord_str += 'Y: %f ' % self.y
+            coord_str += 'Y: %g ' % self.y
         if self.i is not None:
-            coord_str += 'I: %f ' % self.i
+            coord_str += 'I: %g ' % self.i
         if self.j is not None:
-            coord_str += 'J: %f ' % self.j
+            coord_str += 'J: %g ' % self.j
         if self.op:
             if self.op == 'D01':
                 op = 'Lights On'
@@ -829,7 +829,7 @@ class ApertureStmt(Statement):
     def __init__(self, d, deprecated=None):
         Statement.__init__(self, "APERTURE")
         self.d = int(d)
-        self.deprecated = True if deprecated is not None else False
+        self.deprecated = True if deprecated is not None and deprecated is not False else False
 
     def to_gerber(self, settings=None):
         if self.deprecated:

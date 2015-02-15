@@ -89,7 +89,7 @@ class GerberSvgContext(GerberContext):
         direction = '-' if arc.direction == 'clockwise' else '+'
         arc_path.push_arc(end, 0, radius, large_arc, direction, True)
         self.dwg.add(arc_path)
-        
+
     def _render_region(self, region, color):
         points = [tuple(map(mul, point, self.scale)) for point in region.points]
         region_path = self.dwg.path(d='M %f, %f' % points[0],

@@ -200,10 +200,10 @@ class Arc(Primitive):
             if theta1 <= math.pi * 1.5 and (theta0 >= math.pi * 1.5 or theta0 < theta1):
                 points.append((self.center[0], self.center[1] - self.radius ))
         x, y = zip(*points)
-        min_x = min(x)
-        max_x = max(x)
-        min_y = min(y)
-        max_y = max(y)
+        min_x = min(x) - self.aperture.radius
+        max_x = max(x) + self.aperture.radius
+        min_y = min(y) - self.aperture.radius
+        max_y = max(y) + self.aperture.radius
         return ((min_x, max_x), (min_y, max_y))
 
 
