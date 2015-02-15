@@ -1,6 +1,6 @@
 pcb-tools
 ============
-![Travis CI Build Status](https://travis-ci.org/curtacircuitos/pcb-tools.svg?branch=master) 
+[![Travis CI Build Status](https://travis-ci.org/curtacircuitos/pcb-tools.svg?branch=master)](https://travis-ci.org/curtacircuitos/pcb-tools)
 [![Coverage Status](https://coveralls.io/repos/curtacircuitos/pcb-tools/badge.png?branch=master)](https://coveralls.io/r/curtacircuitos/pcb-tools?branch=master)
 
 Tools to handle Gerber and Excellon files in Python.
@@ -25,7 +25,5 @@ Useage Example:
 Rendering Examples:
 -------------------
 ###Top Composite rendering
-![Composite Top Image](examples/composite_top.png)
-
-###Bottom Composite rendering
-![Composite Bottom Image](examples/composite_bottom.png)
+![Composite Top Image](examples/cairo_example.png)
+Source code for this example can be found [here](examples/cairo_example.py).

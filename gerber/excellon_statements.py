@@ -296,16 +296,16 @@ class RepeatHoleStmt(ExcellonStatement):
                   if stmt['ydelta']  is not '' else None)
         return cls(count, xdelta, ydelta)
 
-    def __init__(self, count, xdelta=None, ydelta=None):
+    def __init__(self, count, xdelta=0.0, ydelta=0.0):
         self.count = count
         self.xdelta = xdelta
         self.ydelta = ydelta
 
     def to_excellon(self, settings):
         stmt = 'R%d' % self.count
-        if self.xdelta is not None:
+        if self.xdelta != 0.0:
             stmt += 'X%s' % write_gerber_value(self.xdelta, settings.format, settings.zero_suppression)
-        if self.ydelta is not None:
+        if self.ydelta != 0.0:
             stmt += 'Y%s' % write_gerber_value(self.ydelta, settings.format, settings.zero_suppression)
         return stmt
 

@@ -265,6 +265,11 @@ class ExcellonParser(object):
         elif line[0] == 'R' and self.state != 'HEADER':
             stmt = RepeatHoleStmt.from_excellon(line, self._settings())
             self.statements.append(stmt)
+            for i in xrange(stmt.count):
+                self.pos[0] += stmt.xdelta
+                self.pos[1] += stmt.ydelta
+                self.hits.append((self.active_tool, tuple(self.pos)))
+                self.active_tool._hit()
 
         elif line[0] in ['X', 'Y']:
             stmt = CoordinateStmt.from_excellon(line, self._settings())

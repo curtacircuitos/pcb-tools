@@ -22,7 +22,7 @@ import math
 
 from ..primitives import *
 
-SCALE = 400.
+SCALE = 4000.
 
 
 class GerberCairoContext(GerberContext):
@@ -42,10 +42,12 @@ class GerberCairoContext(GerberContext):
         self.background = False
 
     def set_bounds(self, bounds):
-        xbounds, ybounds = bounds
-        self.ctx.rectangle(SCALE * xbounds[0], SCALE * ybounds[0], SCALE * (xbounds[1]- xbounds[0]), SCALE * (ybounds[1] - ybounds[0]))
-        self.ctx.set_source_rgb(0,0,0)
-        self.ctx.fill()
+        if not self.background:
+            xbounds, ybounds = bounds
+            self.ctx.rectangle(SCALE * xbounds[0], SCALE * ybounds[0], SCALE * (xbounds[1]- xbounds[0]), SCALE * (ybounds[1] - ybounds[0]))
+            self.ctx.set_source_rgb(0,0,0)
+            self.ctx.fill()
+            self.background = True
 
     def _render_line(self, line, color):
         start = map(mul, line.start, self.scale)

@@ -4,6 +4,7 @@
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 from ..cam import FileSettings
 from ..excellon import read, detect_excellon_format, ExcellonFile, ExcellonParser
+from ..excellon_statements import ExcellonTool
 from tests import *
 
 import os
@@ -120,6 +121,7 @@ def test_parse_absolute_mode():
 
 def test_parse_repeat_hole():
     p = ExcellonParser(FileSettings())
+    p.active_tool = ExcellonTool(FileSettings(), number=8)
     p._parse('R03X1.5Y1.5')
     assert_equal(p.statements[0].count, 3)
 
