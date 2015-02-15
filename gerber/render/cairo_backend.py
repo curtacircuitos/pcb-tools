@@ -44,7 +44,14 @@ class GerberCairoContext(GerberContext):
     def set_bounds(self, bounds):
         if not self.background:
             xbounds, ybounds = bounds
-            self.ctx.rectangle(SCALE * xbounds[0], SCALE * ybounds[0], SCALE * (xbounds[1]- xbounds[0]), SCALE * (ybounds[1] - ybounds[0]))
+            width = SCALE * (xbounds[1] - xbounds[0])
+            height = SCALE * (ybounds[1] - ybounds[0])
+            self.surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, int(width), int(height))
+            self.ctx = cairo.Context(self.surface)
+            self.ctx.translate(0, height)
+            self.scale = (SCALE,SCALE)
+            self.ctx.scale(1, -1)
+            self.ctx.rectangle(SCALE * xbounds[0], SCALE * ybounds[0], width, height)
             self.ctx.set_source_rgb(0,0,0)
             self.ctx.fill()
             self.background = True
