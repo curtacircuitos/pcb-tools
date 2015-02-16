@@ -12,6 +12,7 @@ Contents:
     :maxdepth: 1
     
     about
+    features
     documentation/index
 
 Indices and tables
