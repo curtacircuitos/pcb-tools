@@ -5,7 +5,7 @@
 from ..common import read
 from ..excellon import ExcellonFile
 from ..rs274x import GerberFile
-from tests import *
+from .tests import *
 
 import os
 

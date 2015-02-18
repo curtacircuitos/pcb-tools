@@ -5,7 +5,7 @@
 import os
 
 from ..rs274x import read, GerberFile
-from tests import *
+from .tests import *
 
 
 TOP_COPPER_FILE = os.path.join(os.path.dirname(__file__),
