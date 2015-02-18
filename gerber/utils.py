@@ -26,6 +26,7 @@ files.
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 # License:
 
+MILLIMETERS_PER_INCH = 25.4
 
 def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     """ Convert gerber/excellon formatted string to floating-point number
@@ -235,3 +236,10 @@ def validate_coordinates(position):
             for coord in position:
                 if not (isinstance(coord, int) or isinstance(coord, float)):
                     raise TypeError('Coordinates must be integers or floats')
+
+
+def metric(value):
+    return value * MILLIMETERS_PER_INCH
+
+def inch(value):
+    return value / MILLIMETERS_PER_INCH

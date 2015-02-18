@@ -3,7 +3,7 @@
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
-from .tests import assert_equal, assert_raises
+from .tests import assert_equal, assert_not_equal, assert_raises
 from ..excellon_statements import *
 from ..cam import FileSettings
 
@@ -65,12 +65,21 @@ def test_excellontool_order():
     assert_equal(tool1.rpm, tool2.rpm)
 
 def test_excellontool_conversion():
-    tool = ExcellonTool.from_dict(FileSettings(), {'number': 8, 'diameter': 25.4})
+    tool = ExcellonTool.from_dict(FileSettings(units='metric'), {'number': 8, 'diameter': 25.4})
     tool.to_inch()
     assert_equal(tool.diameter, 1.)
-    tool = ExcellonTool.from_dict(FileSettings(), {'number': 8, 'diameter': 1})
+    tool = ExcellonTool.from_dict(FileSettings(units='inch'), {'number': 8, 'diameter': 1.})
     tool.to_metric()
     assert_equal(tool.diameter, 25.4)
+
+    # Shouldn't change units if we're already using target units
+    tool = ExcellonTool.from_dict(FileSettings(units='inch'), {'number': 8, 'diameter': 25.4})
+    tool.to_inch()
+    assert_equal(tool.diameter, 25.4)
+    tool = ExcellonTool.from_dict(FileSettings(units='metric'), {'number': 8, 'diameter': 1.})
+    tool.to_metric()
+    assert_equal(tool.diameter, 1.)
+
 
 def test_excellontool_repr():
     tool = ExcellonTool.from_dict(FileSettings(), {'number': 8, 'diameter': 0.125})
@@ -78,6 +87,12 @@ def test_excellontool_repr():
     tool = ExcellonTool.from_dict(FileSettings(units='metric'), {'number': 8, 'diameter': 0.125})
     assert_equal(str(tool), '<ExcellonTool 08: 0.125mm dia.>')
 
+def test_excellontool_equality():
+    t = ExcellonTool.from_dict(FileSettings(), {'number': 8, 'diameter': 0.125})
+    t1 = ExcellonTool.from_dict(FileSettings(), {'number': 8, 'diameter': 0.125})
+    assert_equal(t, t1)
+    t1 = ExcellonTool.from_dict(FileSettings(units='metric'), {'number': 8, 'diameter': 0.125})
+    assert_not_equal(t, t1)
 def test_toolselection_factory():
     """ Test ToolSelectionStmt factory method
     """
@@ -166,6 +181,19 @@ def test_repeatholestmt_dump():
     stmt = RepeatHoleStmt.from_excellon(line, FileSettings())
     assert_equal(stmt.to_excellon(FileSettings()), line)
 
+def test_repeatholestmt_conversion():
+    line = 'R4X0254Y254'
+    stmt = RepeatHoleStmt.from_excellon(line, FileSettings())
+    stmt.to_inch()
+    assert_equal(stmt.xdelta, 0.1)
+    assert_equal(stmt.ydelta, 1.)
+
+    line = 'R4X01Y1'
+    stmt = RepeatHoleStmt.from_excellon(line, FileSettings())
+    stmt.to_metric()
+    assert_equal(stmt.xdelta, 25.4)
+    assert_equal(stmt.ydelta, 254.)
+
 def test_repeathole_str():
     stmt = RepeatHoleStmt.from_excellon('R4X015Y32', FileSettings())
     assert_equal(str(stmt), '<Repeat Hole: 4 times>')
@@ -223,6 +251,16 @@ def test_endofprogramStmt_dump():
         stmt = EndOfProgramStmt.from_excellon(line, FileSettings())
         assert_equal(stmt.to_excellon(FileSettings()), line)
 
+def test_endofprogramstmt_conversion():
+    stmt = EndOfProgramStmt.from_excellon('M30X0254Y254', FileSettings())
+    stmt.to_inch()
+    assert_equal(stmt.x, 0.1)
+    assert_equal(stmt.y, 1.0)
+
+    stmt = EndOfProgramStmt.from_excellon('M30X01Y1', FileSettings())
+    stmt.to_metric()
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 254.)
 
 def test_unitstmt_factory():
     """ Test UnitStmt factory method
@@ -256,6 +294,14 @@ def test_unitstmt_dump():
         stmt = UnitStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
 
+def test_unitstmt_conversion():
+    stmt = UnitStmt.from_excellon('METRIC,TZ')
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+
+    stmt = UnitStmt.from_excellon('INCH,TZ')
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
 
 def test_incrementalmode_factory():
     """ Test IncrementalModeStmt factory method
@@ -385,6 +431,18 @@ def test_measmodestmt_validation():
     assert_raises(ValueError, MeasuringModeStmt.from_excellon, 'M70')
     assert_raises(ValueError, MeasuringModeStmt, 'millimeters')
 
+def test_measmodestmt_conversion():
+    line = 'M72'
+    stmt = MeasuringModeStmt.from_excellon(line)
+    assert_equal(stmt.units, 'inch')
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+
+    line = 'M71'
+    stmt = MeasuringModeStmt.from_excellon(line)
+    assert_equal(stmt.units, 'metric')
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
 
 def test_routemode_stmt():
     stmt = RouteModeStmt()
@@ -406,3 +464,11 @@ def test_unknownstmt():
 def test_unknownstmt_dump():
     stmt = UnknownStmt('TEST')
     assert_equal(stmt.to_excellon(FileSettings()), 'TEST')
+
+
+def test_excellontstmt():
+    """ Smoke test ExcellonStatement
+    """
+    stmt = ExcellonStatement()
+    stmt.to_inch()
+    stmt.to_metric()

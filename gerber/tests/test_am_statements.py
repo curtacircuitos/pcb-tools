@@ -324,6 +324,11 @@ def test_AMUnsupportPrimitive():
     u = AMUnsupportPrimitive('Test')
     assert_equal(u.to_gerber(), 'Test')
 
+def test_AMUnsupportPrimitive_smoketest():
+    u = AMUnsupportPrimitive.from_gerber('Test')
+    u.to_inch()
+    u.to_metric()
+
 
 
 def test_inch():

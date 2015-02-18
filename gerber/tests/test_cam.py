@@ -65,9 +65,9 @@ def test_camfile_settings():
     cf = CamFile()
     assert_equal(cf.settings, FileSettings())
 
-#def test_bounds_override():
-#    cf = CamFile()
-#    assert_raises(NotImplementedError, cf.bounds)
+def test_bounds_override_smoketest():
+    cf = CamFile()
+    cf.bounds
 
 
 def test_zeros():

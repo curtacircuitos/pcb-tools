@@ -225,9 +225,9 @@ class CamFile(object):
 
     @property
     def bounds(self):
-        """ File baundaries
+        """ File boundaries
         """
-        raise NotImplementedError('bounds must be implemented in a subclass')
+        pass
 
     def render(self, ctx, filename=None):
         """ Generate image of layer.

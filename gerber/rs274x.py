@@ -18,13 +18,14 @@
 """ This module provides an RS-274-X class and parser.
 """
 
-
 import copy
 import json
 import re
+
 from .gerber_statements import *
 from .primitives import *
 from .cam import CamFile, FileSettings
+
 
 def read(filename):
     """ Read data from filename and return a GerberFile
@@ -112,6 +113,21 @@ class GerberFile(CamFile):
                 f.write(statement.to_gerber(settings or self.settings))
                 f.write("\n")
 
+    def to_inch(self):
+        if self.units != 'inch':
+            self.units = 'inch'
+            for statement in self.statements:
+                statement.to_inch()
+            for primitive in self.primitives:
+                primitive.to_inch()
+
+    def to_metric(self):
+        if self.units != 'metric':
+            self.units = 'metric'
+            for statement in self.statements:
+                statement.to_metric()
+            for primitive in self.primitives:
+                primitive.to_metric()
 
 
 class GerberParser(object):

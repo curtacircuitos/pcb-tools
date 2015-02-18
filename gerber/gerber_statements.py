@@ -20,7 +20,8 @@ Gerber (RS-274X) Statements
 **Gerber RS-274X file statement classes**
 
 """
-from .utils import parse_gerber_value, write_gerber_value, decimal_string
+from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
+                    inch, metric)
 from .am_statements import *
 
 
@@ -50,6 +51,15 @@ class Statement(object):
 
         s = s.rstrip() + ">"
         return s
+
+    def to_inch(self):
+        pass
+
+    def to_metric(self):
+        pass
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class ParamStmt(Statement):
@@ -180,6 +190,12 @@ class MOParamStmt(ParamStmt):
         mode = 'MM' if self.mode == 'metric' else 'IN'
         return '%MO{0}*%'.format(mode)
 
+    def to_inch(self):
+        self.mode = 'inch'
+
+    def to_metric(self):
+        self.mode = 'metric'
+
     def __str__(self):
         mode_str = 'millimeters' if self.mode == 'metric' else 'inches'
         return ('<Mode: %s>' % mode_str)
@@ -267,10 +283,10 @@ class ADParamStmt(ParamStmt):
             self.modifiers = []
 
     def to_inch(self):
-        self.modifiers = [tuple([x / 25.4 for x in modifier]) for modifier in self.modifiers]
+        self.modifiers = [tuple([inch(x) for x in modifier]) for modifier in self.modifiers]
 
     def to_metric(self):
-        self.modifiers = [tuple([x * 25.4 for x in modifier]) for modifier in self.modifiers]
+        self.modifiers = [tuple([metric(x) for x in modifier]) for modifier in self.modifiers]
 
     def to_gerber(self, settings=None):
         if len(self.modifiers):
@@ -599,6 +615,18 @@ class OFParamStmt(ParamStmt):
             ret += 'B' + decimal_string(self.b, precision=5)
         return ret + '*%'
 
+    def to_inch(self):
+        if self.a is not None:
+            self.a = inch(self.a)
+        if self.b is not None:
+            self.b = inch(self.b)
+
+    def to_metric(self):
+        if self.a is not None:
+            self.a = metric(self.a)
+        if self.b is not None:
+            self.b = metric(self.b)
+
     def __str__(self):
         offset_str = ''
         if self.a is not None:
@@ -650,6 +678,18 @@ class SFParamStmt(ParamStmt):
         if self.b is not None:
             ret += 'B' + decimal_string(self.b, precision=5)
         return ret + '*%'
+
+    def to_inch(self):
+        if self.a is not None:
+            self.a = inch(self.a)
+        if self.b is not None:
+            self.b = inch(self.b)
+
+    def to_metric(self):
+        if self.a is not None:
+            self.a = metric(self.a)
+        if self.b is not None:
+            self.b = metric(self.b)
 
     def __str__(self):
         scale_factor = ''
@@ -775,25 +815,25 @@ class CoordStmt(Statement):
 
     def to_inch(self):
         if self.x is not None:
-            self.x = self.x / 25.4
+            self.x = inch(self.x)
         if self.y is not None:
-            self.y = self.y / 25.4
+            self.y = inch(self.y)
         if self.i is not None:
-            self.i = self.i / 25.4
+            self.i = inch(self.i)
         if self.j is not None:
-            self.j = self.j / 25.4
+            self.j = inch(self.j)
         if self.function == "G71":
             self.function = "G70"
 
     def to_metric(self):
         if self.x is not None:
-            self.x = self.x * 25.4
+            self.x = metric(self.x)
         if self.y is not None:
-            self.y = self.y * 25.4
+            self.y = metric(self.y)
         if self.i is not None:
-            self.i = self.i * 25.4
+            self.i = metric(self.i)
         if self.j is not None:
-            self.j = self.j * 25.4
+            self.j = metric(self.j)
         if self.function == "G70":
             self.function = "G71"
 

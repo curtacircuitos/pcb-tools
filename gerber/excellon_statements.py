@@ -21,16 +21,19 @@ Excellon Statements
 
 """
 
-from .utils import parse_gerber_value, write_gerber_value, decimal_string
 import re
+
+from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
+                    inch, metric)
+
 
 __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'CommentStmt', 'HeaderBeginStmt', 'HeaderEndStmt',
            'RewindStopStmt', 'EndOfProgramStmt', 'UnitStmt',
            'IncrementalModeStmt', 'VersionStmt', 'FormatStmt', 'LinkToolStmt',
-           'MeasuringModeStmt', 'RouteModeStmt', 'DrillModeStmt', 'AbsoluteModeStmt',
-           'RepeatHoleStmt', 'UnknownStmt', 'ExcellonStatement'
-           ]
+           'MeasuringModeStmt', 'RouteModeStmt', 'DrillModeStmt',
+           'AbsoluteModeStmt', 'RepeatHoleStmt', 'UnknownStmt',
+           'ExcellonStatement',]
 
 
 class ExcellonStatement(object):
@@ -38,11 +41,21 @@ class ExcellonStatement(object):
     """
     @classmethod
     def from_excellon(cls, line):
-        raise NotImplementedError('`from_excellon` must be implemented in a subclass')
+        raise NotImplementedError('from_excellon must be implemented in a '
+                                  'subclass')
 
     def to_excellon(self, settings=None):
-        raise NotImplementedError('`to_excellon` must be implemented in a subclass')
+        raise NotImplementedError('to_excellon must be implemented in a '
+                                  'subclass')
 
+    def to_inch(self):
+        pass
+
+    def to_metric(self):
+        pass
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 class ExcellonTool(ExcellonStatement):
     """ Excellon Tool class
@@ -179,12 +192,17 @@ class ExcellonTool(ExcellonStatement):
         return stmt
 
     def to_inch(self):
-        if self.diameter is not None:
-            self.diameter = self.diameter / 25.4
+        if self.settings.units != 'inch':
+            self.settings.units = 'inch'
+            if self.diameter is not None:
+                self.diameter = inch(self.diameter)
+
 
     def to_metric(self):
-        if self.diameter is not None:
-            self.diameter = self.diameter * 25.4
+        if self.settings.units != 'metric':
+            self.settings.units = 'metric'
+            if self.diameter is not None:
+                self.diameter = metric(self.diameter)
 
     def _hit(self):
         self.hit_count += 1
@@ -240,11 +258,14 @@ class CoordinateStmt(ExcellonStatement):
         y_coord = None
         if line[0] == 'X':
             splitline = line.strip('X').split('Y')
-            x_coord = parse_gerber_value(splitline[0], settings.format, settings.zero_suppression)
+            x_coord = parse_gerber_value(splitline[0], settings.format,
+                                         settings.zero_suppression)
             if len(splitline) == 2:
-                y_coord = parse_gerber_value(splitline[1], settings.format, settings.zero_suppression)
+                y_coord = parse_gerber_value(splitline[1], settings.format,
+                                             settings.zero_suppression)
         else:
-            y_coord = parse_gerber_value(line.strip(' Y'), settings.format, settings.zero_suppression)
+            y_coord = parse_gerber_value(line.strip(' Y'), settings.format,
+                                         settings.zero_suppression)
         return cls(x_coord, y_coord)
 
     def __init__(self, x=None, y=None):
@@ -254,22 +275,24 @@ class CoordinateStmt(ExcellonStatement):
     def to_excellon(self, settings):
         stmt = ''
         if self.x is not None:
-            stmt += 'X%s' % write_gerber_value(self.x, settings.format, settings.zero_suppression)
+            stmt += 'X%s' % write_gerber_value(self.x, settings.format,
+                                               settings.zero_suppression)
         if self.y is not None:
-            stmt += 'Y%s' % write_gerber_value(self.y, settings.format, settings.zero_suppression)
+            stmt += 'Y%s' % write_gerber_value(self.y, settings.format,
+                                               settings.zero_suppression)
         return stmt
 
     def to_inch(self):
         if self.x is not None:
-            self.x = self.x / 25.4
+            self.x = inch(self.x)
         if self.y is not None:
-            self.y = self.y / 25.4
+            self.y = inch(self.y)
 
     def to_metric(self):
         if self.x is not None:
-            self.x = self.x * 25.4
+            self.x = metric(self.x)
         if self.y is not None:
-            self.y = self.y * 25.4
+            self.y = metric(self.y)
 
     def __str__(self):
         coord_str = ''
@@ -285,7 +308,8 @@ class RepeatHoleStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line, settings):
-        match = re.compile(r'R(?P<rcount>[0-9]*)X?(?P<xdelta>\d*\.?\d*)?Y?(?P<ydelta>\d*\.?\d*)?').match(line)
+        match = re.compile(r'R(?P<rcount>[0-9]*)X?(?P<xdelta>\d*\.?\d*)?Y?'
+                           '(?P<ydelta>\d*\.?\d*)?').match(line)
         stmt = match.groupdict()
         count = int(stmt['rcount'])
         xdelta = (parse_gerber_value(stmt['xdelta'], settings.format,
@@ -304,10 +328,20 @@ class RepeatHoleStmt(ExcellonStatement):
     def to_excellon(self, settings):
         stmt = 'R%d' % self.count
         if self.xdelta != 0.0:
-            stmt += 'X%s' % write_gerber_value(self.xdelta, settings.format, settings.zero_suppression)
+            stmt += 'X%s' % write_gerber_value(self.xdelta, settings.format,
+                                               settings.zero_suppression)
         if self.ydelta != 0.0:
-            stmt += 'Y%s' % write_gerber_value(self.ydelta, settings.format, settings.zero_suppression)
+            stmt += 'Y%s' % write_gerber_value(self.ydelta, settings.format,
+                                               settings.zero_suppression)
         return stmt
+
+    def to_inch(self):
+        self.xdelta = inch(self.xdelta)
+        self.ydelta = inch(self.ydelta)
+
+    def to_metric(self):
+        self.xdelta = metric(self.xdelta)
+        self.ydelta = metric(self.ydelta)
 
     def __str__(self):
         return '<Repeat Hole: %d times>' % self.count
@@ -357,7 +391,8 @@ class EndOfProgramStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line, settings):
-        match = re.compile(r'M30X?(?P<x>\d*\.?\d*)?Y?(?P<y>\d*\.?\d*)?').match(line)
+        match = re.compile(r'M30X?(?P<x>\d*\.?\d*)?Y?'
+                           '(?P<y>\d*\.?\d*)?').match(line)
         stmt = match.groupdict()
         x = (parse_gerber_value(stmt['x'], settings.format,
                                 settings.zero_suppression)
@@ -379,6 +414,17 @@ class EndOfProgramStmt(ExcellonStatement):
             stmt += 'Y%s' % write_gerber_value(self.y)
         return stmt
 
+    def to_inch(self):
+        if self.x is not None:
+            self.x = inch(self.x)
+        if self.y is not None:
+            self.y = inch(self.y)
+
+    def to_metric(self):
+        if self.x is not None:
+            self.x = metric(self.x)
+        if self.y is not None:
+            self.y = metric(self.y)
 
 class UnitStmt(ExcellonStatement):
 
@@ -398,6 +444,11 @@ class UnitStmt(ExcellonStatement):
                           else 'TZ')
         return stmt
 
+    def to_inch(self):
+        self.units = 'inch'
+
+    def to_metric(self):
+        self.units = 'metric'
 
 class IncrementalModeStmt(ExcellonStatement):
 
@@ -479,6 +530,11 @@ class MeasuringModeStmt(ExcellonStatement):
     def to_excellon(self, settings=None):
         return 'M72' if self.units == 'inch' else 'M71'
 
+    def to_inch(self):
+        self.units = 'inch'
+
+    def to_metric(self):
+        self.units = 'metric'
 
 class RouteModeStmt(ExcellonStatement):
 

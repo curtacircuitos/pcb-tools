@@ -7,6 +7,12 @@ from .tests import *
 from ..gerber_statements import *
 from ..cam import FileSettings
 
+def test_Statement_smoketest():
+    stmt = Statement('Test')
+    assert_equal(stmt.type, 'Test')
+    stmt.to_inch()
+    stmt.to_metric()
+    assert_equal(str(stmt), '<Statement type=Test>')
 
 def test_FSParamStmt_factory():
     """ Test FSParamStruct factory
@@ -114,6 +120,17 @@ def test_MOParamStmt_dump():
     assert_equal(mo.to_gerber(), '%MOMM*%')
 
 
+def test_MOParamStmt_conversion():
+    stmt = {'param': 'MO', 'mo': 'MM'}
+    mo = MOParamStmt.from_dict(stmt)
+    mo.to_inch()
+    assert_equal(mo.mode, 'inch')
+
+    stmt = {'param': 'MO', 'mo': 'IN'}
+    mo = MOParamStmt.from_dict(stmt)
+    mo.to_metric()
+    assert_equal(mo.mode, 'metric')
+
 def test_MOParamStmt_string():
     """ Test MOParamStmt.__str__()
     """
@@ -213,6 +230,20 @@ def test_OFParamStmt_dump():
     assert_equal(of.to_gerber(), '%OFA0.12345B0.12345*%')
 
 
+def test_OFParamStmt_conversion():
+    stmt = {'param': 'OF', 'a': '2.54', 'b': '25.4'}
+    of = OFParamStmt.from_dict(stmt)
+    of.to_inch()
+    assert_equal(of.a, 0.1)
+    assert_equal(of.b, 1.0)
+
+    stmt = {'param': 'OF', 'a': '0.1', 'b': '1.0'}
+    of = OFParamStmt.from_dict(stmt)
+    of.to_metric()
+    assert_equal(of.a, 2.54)
+    assert_equal(of.b, 25.4)
+
+
 def test_OFParamStmt_string():
     """ Test OFParamStmt __str__
     """
@@ -231,6 +262,19 @@ def test_SFParamStmt_dump():
     stmt = {'param': 'SF', 'a': '1.4', 'b': '0.9'}
     sf = SFParamStmt.from_dict(stmt)
     assert_equal(sf.to_gerber(), '%SFA1.4B0.9*%')
+
+def test_SFParamStmt_conversion():
+    stmt = {'param': 'OF', 'a': '2.54', 'b': '25.4'}
+    of = SFParamStmt.from_dict(stmt)
+    of.to_inch()
+    assert_equal(of.a, 0.1)
+    assert_equal(of.b, 1.0)
+
+    stmt = {'param': 'OF', 'a': '0.1', 'b': '1.0'}
+    of = SFParamStmt.from_dict(stmt)
+    of.to_metric()
+    assert_equal(of.a, 2.54)
+    assert_equal(of.b, 25.4)
 
 def test_SFParamStmt_string():
     stmt = {'param': 'SF', 'a': '1.4', 'b': '0.9'}
@@ -651,4 +695,3 @@ def test_aperturestmt_dump():
     assert_equal(str(ast), '<Aperture: 3>')
 
 
-    

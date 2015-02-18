@@ -23,12 +23,12 @@ Excellon File module
 This module provides Excellon file classes and parsing utilities
 """
 
+import math
 
 from .excellon_statements import *
 from .cam import CamFile, FileSettings
 from .primitives import Drill
-import math
-import re
+
 
 def read(filename):
     """ Read data from filename and return an ExcellonFile
@@ -121,6 +121,31 @@ class ExcellonFile(CamFile):
         with open(filename, 'w') as f:
             for statement in self.statements:
                 f.write(statement.to_excellon(self.settings) + '\n')
+
+    def to_inch(self):
+        """
+        Convert units to inches
+        """
+        if self.units != 'inch':
+            self.units = 'inch'
+            for statement in self.statements:
+                statement.to_inch()
+            for tool in self.tools.itervalues():
+                tool.to_inch()
+            for primitive in self.primitives:
+                primitive.to_inch()
+
+    def to_metric(self):
+        """  Convert units to metric
+        """
+        if self.units != 'metric':
+            self.units = 'metric'
+            for statement in self.statements:
+                statement.to_metric()
+            for tool in self.tools.itervalues():
+                tool.to_metric()
+            for primitive in self.primitives:
+                primitive.to_metric()
 
 
 class ExcellonParser(object):

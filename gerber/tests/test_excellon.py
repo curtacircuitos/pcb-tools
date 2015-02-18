@@ -2,12 +2,13 @@
 # -*- coding: utf-8 -*-
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
+import os
+
 from ..cam import FileSettings
 from ..excellon import read, detect_excellon_format, ExcellonFile, ExcellonParser
 from ..excellon_statements import ExcellonTool
 from tests import *
 
-import os
 
 NCDRILL_FILE = os.path.join(os.path.dirname(__file__),
                                 'resources/ncdrill.DRD')
@@ -36,6 +37,29 @@ def test_bounds():
 
 def test_report():
     ncdrill = read(NCDRILL_FILE)
+
+
+def test_conversion():
+    import copy
+    ncdrill = read(NCDRILL_FILE)
+    assert_equal(ncdrill.settings.units, 'inch')
+    ncdrill_inch = copy.deepcopy(ncdrill)
+    ncdrill.to_metric()
+    assert_equal(ncdrill.settings.units, 'metric')
+
+    for tool in ncdrill_inch.tools.itervalues():
+        tool.to_metric()
+    for primitive in ncdrill_inch.primitives:
+        primitive.to_metric()
+    for statement in ncdrill_inch.statements:
+        statement.to_metric()
+
+    for m_tool, i_tool in zip(ncdrill.tools.itervalues(), ncdrill_inch.tools.itervalues()):
+        assert_equal(i_tool, m_tool)
+
+    for m, i in zip(ncdrill.primitives,ncdrill_inch.primitives):
+        assert_equal(m, i)
+
 
 def test_parser_hole_count():
     settings = FileSettings(**detect_excellon_format(NCDRILL_FILE))

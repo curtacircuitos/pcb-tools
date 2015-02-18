@@ -16,7 +16,8 @@
 # limitations under the License.
 import math
 from operator import sub
-from .utils import validate_coordinates
+
+from .utils import validate_coordinates, inch, metric
 
 
 class Primitive(object):
@@ -46,7 +47,11 @@ class Primitive(object):
 
         Return ((min x, max x), (min y, max y))
         """
-        raise NotImplementedError('Bounding box calculation must be implemented in subclass')
+        raise NotImplementedError('Bounding box calculation must be '
+                                  'implemented in subclass')
+
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 
 class Line(Primitive):
@@ -91,18 +96,18 @@ class Line(Primitive):
             # Find all the corners of the start and end position
             start_ll = (start[0] - (width / 2.),
                         start[1] - (height / 2.))
-            start_lr = (start[0] - (width / 2.),
-                        start[1] + (height / 2.))
-            start_ul = (start[0] + (width / 2.),
+            start_lr = (start[0] + (width / 2.),
                         start[1] - (height / 2.))
+            start_ul = (start[0] - (width / 2.),
+                        start[1] + (height / 2.))
             start_ur = (start[0] + (width / 2.),
                         start[1] + (height / 2.))
             end_ll = (end[0] - (width / 2.),
                       end[1] - (height / 2.))
-            end_lr = (end[0] - (width / 2.),
-                      end[1] + (height / 2.))
-            end_ul = (end[0] + (width / 2.),
+            end_lr = (end[0] + (width / 2.),
                       end[1] - (height / 2.))
+            end_ul = (end[0] - (width / 2.),
+                      end[1] + (height / 2.))
             end_ur = (end[0] + (width / 2.),
                       end[1] + (height / 2.))
 
@@ -124,10 +129,17 @@ class Line(Primitive):
                 return (end_ll, start_lr, start_ur, end_ul)
             elif end[0] < start[0] and end[1] > start[1]:
                 return (start_ll, start_lr, start_ur, end_ur, end_ul, end_ll)
-            else:
-                return None
 
 
+    def to_inch(self):
+        self.aperture.to_inch()
+        self.start = tuple(map(inch, self.start))
+        self.end = tuple(map(inch, self.end))
+
+    def to_metric(self):
+        self.aperture.to_metric()
+        self.start = tuple(map(metric, self.start))
+        self.end = tuple(map(metric, self.end))
 
 
 class Arc(Primitive):
@@ -206,6 +218,18 @@ class Arc(Primitive):
         max_y = max(y) + self.aperture.radius
         return ((min_x, max_x), (min_y, max_y))
 
+    def to_inch(self):
+        self.aperture.to_inch()
+        self.start = tuple(map(inch, self.start))
+        self.end = tuple(map(inch, self.end))
+        self.center = tuple(map(inch, self.center))
+
+    def to_metric(self):
+        self.aperture.to_metric()
+        self.start = tuple(map(metric, self.start))
+        self.end = tuple(map(metric, self.end))
+        self.center = tuple(map(metric, self.center))
+
 
 class Circle(Primitive):
     """
@@ -228,9 +252,15 @@ class Circle(Primitive):
         max_y = self.position[1] + self.radius
         return ((min_x, max_x), (min_y, max_y))
 
-    @property
-    def stroke_width(self):
-        return self.diameter
+    def to_inch(self):
+        if self.position is not None:
+            self.position = tuple(map(inch, self.position))
+        self.diameter = inch(self.diameter)
+
+    def to_metric(self):
+        if self.position is not None:
+            self.position = tuple(map(metric, self.position))
+        self.diameter = metric(self.diameter)
 
 
 class Ellipse(Primitive):
@@ -276,12 +306,12 @@ class Rectangle(Primitive):
 
     @property
     def lower_left(self):
-        return (self.position[0] - (self._abs_width / 2.), 
+        return (self.position[0] - (self._abs_width / 2.),
                 self.position[1] - (self._abs_height / 2.))
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.), 
+        return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
 
     @property
@@ -292,6 +322,15 @@ class Rectangle(Primitive):
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
 
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.width = inch(self.width)
+        self.height = inch(self.height)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.width = metric(self.width)
+        self.height = metric(self.height)
 
 
 class Diamond(Primitive):
@@ -311,12 +350,12 @@ class Diamond(Primitive):
 
     @property
     def lower_left(self):
-        return (self.position[0] - (self._abs_width / 2.), 
+        return (self.position[0] - (self._abs_width / 2.),
                 self.position[1] - (self._abs_height / 2.))
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.), 
+        return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
 
     @property
@@ -326,6 +365,16 @@ class Diamond(Primitive):
         min_y = self.lower_left[1]
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.width = inch(self.width)
+        self.height = inch(self.height)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.width = metric(self.width)
+        self.height = metric(self.height)
 
 
 class ChamferRectangle(Primitive):
@@ -347,12 +396,12 @@ class ChamferRectangle(Primitive):
 
     @property
     def lower_left(self):
-        return (self.position[0] - (self._abs_width / 2.), 
+        return (self.position[0] - (self._abs_width / 2.),
                 self.position[1] - (self._abs_height / 2.))
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.), 
+        return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
 
     @property
@@ -362,6 +411,18 @@ class ChamferRectangle(Primitive):
         min_y = self.lower_left[1]
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.width = inch(self.width)
+        self.height = inch(self.height)
+        self.chamfer = inch(self.chamfer)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.width = metric(self.width)
+        self.height = metric(self.height)
+        self.chamfer = metric(self.chamfer)
 
 
 class RoundRectangle(Primitive):
@@ -383,12 +444,12 @@ class RoundRectangle(Primitive):
 
     @property
     def lower_left(self):
-        return (self.position[0] - (self._abs_width / 2.), 
+        return (self.position[0] - (self._abs_width / 2.),
                 self.position[1] - (self._abs_height / 2.))
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.), 
+        return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
 
     @property
@@ -398,6 +459,18 @@ class RoundRectangle(Primitive):
         min_y = self.lower_left[1]
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.width = inch(self.width)
+        self.height = inch(self.height)
+        self.radius = inch(self.radius)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.width = metric(self.width)
+        self.height = metric(self.height)
+        self.radius = metric(self.radius)
 
 
 class Obround(Primitive):
@@ -417,12 +490,12 @@ class Obround(Primitive):
 
     @property
     def lower_left(self):
-        return (self.position[0] - (self._abs_width / 2.), 
+        return (self.position[0] - (self._abs_width / 2.),
                 self.position[1] - (self._abs_height / 2.))
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.), 
+        return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
 
     @property
@@ -455,6 +528,16 @@ class Obround(Primitive):
                             self.height)
         return {'circle1': circle1, 'circle2': circle2, 'rectangle': rect}
 
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.width = inch(self.width)
+        self.height = inch(self.height)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.width = metric(self.width)
+        self.height = metric(self.height)
+
 
 class Polygon(Primitive):
     """
@@ -474,6 +557,14 @@ class Polygon(Primitive):
         max_y = self.position[1] + self.radius
         return ((min_x, max_x), (min_y, max_y))
 
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.radius = inch(self.radius)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.radius = metric(self.radius)
+
 
 class Region(Primitive):
     """
@@ -490,6 +581,12 @@ class Region(Primitive):
         min_y = min(y_list)
         max_y = max(y_list)
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.points = [tuple(map(inch, point)) for point in self.points]
+
+    def to_metric(self):
+        self.points = [tuple(map(metric, point)) for point in self.points]
 
 
 class RoundButterfly(Primitive):
@@ -513,6 +610,15 @@ class RoundButterfly(Primitive):
         max_y = self.position[1] + self.radius
         return ((min_x, max_x), (min_y, max_y))
 
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.diameter = inch(self.diameter)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.diameter = metric(self.diameter)
+
+
 class SquareButterfly(Primitive):
     """ A square with two diagonally-opposite quadrants removed
     """
@@ -530,6 +636,14 @@ class SquareButterfly(Primitive):
         min_y = self.position[1] - (self.side / 2.)
         max_y = self.position[1] + (self.side / 2.)
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.side = inch(self.side)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.side = metric(self.side)
 
 
 class Donut(Primitive):
@@ -558,12 +672,12 @@ class Donut(Primitive):
 
     @property
     def lower_left(self):
-        return (self.position[0] - (self.width / 2.), 
+        return (self.position[0] - (self.width / 2.),
                 self.position[1] - (self.height / 2.))
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self.width / 2.), 
+        return (self.position[0] + (self.width / 2.),
                 self.position[1] + (self.height / 2.))
 
     @property
@@ -573,6 +687,20 @@ class Donut(Primitive):
         min_y = self.lower_left[1]
         max_y = self.upper_right[1]
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.width = inch(self.width)
+        self.height = inch(self.height)
+        self.inner_diameter = inch(self.inner_diameter)
+        self.outer_diaemter = inch(self.outer_diameter)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.width = metric(self.width)
+        self.height = metric(self.height)
+        self.inner_diameter = metric(self.inner_diameter)
+        self.outer_diaemter = metric(self.outer_diameter)
 
 
 class Drill(Primitive):
@@ -596,4 +724,12 @@ class Drill(Primitive):
         min_y = self.position[1] - self.radius
         max_y = self.position[1] + self.radius
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.diameter = inch(self.diameter)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.diameter = metric(self.diameter)
 

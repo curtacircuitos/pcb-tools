@@ -16,7 +16,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .utils import validate_coordinates
+from .utils import validate_coordinates, inch, metric
 
 
 # TODO: Add support for aperture macro variables
@@ -25,12 +25,6 @@ __all__ = ['AMPrimitive', 'AMCommentPrimitive', 'AMCirclePrimitive',
            'AMVectorLinePrimitive', 'AMOutlinePrimitive', 'AMPolygonPrimitive',
            'AMMoirePrimitive', 'AMThermalPrimitive', 'AMCenterLinePrimitive',
            'AMLowerLeftLinePrimitive', 'AMUnsupportPrimitive']
-
-def metric(value):
-    return value * 25.4
-
-def inch(value):
-    return value / 25.4
 
 
 class AMPrimitive(object):
@@ -58,7 +52,7 @@ class AMPrimitive(object):
     TypeError, ValueError
     """
     def __init__(self, code, exposure=None):
-        VALID_CODES = (0, 1, 2, 4, 5, 6, 7, 20, 21, 22)
+        VALID_CODES = (0, 1, 2, 4, 5, 6, 7, 20, 21, 22, 9999)
         if not isinstance(code, int):
             raise TypeError('Aperture Macro Primitive code must be an integer')
         elif code not in VALID_CODES:
@@ -74,6 +68,8 @@ class AMPrimitive(object):
     def to_metric(self):
         raise NotImplementedError('Subclass must implement `to-metric`')
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
 
 class AMCommentPrimitive(AMPrimitive):
     """ Aperture Macro Comment primitive. Code 0
@@ -818,11 +814,12 @@ class AMUnsupportPrimitive(AMPrimitive):
         return cls(primitive)
 
     def __init__(self, primitive):
+        super(AMUnsupportPrimitive, self).__init__(9999)
         self.primitive = primitive
 
     def to_inch(self):
         pass
-    
+
     def to_metric(self):
         pass
 
