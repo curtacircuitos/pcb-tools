@@ -16,9 +16,9 @@
 # the License.
 
 if __name__ == '__main__':
-    from .common import read
-    from .render import GerberSvgContext
     import sys
+    from gerber.common import read
+    from gerber.render import GerberSvgContext
 
     if len(sys.argv) < 2:
         print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."

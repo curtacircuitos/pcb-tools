@@ -4,7 +4,7 @@
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
 from ..cam import CamFile, FileSettings
-from tests import *
+from .tests import *
 
 
 def test_filesettings_defaults():

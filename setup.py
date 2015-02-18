@@ -29,7 +29,7 @@ METADATA = {
     'license': "Apache",
     'keywords': "gerber tools",
     'url': "http://github.com/curtacircuitos/gerber-tools",
-    'packages': ['gerber'],
+    'packages': ['gerber', 'gerber.render'],
     'long_description': read('README.md'),
     'classifiers':[
         "Development Status :: 3 - Alpha",

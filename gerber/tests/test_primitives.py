@@ -3,7 +3,7 @@
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 from ..primitives import *
-from tests import *
+from .tests import *
 
 
 def test_primitive_implementation_warning():
