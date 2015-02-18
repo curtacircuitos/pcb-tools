@@ -21,14 +21,14 @@ def read(fname):
 
 
 METADATA = {
-    'name': 'gerber-tools',
+    'name': 'pcb-tools',
     'version': 0.1,
     'author': 'Paulo Henrique Silva <ph.silva@gmail.com>, Hamilton Kibbe <ham@hamiltonkib.be>',
     'author_email': "ph.silva@gmail.com, ham@hamiltonkib.be",
     'description': ("Utilities to handle Gerber (RS-274X) files."),
     'license': "Apache",
-    'keywords': "gerber tools",
-    'url': "http://github.com/curtacircuitos/gerber-tools",
+    'keywords': "pcb gerber tools",
+    'url': "http://github.com/curtacircuitos/pcb-tools",
     'packages': ['gerber', 'gerber.render'],
     'long_description': read('README.md'),
     'classifiers':[
