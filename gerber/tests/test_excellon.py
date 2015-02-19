@@ -7,7 +7,7 @@ import os
 from ..cam import FileSettings
 from ..excellon import read, detect_excellon_format, ExcellonFile, ExcellonParser
 from ..excellon_statements import ExcellonTool
-from tests import *
+from .tests import *
 
 
 NCDRILL_FILE = os.path.join(os.path.dirname(__file__),
@@ -47,14 +47,14 @@ def test_conversion():
     ncdrill.to_metric()
     assert_equal(ncdrill.settings.units, 'metric')
 
-    for tool in ncdrill_inch.tools.itervalues():
+    for tool in iter(ncdrill_inch.tools.values()):
         tool.to_metric()
     for primitive in ncdrill_inch.primitives:
         primitive.to_metric()
     for statement in ncdrill_inch.statements:
         statement.to_metric()
 
-    for m_tool, i_tool in zip(ncdrill.tools.itervalues(), ncdrill_inch.tools.itervalues()):
+    for m_tool, i_tool in zip(iter(ncdrill.tools.values()), iter(ncdrill_inch.tools.values())):
         assert_equal(i_tool, m_tool)
 
     for m, i in zip(ncdrill.primitives,ncdrill_inch.primitives):

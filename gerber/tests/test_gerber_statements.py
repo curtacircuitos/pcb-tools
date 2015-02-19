@@ -539,7 +539,8 @@ def test_statement_string():
     stmt = Statement('PARAM')
     assert_equal(str(stmt), '<Statement type=PARAM>')
     stmt.test='PASS'
-    assert_equal(str(stmt), '<Statement test=PASS type=PARAM>')
+    assert_true('test=PASS' in str(stmt))
+    assert_true('type=PARAM' in str(stmt))
 
 
 def test_ADParamStmt_factory():

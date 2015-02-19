@@ -93,8 +93,7 @@ class FSParamStmt(ParamStmt):
         param = stmt_dict.get('param')
         zeros = 'leading' if stmt_dict.get('zero') == 'L' else 'trailing'
         notation = 'absolute' if stmt_dict.get('notation') == 'A' else 'incremental'
-        x = map(int, stmt_dict.get('x'))
-        fmt = (x[0], x[1])
+        fmt = tuple(map(int, stmt_dict.get('x')))
         return cls(param, zeros, notation, fmt)
 
     def __init__(self, param, zero_suppression='leading',

@@ -142,7 +142,7 @@ class ExcellonFile(CamFile):
             self.units = 'metric'
             for statement in self.statements:
                 statement.to_metric()
-            for tool in self.tools.itervalues():
+            for tool in iter(self.tools.values()):
                 tool.to_metric()
             for primitive in self.primitives:
                 primitive.to_metric()
@@ -290,7 +290,7 @@ class ExcellonParser(object):
         elif line[0] == 'R' and self.state != 'HEADER':
             stmt = RepeatHoleStmt.from_excellon(line, self._settings())
             self.statements.append(stmt)
-            for i in xrange(stmt.count):
+            for i in range(stmt.count):
                 self.pos[0] += stmt.xdelta
                 self.pos[1] += stmt.ydelta
                 self.hits.append((self.active_tool, tuple(self.pos)))
@@ -390,8 +390,8 @@ def detect_excellon_format(filename):
                 pass
 
     # See if any of the dimensions are left with only a single option
-    formats = set(key[0] for key in results.iterkeys())
-    zeros = set(key[1] for key in results.iterkeys())
+    formats = set(key[0] for key in iter(results.keys()))
+    zeros = set(key[1] for key in iter(results.keys()))
     if len(formats) == 1:
         detected_format = formats.pop()
     if len(zeros) == 1:
@@ -408,7 +408,7 @@ def detect_excellon_format(filename):
             size, count, diameter = results[key]
             scores[key] = _layer_size_score(size, count, diameter)
         minscore = min(scores.values())
-        for key in scores.iterkeys():
+        for key in iter(scores.keys()):
             if scores[key] == minscore:
                 return {'format': key[0], 'zeros': key[1]}
 

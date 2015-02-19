@@ -74,7 +74,6 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
         raise ValueError('Parser only supports precision up to 6:7 format')
 
     # Remove extraneous information
-    #value = value.strip()
     value = value.lstrip('+')
     negative = '-' in value
     if negative:
@@ -140,7 +139,7 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     digits = [val for val in fmtstring % value if val != '.']
 
     # If all the digits are 0, return '0'.
-    digit_sum = reduce(lambda x,y:x+int(y), digits, 0)
+    digit_sum = sum([int(digit) for digit in digits])
     if digit_sum == 0:
         return '0'
 
