@@ -12,6 +12,14 @@ def test_excellon_statement_implementation():
     assert_raises(NotImplementedError, stmt.from_excellon, None)
     assert_raises(NotImplementedError, stmt.to_excellon)
 
+def test_excellontstmt():
+    """ Smoke test ExcellonStatement
+    """
+    stmt = ExcellonStatement()
+    stmt.to_inch()
+    stmt.to_metric()
+    stmt.offset()
+
 def test_excellontool_factory():
     """ Test ExcellonTool factory methods
     """
@@ -26,7 +34,7 @@ def test_excellontool_factory():
     assert_equal(tool.rpm, 3)
     assert_equal(tool.max_hit_count, 4)
     assert_equal(tool.depth_offset, 5)
-    
+
     stmt = {'number': 8, 'feed_rate': 1, 'retract_rate': 2, 'rpm': 3,
             'diameter': 0.125, 'max_hit_count': 4, 'depth_offset': 5}
     tool = ExcellonTool.from_dict(settings, stmt)
@@ -93,6 +101,7 @@ def test_excellontool_equality():
     assert_equal(t, t1)
     t1 = ExcellonTool.from_dict(FileSettings(units='metric'), {'number': 8, 'diameter': 0.125})
     assert_not_equal(t, t1)
+
 def test_toolselection_factory():
     """ Test ToolSelectionStmt factory method
     """
@@ -103,7 +112,6 @@ def test_toolselection_factory():
     assert_equal(stmt.tool, 2)
     assert_equal(stmt.compensation_index, 23)
 
-
 def test_toolselection_dump():
     """ Test ToolSelectionStmt to_excellon()
     """
@@ -111,7 +119,6 @@ def test_toolselection_dump():
     for line in lines:
         stmt = ToolSelectionStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
-
 
 def test_coordinatestmt_factory():
     """ Test CoordinateStmt factory method
@@ -162,6 +169,19 @@ def test_coordinatestmt_conversion():
     stmt.to_metric()
     assert_equal(stmt.x, 25.4)
     assert_equal(stmt.y, 25.4)
+
+def test_coordinatestmt_offset():
+    stmt = CoordinateStmt.from_excellon('X01Y01', FileSettings())
+    stmt.offset()
+    assert_equal(stmt.x, 1)
+    assert_equal(stmt.y, 1)
+    stmt.offset(1,0)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 1.)
+    stmt.offset(0,1)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 2.)
+
 
 def test_coordinatestmt_string():
     settings = FileSettings(format=(2, 4), zero_suppression='leading',
@@ -229,7 +249,7 @@ def test_header_begin_stmt():
 def test_header_end_stmt():
     stmt = HeaderEndStmt()
     assert_equal(stmt.to_excellon(None), 'M95')
-    
+
 def test_rewindstop_stmt():
     stmt = RewindStopStmt()
     assert_equal(stmt.to_excellon(None), '%')
@@ -261,6 +281,18 @@ def test_endofprogramstmt_conversion():
     stmt.to_metric()
     assert_equal(stmt.x, 25.4)
     assert_equal(stmt.y, 254.)
+
+def test_endofprogramstmt_offset():
+    stmt = EndOfProgramStmt(1, 1)
+    stmt.offset()
+    assert_equal(stmt.x, 1)
+    assert_equal(stmt.y, 1)
+    stmt.offset(1,0)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 1.)
+    stmt.offset(0,1)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 2.)
 
 def test_unitstmt_factory():
     """ Test UnitStmt factory method
@@ -447,28 +479,20 @@ def test_measmodestmt_conversion():
 def test_routemode_stmt():
     stmt = RouteModeStmt()
     assert_equal(stmt.to_excellon(FileSettings()), 'G00')
-    
+
 def test_drillmode_stmt():
     stmt = DrillModeStmt()
     assert_equal(stmt.to_excellon(FileSettings()), 'G05')
-    
+
 def test_absolutemode_stmt():
     stmt = AbsoluteModeStmt()
     assert_equal(stmt.to_excellon(FileSettings()), 'G90')
-    
+
 def test_unknownstmt():
     stmt = UnknownStmt('TEST')
     assert_equal(stmt.stmt, 'TEST')
     assert_equal(str(stmt), '<Unknown Statement: TEST>')
-    
+
 def test_unknownstmt_dump():
     stmt = UnknownStmt('TEST')
     assert_equal(stmt.to_excellon(FileSettings()), 'TEST')
-
-
-def test_excellontstmt():
-    """ Smoke test ExcellonStatement
-    """
-    stmt = ExcellonStatement()
-    stmt.to_inch()
-    stmt.to_metric()

@@ -58,6 +58,9 @@ class Statement(object):
     def to_metric(self):
         pass
 
+    def offset(self, x_offset=0, y_offset=0):
+        pass
+
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
@@ -626,6 +629,12 @@ class OFParamStmt(ParamStmt):
         if self.b is not None:
             self.b = metric(self.b)
 
+    def offset(self, x_offset=0, y_offset=0):
+        if self.a is not None:
+            self.a += x_offset
+        if self.b is not None:
+            self.b += y_offset
+
     def __str__(self):
         offset_str = ''
         if self.a is not None:
@@ -689,6 +698,12 @@ class SFParamStmt(ParamStmt):
             self.a = metric(self.a)
         if self.b is not None:
             self.b = metric(self.b)
+
+    def offset(self, x_offset=0, y_offset=0):
+        if self.a is not None:
+            self.a += x_offset
+        if self.b is not None:
+            self.b += y_offset
 
     def __str__(self):
         scale_factor = ''
@@ -835,6 +850,16 @@ class CoordStmt(Statement):
             self.j = metric(self.j)
         if self.function == "G70":
             self.function = "G71"
+
+    def offset(self, x_offset=0, y_offset=0):
+        if self.x is not None:
+            self.x += x_offset
+        if self.y is not None:
+            self.y += y_offset
+        if self.i is not None:
+            self.i += x_offset
+        if self.j is not None:
+            self.j += y_offset
 
     def __str__(self):
         coord_str = ''

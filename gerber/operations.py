@@ -75,8 +75,9 @@ def offset(cam_file, x_offset, y_offset):
     gerber_file : `gerber.cam.CamFile` subclass
         An offset deep copy of the source file.
     """
-    # TODO
-    pass
+    cam_file = copy.deepcopy(cam_file)
+    cam_file.offset(x_offset, y_offset)
+    return cam_file
 
 def scale(cam_file, x_scale, y_scale):
     """ Scale a Cam file by a specified amount in the X and Y directions.

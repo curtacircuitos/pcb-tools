@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import math
-from operator import sub
+from operator import add, sub
 
 from .utils import validate_coordinates, inch, metric
 
@@ -49,6 +49,15 @@ class Primitive(object):
         """
         raise NotImplementedError('Bounding box calculation must be '
                                   'implemented in subclass')
+
+    def to_inch(self):
+        pass
+
+    def to_metric(self):
+        pass
+
+    def offset(self, x_offset=0, y_offset=0):
+        pass
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -141,6 +150,10 @@ class Line(Primitive):
         self.start = tuple(map(metric, self.start))
         self.end = tuple(map(metric, self.end))
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.start = tuple(map(add, self.start, (x_offset, y_offset)))
+        self.end = tuple(map(add, self.end, (x_offset, y_offset)))
+
 
 class Arc(Primitive):
     """
@@ -230,6 +243,11 @@ class Arc(Primitive):
         self.end = tuple(map(metric, self.end))
         self.center = tuple(map(metric, self.center))
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.start = tuple(map(add, self.start, (x_offset, y_offset)))
+        self.end = tuple(map(add, self.end, (x_offset, y_offset)))
+        self.center = tuple(map(add, self.center, (x_offset, y_offset)))
+
 
 class Circle(Primitive):
     """
@@ -262,6 +280,9 @@ class Circle(Primitive):
             self.position = tuple(map(metric, self.position))
         self.diameter = metric(self.diameter)
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
 
 class Ellipse(Primitive):
     """
@@ -287,6 +308,19 @@ class Ellipse(Primitive):
         min_y = self.position[1] - (self._abs_height / 2.0)
         max_y = self.position[1] + (self._abs_height / 2.0)
         return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.width = inch(self.width)
+        self.height = inch(self.height)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.width = metric(self.width)
+        self.height = metric(self.height)
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
 
 class Rectangle(Primitive):
@@ -332,6 +366,9 @@ class Rectangle(Primitive):
         self.width = metric(self.width)
         self.height = metric(self.height)
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
 
 class Diamond(Primitive):
     """
@@ -375,6 +412,9 @@ class Diamond(Primitive):
         self.position = tuple(map(metric, self.position))
         self.width = metric(self.width)
         self.height = metric(self.height)
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
 
 class ChamferRectangle(Primitive):
@@ -424,6 +464,9 @@ class ChamferRectangle(Primitive):
         self.height = metric(self.height)
         self.chamfer = metric(self.chamfer)
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
 
 class RoundRectangle(Primitive):
     """
@@ -471,6 +514,9 @@ class RoundRectangle(Primitive):
         self.width = metric(self.width)
         self.height = metric(self.height)
         self.radius = metric(self.radius)
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
 
 class Obround(Primitive):
@@ -538,6 +584,9 @@ class Obround(Primitive):
         self.width = metric(self.width)
         self.height = metric(self.height)
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
 
 class Polygon(Primitive):
     """
@@ -565,6 +614,9 @@ class Polygon(Primitive):
         self.position = tuple(map(metric, self.position))
         self.radius = metric(self.radius)
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
 
 class Region(Primitive):
     """
@@ -587,6 +639,10 @@ class Region(Primitive):
 
     def to_metric(self):
         self.points = [tuple(map(metric, point)) for point in self.points]
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.points = [tuple(map(add, point, (x_offset, y_offset)))
+                       for point in self.points]
 
 
 class RoundButterfly(Primitive):
@@ -618,6 +674,9 @@ class RoundButterfly(Primitive):
         self.position = tuple(map(metric, self.position))
         self.diameter = metric(self.diameter)
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
 
 class SquareButterfly(Primitive):
     """ A square with two diagonally-opposite quadrants removed
@@ -644,6 +703,9 @@ class SquareButterfly(Primitive):
     def to_metric(self):
         self.position = tuple(map(metric, self.position))
         self.side = metric(self.side)
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
 
 class Donut(Primitive):
@@ -702,6 +764,9 @@ class Donut(Primitive):
         self.inner_diameter = metric(self.inner_diameter)
         self.outer_diaemter = metric(self.outer_diameter)
 
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
 
 class Drill(Primitive):
     """ A drill hole
@@ -732,4 +797,7 @@ class Drill(Primitive):
     def to_metric(self):
         self.position = tuple(map(metric, self.position))
         self.diameter = metric(self.diameter)
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 

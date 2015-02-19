@@ -129,6 +129,12 @@ class GerberFile(CamFile):
             for primitive in self.primitives:
                 primitive.to_metric()
 
+    def offset(self, x_offset=0,  y_offset=0):
+        for statement in self.statements:
+            statement.offset(x_offset, y_offset)
+        for primitive in self.primitives:
+            primitive.offset(x_offset, y_offset)
+
 
 class GerberParser(object):
     """ GerberParser

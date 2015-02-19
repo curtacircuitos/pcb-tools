@@ -12,6 +12,7 @@ def test_Statement_smoketest():
     assert_equal(stmt.type, 'Test')
     stmt.to_inch()
     stmt.to_metric()
+    stmt.offset(1, 1)
     assert_equal(str(stmt), '<Statement type=Test>')
 
 def test_FSParamStmt_factory():
@@ -31,7 +32,6 @@ def test_FSParamStmt_factory():
     assert_equal(fs.notation, 'incremental')
     assert_equal(fs.format, (2, 7))
 
-
 def test_FSParamStmt():
     """ Test FSParamStmt initialization
     """
@@ -44,7 +44,6 @@ def test_FSParamStmt():
     assert_equal(stmt.zero_suppression, zeros)
     assert_equal(stmt.notation, notation)
     assert_equal(stmt.format, fmt)
-
 
 def test_FSParamStmt_dump():
     """ Test FSParamStmt to_gerber()
@@ -60,7 +59,6 @@ def test_FSParamStmt_dump():
     settings = FileSettings(zero_suppression='leading', notation='absolute')
     assert_equal(fs.to_gerber(settings), '%FSLAX25Y25*%')
 
-
 def test_FSParamStmt_string():
     """ Test FSParamStmt.__str__()
     """
@@ -71,7 +69,6 @@ def test_FSParamStmt_string():
     stmt = {'param': 'FS', 'zero': 'T', 'notation': 'I', 'x': '25'}
     fs = FSParamStmt.from_dict(stmt)
     assert_equal(str(fs), '<Format Spec: 2:5 trailing zero suppression incremental notation>')
-
 
 def test_MOParamStmt_factory():
     """ Test MOParamStruct factory
@@ -94,7 +91,6 @@ def test_MOParamStmt_factory():
     stmt = {'param': 'MO', 'mo': 'degrees kelvin'}
     assert_raises(ValueError, MOParamStmt.from_dict, stmt)
 
-
 def test_MOParamStmt():
     """ Test MOParamStmt initialization
     """
@@ -107,7 +103,6 @@ def test_MOParamStmt():
         stmt = MOParamStmt(param, mode)
         assert_equal(stmt.mode, mode)
 
-
 def test_MOParamStmt_dump():
     """ Test MOParamStmt to_gerber()
     """
@@ -118,7 +113,6 @@ def test_MOParamStmt_dump():
     stmt = {'param': 'MO', 'mo': 'MM'}
     mo = MOParamStmt.from_dict(stmt)
     assert_equal(mo.to_gerber(), '%MOMM*%')
-
 
 def test_MOParamStmt_conversion():
     stmt = {'param': 'MO', 'mo': 'MM'}
@@ -142,7 +136,6 @@ def test_MOParamStmt_string():
     mo = MOParamStmt.from_dict(stmt)
     assert_equal(str(mo), '<Mode: millimeters>')
 
-
 def test_IPParamStmt_factory():
     """ Test IPParamStruct factory
     """
@@ -154,7 +147,6 @@ def test_IPParamStmt_factory():
     ip = IPParamStmt.from_dict(stmt)
     assert_equal(ip.ip, 'negative')
 
-
 def test_IPParamStmt():
     """ Test IPParamStmt initialization
     """
@@ -163,7 +155,6 @@ def test_IPParamStmt():
         stmt = IPParamStmt(param, ip)
         assert_equal(stmt.param, param)
         assert_equal(stmt.ip, ip)
-
 
 def test_IPParamStmt_dump():
     """ Test IPParamStmt to_gerber()
@@ -201,7 +192,6 @@ def test_IRParamStmt_string():
     ir = IRParamStmt.from_dict(stmt)
     assert_equal(str(ir), '<Image Angle: 45>')
 
-
 def test_OFParamStmt_factory():
     """ Test OFParamStmt factory
     """
@@ -209,7 +199,6 @@ def test_OFParamStmt_factory():
     of = OFParamStmt.from_dict(stmt)
     assert_equal(of.a, 0.1234567)
     assert_equal(of.b, 0.1234567)
-
 
 def test_OFParamStmt():
     """ Test IPParamStmt initialization
@@ -221,14 +210,12 @@ def test_OFParamStmt():
         assert_equal(stmt.a, val)
         assert_equal(stmt.b, val)
 
-
 def test_OFParamStmt_dump():
     """ Test OFParamStmt to_gerber()
     """
     stmt = {'param': 'OF', 'a': '0.123456', 'b': '0.123456'}
     of = OFParamStmt.from_dict(stmt)
     assert_equal(of.to_gerber(), '%OFA0.12345B0.12345*%')
-
 
 def test_OFParamStmt_conversion():
     stmt = {'param': 'OF', 'a': '2.54', 'b': '25.4'}
@@ -243,6 +230,14 @@ def test_OFParamStmt_conversion():
     assert_equal(of.a, 2.54)
     assert_equal(of.b, 25.4)
 
+def test_OFParamStmt_offset():
+    s = OFParamStmt('OF', 0, 0)
+    s.offset(1, 0)
+    assert_equal(s.a, 1.)
+    assert_equal(s.b, 0.)
+    s.offset(0, 1)
+    assert_equal(s.a, 1.)
+    assert_equal(s.b, 1.)
 
 def test_OFParamStmt_string():
     """ Test OFParamStmt __str__
@@ -276,11 +271,19 @@ def test_SFParamStmt_conversion():
     assert_equal(of.a, 2.54)
     assert_equal(of.b, 25.4)
 
+def test_SFParamStmt_offset():
+    s = SFParamStmt('OF', 0, 0)
+    s.offset(1, 0)
+    assert_equal(s.a, 1.)
+    assert_equal(s.b, 0.)
+    s.offset(0, 1)
+    assert_equal(s.a, 1.)
+    assert_equal(s.b, 1.)
+
 def test_SFParamStmt_string():
     stmt = {'param': 'SF', 'a': '1.4', 'b': '0.9'}
     sf = SFParamStmt.from_dict(stmt)
     assert_equal(str(sf), '<Scale Factor: X: 1.4Y: 0.9>')
-
 
 def test_LPParamStmt_factory():
     """ Test LPParamStmt factory
@@ -293,7 +296,6 @@ def test_LPParamStmt_factory():
     lp = LPParamStmt.from_dict(stmt)
     assert_equal(lp.lp, 'dark')
 
-
 def test_LPParamStmt_dump():
     """ Test LPParamStmt to_gerber()
     """
@@ -305,7 +307,6 @@ def test_LPParamStmt_dump():
     lp = LPParamStmt.from_dict(stmt)
     assert_equal(lp.to_gerber(), '%LPD*%')
 
-
 def test_LPParamStmt_string():
     """ Test LPParamStmt.__str__()
     """
@@ -316,7 +317,6 @@ def test_LPParamStmt_string():
     stmt = {'param': 'LP', 'lp': 'C'}
     lp = LPParamStmt.from_dict(stmt)
     assert_equal(str(lp), '<Level Polarity: clear>')
-
 
 def test_AMParamStmt_factory():
     name = 'DONUTVAR'
@@ -469,7 +469,6 @@ def test_quadmodestmt_factory():
     stmt = QuadrantModeStmt.from_gerber(line)
     assert_equal(stmt.mode, 'multi-quadrant')
 
-
 def test_quadmodestmt_validation():
     """ Test QuadrantModeStmt input validation
     """
@@ -477,14 +476,12 @@ def test_quadmodestmt_validation():
     assert_raises(ValueError, QuadrantModeStmt.from_gerber, line)
     assert_raises(ValueError, QuadrantModeStmt, 'quadrant-ful')
 
-
 def test_quadmodestmt_dump():
     """ Test QuadrantModeStmt.to_gerber()
     """
     for line in ('G74*', 'G75*',):
         stmt = QuadrantModeStmt.from_gerber(line)
         assert_equal(stmt.to_gerber(), line)
-
 
 def test_regionmodestmt_factory():
     """ Test RegionModeStmt.from_gerber()
@@ -498,7 +495,6 @@ def test_regionmodestmt_factory():
     stmt = RegionModeStmt.from_gerber(line)
     assert_equal(stmt.mode, 'off')
 
-
 def test_regionmodestmt_validation():
     """ Test RegionModeStmt input validation
     """
@@ -506,14 +502,12 @@ def test_regionmodestmt_validation():
     assert_raises(ValueError, RegionModeStmt.from_gerber, line)
     assert_raises(ValueError, RegionModeStmt, 'off-ish')
 
-
 def test_regionmodestmt_dump():
     """ Test RegionModeStmt.to_gerber()
     """
     for line in ('G36*', 'G37*',):
         stmt = RegionModeStmt.from_gerber(line)
         assert_equal(stmt.to_gerber(), line)
-
 
 def test_unknownstmt():
     """ Test UnknownStmt
@@ -523,7 +517,6 @@ def test_unknownstmt():
     assert_equal(stmt.type, 'UNKNOWN')
     assert_equal(stmt.line, line)
 
-
 def test_unknownstmt_dump():
     """ Test UnknownStmt.to_gerber()
     """
@@ -531,7 +524,6 @@ def test_unknownstmt_dump():
     for line in lines:
         stmt = UnknownStmt(line)
         assert_equal(stmt.to_gerber(), line)
-
 
 def test_statement_string():
     """ Test Statement.__str__()
@@ -541,7 +533,6 @@ def test_statement_string():
     stmt.test='PASS'
     assert_true('test=PASS' in str(stmt))
     assert_true('type=PARAM' in str(stmt))
-
 
 def test_ADParamStmt_factory():
     """ Test ADParamStmt factory
@@ -663,6 +654,19 @@ def test_coordstmt_conversion():
     assert_equal(cs.i, 25.4)
     assert_equal(cs.j, 25.4)
     assert_equal(cs.function, 'G71')
+
+def test_coordstmt_offset():
+    c = CoordStmt('G71', 0, 0, 0, 0, 'D01', FileSettings())
+    c.offset(1, 0)
+    assert_equal(c.x, 1.)
+    assert_equal(c.y, 0.)
+    assert_equal(c.i, 1.)
+    assert_equal(c.j, 0.)
+    c.offset(0, 1)
+    assert_equal(c.x, 1.)
+    assert_equal(c.y, 1.)
+    assert_equal(c.i, 1.)
+    assert_equal(c.j, 1.)
 
 def test_coordstmt_string():
     cs = CoordStmt('G04', 0, 1, 2, 3, 'D01', FileSettings())

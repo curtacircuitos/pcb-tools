@@ -54,6 +54,9 @@ class ExcellonStatement(object):
     def to_metric(self):
         pass
 
+    def offset(self, x_offset=0, y_offset=0):
+        pass
+
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
@@ -294,6 +297,12 @@ class CoordinateStmt(ExcellonStatement):
         if self.y is not None:
             self.y = metric(self.y)
 
+    def offset(self, x_offset=0, y_offset=0):
+        if self.x is not None:
+            self.x += x_offset
+        if self.y is not None:
+            self.y += y_offset
+
     def __str__(self):
         coord_str = ''
         if self.x is not None:
@@ -425,6 +434,12 @@ class EndOfProgramStmt(ExcellonStatement):
             self.x = metric(self.x)
         if self.y is not None:
             self.y = metric(self.y)
+
+    def offset(self, x_offset=0, y_offset=0):
+        if self.x is not None:
+            self.x += x_offset
+        if self.y is not None:
+            self.y += y_offset
 
 class UnitStmt(ExcellonStatement):
 

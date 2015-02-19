@@ -28,6 +28,7 @@ import math
 from .excellon_statements import *
 from .cam import CamFile, FileSettings
 from .primitives import Drill
+from .utils import inch, metric
 
 
 def read(filename):
@@ -134,6 +135,9 @@ class ExcellonFile(CamFile):
                 tool.to_inch()
             for primitive in self.primitives:
                 primitive.to_inch()
+            self.hits = [(tool, tuple(map(inch, pos)))
+                         for tool, pos in self.hits]
+
 
     def to_metric(self):
         """  Convert units to metric
@@ -146,6 +150,16 @@ class ExcellonFile(CamFile):
                 tool.to_metric()
             for primitive in self.primitives:
                 primitive.to_metric()
+            self.hits = [(tool, tuple(map(metric, pos)))
+                         for tool, pos in self.hits]
+
+    def offset(self, x_offset=0, y_offset=0):
+        for statement in self.statements:
+            statement.offset(x_offset, y_offset)
+        for primitive in self.primitives:
+            primitive.offset(x_offset, y_offset)
+        self.hits = [(tool, (pos[0] + x_offset, pos[1] + y_offset))
+                     for tool, pos in self.hits]
 
 
 class ExcellonParser(object):
