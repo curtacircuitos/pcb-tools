@@ -3,11 +3,11 @@ Feature Suppport
 
 Currently supported features are as follows:
 
-============  ========  ===========  ================  ======  =======  ======= 
+============  ========  ===========  ================  ======  =======  =======
 File Format   Parsing    Rendering   Unit Conversion   Scale   Offset   Rotate
 ============  ========  ===========  ================  ======  =======  =======
-RS274-X       Yes       Yes          Yes               No      No       No
-Excellon      Yes       Yes          Yes               No      No       No
+RS274-X       Yes       Yes          Yes               No      Yes      No
+Excellon      Yes       Yes          Yes               No      Yes      No
 ODB++         No        No           No                No      No       No
 ============  ========  ===========  ================  ======  =======  =======
 

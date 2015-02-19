@@ -27,12 +27,12 @@ def to_inch(cam_file):
 
     Parameters
     ----------
-    cam_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         Gerber or Excellon file to convert
 
     Returns
     -------
-    gerber_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         A deep copy of the source file with units converted to imperial.
     """
     cam_file = copy.deepcopy(cam_file)
@@ -44,12 +44,12 @@ def to_metric(cam_file):
 
     Parameters
     ----------
-    cam_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         Gerber or Excellon file to convert
 
     Returns
     -------
-    gerber_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         A deep copy of the source file with units converted to metric.
     """
     cam_file = copy.deepcopy(cam_file)
@@ -61,7 +61,7 @@ def offset(cam_file, x_offset, y_offset):
 
     Parameters
     ----------
-    cam_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         Gerber or Excellon file to offset
 
     x_offset : float
@@ -72,7 +72,7 @@ def offset(cam_file, x_offset, y_offset):
 
     Returns
     -------
-    gerber_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         An offset deep copy of the source file.
     """
     cam_file = copy.deepcopy(cam_file)
@@ -84,7 +84,7 @@ def scale(cam_file, x_scale, y_scale):
 
     Parameters
     ----------
-    cam_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         Gerber or Excellon file to scale
 
     x_scale : float
@@ -95,7 +95,7 @@ def scale(cam_file, x_scale, y_scale):
 
     Returns
     -------
-    gerber_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         An scaled deep copy of the source file.
     """
     # TODO
@@ -106,7 +106,7 @@ def rotate(cam_file, angle):
 
     Parameters
     ----------
-    cam_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         Gerber or Excellon file to rotate
 
     angle : float
@@ -114,7 +114,7 @@ def rotate(cam_file, angle):
 
     Returns
     -------
-    gerber_file : `gerber.cam.CamFile` subclass
+    cam_file : :class:`gerber.cam.CamFile` subclass
         An rotated deep copy of the source file.
     """
     # TODO
