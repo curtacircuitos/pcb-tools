@@ -586,4 +586,4 @@ def pairwise(iterator):
     """
     itr = iter(iterator)
     while True:
-        yield tuple([itr.next() for i in range(2)])
+        yield tuple([next(itr) for i in range(2)])

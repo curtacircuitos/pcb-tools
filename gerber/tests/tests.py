@@ -20,5 +20,5 @@ __all__ = ['assert_in', 'assert_not_in', 'assert_equal', 'assert_not_equal',
 
 def assert_array_almost_equal(arr1, arr2, decimal=6):
     assert_equal(len(arr1), len(arr2))
-    for i in xrange(len(arr1)):
+    for i in range(len(arr1)):
         assert_almost_equal(arr1[i], arr2[i], decimal)
