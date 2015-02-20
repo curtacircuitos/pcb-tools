@@ -81,7 +81,7 @@ class GerberSvgContext(GerberContext):
         start = tuple(map(mul, arc.start, self.scale))
         end = tuple(map(mul, arc.end, self.scale))
         radius = SCALE * arc.radius
-        width = arc.width if arc.width != 0 else 0.001
+        width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
         arc_path = self.dwg.path(d='M %f, %f' % start,
                                     stroke=svg_color(color),
                                     stroke_width=SCALE * width)

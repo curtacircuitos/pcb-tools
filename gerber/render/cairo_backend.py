@@ -83,7 +83,7 @@ class GerberCairoContext(GerberContext):
         radius = SCALE * arc.radius
         angle1 = arc.start_angle
         angle2 = arc.end_angle
-        width = arc.width if arc.width != 0 else 0.001
+        width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
         self.ctx.set_source_rgba(*color, alpha=self.alpha)
         self.ctx.set_line_width(width * SCALE)
         self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
