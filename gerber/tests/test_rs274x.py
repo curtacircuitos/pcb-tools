@@ -23,8 +23,8 @@ def test_comments_parameter():
 def test_size_parameter():
     top_copper = read(TOP_COPPER_FILE)
     size = top_copper.size
-    assert_equal(size[0], 2.2869)
-    assert_equal(size[1], 1.8064)
+    assert_equal(size[0], 2.2569)
+    assert_equal(size[1], 1.5000)
 
 def test_conversion():
     import copy
