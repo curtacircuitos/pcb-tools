@@ -53,7 +53,8 @@ class FileSettings(object):
     and vice versa
     """
     def __init__(self, notation='absolute', units='inch',
-                 zero_suppression=None, format=(2, 5), zeros=None):
+                 zero_suppression=None, format=(2, 5), zeros=None,
+                 angle_units='degrees'):
         if notation not in ['absolute', 'incremental']:
             raise ValueError('Notation must be either absolute or incremental')
         self.notation = notation
@@ -83,6 +84,10 @@ class FileSettings(object):
         if len(format) != 2:
             raise ValueError('Format must be a tuple(n=2) of integers')
         self.format = format
+
+        if angle_units not in ('degrees', 'radians'):
+            raise ValueError('Angle units may be degrees or radians')
+        self.angle_units = angle_units
 
     @property
     def zero_suppression(self):
@@ -114,6 +119,8 @@ class FileSettings(object):
             return self.zeros
         elif key == 'format':
             return self.format
+        elif key == 'angle_units':
+            return self.angle_units
         else:
             raise KeyError()
 
@@ -144,6 +151,11 @@ class FileSettings(object):
                 raise ValueError('Format must be a tuple(n=2) of integers')
             self.format = value
 
+        elif key == 'angle_units':
+            if value not in ('degrees', 'radians'):
+                raise ValueError('Angle units may be degrees or radians')
+            self.angle_units = value
+
         else:
             raise KeyError('%s is not a valid key' % key)
 
@@ -151,7 +163,8 @@ class FileSettings(object):
         return (self.notation == other.notation and
                 self.units == other.units and
                 self.zero_suppression == other.zero_suppression and
-                self.format == other.format)
+                self.format == other.format and
+                self.angle_units == other.angle_units)
 
 
 class CamFile(object):
