@@ -47,14 +47,14 @@ ctx = GerberCairoContext()
 copper.render(ctx)
 
 # Set opacity and color for soldermask layer
-ctx.alpha = 0.65
+ctx.alpha = 0.6
 ctx.color = (0.2, 0.2, 0.75)
 
 # Draw the soldermask layer
 mask.render(ctx)
 
 # Set opacity and color for silkscreen layer
-ctx.alpha = 0.9
+ctx.alpha = 0.85
 ctx.color = (1, 1, 1)
 
 # Draw the silkscreen layer
