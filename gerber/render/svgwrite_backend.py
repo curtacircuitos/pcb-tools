@@ -109,7 +109,7 @@ class GerberSvgContext(GerberContext):
         self.dwg.add(acircle)
 
     def _render_rectangle(self, rectangle, color):
-        center = map(mul, rectangle.position, self.scale)
+        center = tuple(map(mul, rectangle.position, self.scale))
         size = tuple(map(mul, (rectangle.width, rectangle.height), map(abs, self.scale)))
         insert = center[0] - size[0] / 2., center[1] - size[1] / 2.
         arect = self.dwg.rect(insert=insert, size=size,
