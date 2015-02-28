@@ -21,7 +21,7 @@ if __name__ == '__main__':
     import sys
 
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."
+        sys.stderr.write("Usage: python -m gerber <filename> <filename>...\n")
         sys.exit(1)
 
     ctx = GerberSvgContext()
