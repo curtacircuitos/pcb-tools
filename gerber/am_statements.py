@@ -406,9 +406,13 @@ class AMPolygonPrimitive(AMPrimitive):
         modifiers = primitive.strip(' *').split(",")
         code = int(modifiers[0])
         exposure = "on" if modifiers[1].strip() == "1" else "off"
-        vertices = int(modifiers[2])
+        vertices = int(float(modifiers[2]))
         position = (float(modifiers[3]), float(modifiers[4]))
-        diameter = float(modifiers[5])
+        try:
+            diameter = float(modifiers[5])
+        except:
+            diameter = 0
+
         rotation = float(modifiers[6])
         return cls(code, exposure, vertices, position, diameter, rotation)
 
