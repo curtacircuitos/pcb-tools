@@ -160,7 +160,7 @@ class AMCirclePrimitive(AMPrimitive):
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(',')
         code = int(modifiers[0])
-        exposure = 'on' if modifiers[1].strip() == '1' else 'off'
+        exposure = 'on' if float(modifiers[1]) == 1 else 'off'
         diameter = float(modifiers[2])
         position = (float(modifiers[3]), float(modifiers[4]))
         return cls(code, exposure, diameter, position)
@@ -233,7 +233,7 @@ class AMVectorLinePrimitive(AMPrimitive):
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(',')
         code = int(modifiers[0])
-        exposure = 'on' if modifiers[1].strip() == '1' else 'off'
+        exposure = 'on' if float(modifiers[1]) == 1 else 'off'
         width = float(modifiers[2])
         start = (float(modifiers[3]), float(modifiers[4]))
         end = (float(modifiers[5]), float(modifiers[6]))
@@ -318,8 +318,8 @@ class AMOutlinePrimitive(AMPrimitive):
         modifiers = primitive.strip(' *').split(",")
 
         code = int(modifiers[0])
-        exposure = "on" if modifiers[1].strip() == "1" else "off"
-        n = int(modifiers[2])
+        exposure = "on" if float(modifiers[1]) == 1 else "off"
+        n = int(float(modifiers[2]))
         start_point = (float(modifiers[3]), float(modifiers[4]))
         points = []
         for i in range(n):
@@ -405,10 +405,14 @@ class AMPolygonPrimitive(AMPrimitive):
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")
         code = int(modifiers[0])
-        exposure = "on" if modifiers[1].strip() == "1" else "off"
-        vertices = int(modifiers[2])
+        exposure = "on" if float(modifiers[1]) == 1 else "off"
+        vertices = int(float(modifiers[2]))
         position = (float(modifiers[3]), float(modifiers[4]))
-        diameter = float(modifiers[5])
+        try:
+            diameter = float(modifiers[5])
+        except:
+            diameter = 0
+
         rotation = float(modifiers[6])
         return cls(code, exposure, vertices, position, diameter, rotation)
 
@@ -504,7 +508,7 @@ class AMMoirePrimitive(AMPrimitive):
         diameter = float(modifiers[3])
         ring_thickness = float(modifiers[4])
         gap = float(modifiers[5])
-        max_rings = int(modifiers[6])
+        max_rings = int(float(modifiers[6]))
         crosshair_thickness = float(modifiers[7])
         crosshair_length = float(modifiers[8])
         rotation = float(modifiers[9])
@@ -686,7 +690,7 @@ class AMCenterLinePrimitive(AMPrimitive):
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")
         code = int(modifiers[0])
-        exposure = 'on' if modifiers[1].strip() == '1' else 'off'
+        exposure = 'on' if float(modifiers[1]) == 1 else 'off'
         width = float(modifiers[2])
         height = float(modifiers[3])
         center= (float(modifiers[4]), float(modifiers[5]))
@@ -768,7 +772,7 @@ class AMLowerLeftLinePrimitive(AMPrimitive):
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")
         code = int(modifiers[0])
-        exposure = 'on' if modifiers[1].strip() == '1' else 'off'
+        exposure = 'on' if float(modifiers[1]) == 1 else 'off'
         width = float(modifiers[2])
         height = float(modifiers[3])
         lower_left = (float(modifiers[4]), float(modifiers[5]))

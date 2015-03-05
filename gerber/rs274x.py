@@ -189,6 +189,7 @@ class GerberParser(object):
         self.statements = []
         self.primitives = []
         self.apertures = {}
+        self.macros = {}
         self.current_region = None
         self.x = 0
         self.y = 0
@@ -392,6 +393,12 @@ class GerberParser(object):
             width = modifiers[0][0]
             height = modifiers[0][1]
             aperture = Obround(position=None, width=width, height=height)
+        elif shape == 'P':
+            # FIXME: not supported yet?
+            pass
+        else:
+            aperture = self.macros[shape].build(modifiers)
+
         self.apertures[d] = aperture
 
     def _evaluate_mode(self, stmt):
@@ -414,6 +421,8 @@ class GerberParser(object):
             self.image_polarity = stmt.ip
         elif stmt.param == "LP":
             self.level_polarity = stmt.lp
+        elif stmt.param == "AM":
+            self.macros[stmt.name] = stmt
         elif stmt.param == "AD":
             self._define_aperture(stmt.d, stmt.shape, stmt.modifiers)
 
@@ -449,9 +458,14 @@ class GerberParser(object):
             primitive = copy.deepcopy(self.apertures[self.aperture])
             # XXX: temporary fix because there are no primitives for Macros and Polygon
             if primitive is not None:
-                primitive.position = (x, y)
-                primitive.level_polarity = self.level_polarity
-                self.primitives.append(primitive)
+                # XXX: just to make it easy to spot
+                if isinstance(primitive, type([])):
+                    print(primitive[0].to_gerber())
+                else:
+                    primitive.position = (x, y)
+                    primitive.level_polarity = self.level_polarity
+                    self.primitives.append(primitive)
+
         self.x, self.y = x, y
 
     def _evaluate_aperture(self, stmt):

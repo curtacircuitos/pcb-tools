@@ -22,7 +22,10 @@ Gerber (RS-274X) Statements
 """
 from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
                     inch, metric)
+
 from .am_statements import *
+from .am_read import read_macro
+from .am_eval import eval_macro
 
 
 class Statement(object):
@@ -340,35 +343,37 @@ class AMParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.name = name
         self.macro = macro
-        self.primitives = self._parsePrimitives(macro)
 
-    def _parsePrimitives(self, macro):
-        primitives = []
-        for primitive in macro.strip('%\n').split('*'):
-            # Couldn't find anything explicit about leading whitespace in the spec...
-            primitive = primitive.strip(' *%\n')
-            if len(primitive):
-                if primitive[0] == '0':
-                    primitives.append(AMCommentPrimitive.from_gerber(primitive))
-                elif primitive[0] == '1':
-                    primitives.append(AMCirclePrimitive.from_gerber(primitive))
-                elif primitive[0:2] in ('2,', '20'):
-                    primitives.append(AMVectorLinePrimitive.from_gerber(primitive))
-                elif primitive[0:2] == '21':
-                    primitives.append(AMCenterLinePrimitive.from_gerber(primitive))
-                elif primitive[0:2] == '22':
-                    primitives.append(AMLowerLeftLinePrimitive.from_gerber(primitive))
-                elif primitive[0] == '4':
-                    primitives.append(AMOutlinePrimitive.from_gerber(primitive))
-                elif primitive[0] == '5':
-                    primitives.append(AMPolygonPrimitive.from_gerber(primitive))
-                elif primitive[0] =='6':
-                    primitives.append(AMMoirePrimitive.from_gerber(primitive))
-                elif primitive[0] == '7':
-                    primitives.append(AMThermalPrimitive.from_gerber(primitive))
-                else:
-                    primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
-        return primitives
+        self.instructions = self.read(macro)
+        self.primitives = []
+
+    def read(self, macro):
+        return read_macro(macro)
+
+    def build(self, modifiers=[[]]):
+        self.primitives = []
+
+        for primitive in eval_macro(self.instructions, modifiers[0]):
+            if primitive[0] == '0':
+                self.primitives.append(AMCommentPrimitive.from_gerber(primitive))
+            elif primitive[0] == '1':
+                self.primitives.append(AMCirclePrimitive.from_gerber(primitive))
+            elif primitive[0:2] in ('2,', '20'):
+                self.primitives.append(AMVectorLinePrimitive.from_gerber(primitive))
+            elif primitive[0:2] == '21':
+                self.primitives.append(AMCenterLinePrimitive.from_gerber(primitive))
+            elif primitive[0:2] == '22':
+                self.primitives.append(AMLowerLeftLinePrimitive.from_gerber(primitive))
+            elif primitive[0] == '4':
+                self.primitives.append(AMOutlinePrimitive.from_gerber(primitive))
+            elif primitive[0] == '5':
+                self.primitives.append(AMPolygonPrimitive.from_gerber(primitive))
+            elif primitive[0] =='6':
+                self.primitives.append(AMMoirePrimitive.from_gerber(primitive))
+            elif primitive[0] == '7':
+                self.primitives.append(AMThermalPrimitive.from_gerber(primitive))
+            else:
+                self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
 
     def to_inch(self):
         for primitive in self.primitives:
