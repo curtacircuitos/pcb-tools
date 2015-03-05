@@ -108,7 +108,7 @@ class Scanner:
 
 def print_instructions(instructions):
     for opcode, argument in instructions:
-        print "%s %s" % (OpCode.str(opcode), str(argument) if argument is not None else "")
+        print("%s %s" % (OpCode.str(opcode), str(argument) if argument is not None else ""))
 
 
 def read_macro(macro):

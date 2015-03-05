@@ -460,7 +460,7 @@ class GerberParser(object):
             if primitive is not None:
                 # XXX: just to make it easy to spot
                 if isinstance(primitive, type([])):
-                    print primitive[0].to_gerber()
+                    print(primitive[0].to_gerber())
                 else:
                     primitive.position = (x, y)
                     primitive.level_polarity = self.level_polarity
