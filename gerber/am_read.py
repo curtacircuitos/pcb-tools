@@ -228,9 +228,9 @@ if __name__ == '__main__':
 
     instructions = read_macro(sys.argv[1])
 
-    print "insructions:"
+    print("insructions:")
     print_instructions(instructions)
 
-    print "eval:"
+    print("eval:")
     for primitive in eval_macro(instructions):
-        print primitive
+        print(primitive)
