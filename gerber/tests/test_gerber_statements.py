@@ -333,6 +333,7 @@ def test_AMParamStmt_factory():
 8,THIS IS AN UNSUPPORTED PRIMITIVE*
 ''')
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    s.build()
     assert_equal(len(s.primitives), 10)
     assert_true(isinstance(s.primitives[0], AMCommentPrimitive))
     assert_true(isinstance(s.primitives[1], AMCirclePrimitive))
@@ -347,29 +348,34 @@ def test_AMParamStmt_factory():
 
 def testAMParamStmt_conversion():
     name = 'POLYGON'
-    macro = '5,1,8,25.4,25.4,25.4,0*%'
+    macro = '5,1,8,25.4,25.4,25.4,0*'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    s.build()
     s.to_inch()
     assert_equal(s.primitives[0].position, (1., 1.))
     assert_equal(s.primitives[0].diameter, 1.)
 
-    macro = '5,1,8,1,1,1,0*%'
+    macro = '5,1,8,1,1,1,0*'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    s.build()
     s.to_metric()
     assert_equal(s.primitives[0].position, (25.4, 25.4))
     assert_equal(s.primitives[0].diameter, 25.4)
 
 def test_AMParamStmt_dump():
     name = 'POLYGON'
-    macro = '5,1,8,25.4,25.4,25.4,0*%'
+    macro = '5,1,8,25.4,25.4,25.4,0*'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+    s.build()
+
     assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0.0*%')
 
 def test_AMParamStmt_string():
     name = 'POLYGON'
-    macro = '5,1,8,25.4,25.4,25.4,0*%'
+    macro = '5,1,8,25.4,25.4,25.4,0*'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
-    assert_equal(str(s), '<Aperture Macro POLYGON: 5,1,8,25.4,25.4,25.4,0*%>')
+    s.build()
+    assert_equal(str(s), '<Aperture Macro POLYGON: 5,1,8,25.4,25.4,25.4,0*>')
 
 def test_ASParamStmt_factory():
     stmt = {'param': 'AS', 'mode': 'AXBY'}

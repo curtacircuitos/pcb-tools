@@ -397,7 +397,7 @@ class GerberParser(object):
             # FIXME: not supported yet?
             pass
         else:
-            aperture = self.macros[shape].evaluate(modifiers)
+            aperture = self.macros[shape].build(modifiers)
 
         self.apertures[d] = aperture
 

@@ -350,31 +350,30 @@ class AMParamStmt(ParamStmt):
     def read(self, macro):
         return read_macro(macro)
 
-    def evaluate(self, modifiers=[]):
-        primitives = []
+    def build(self, modifiers=[[]]):
+        self.primitives = []
+
         for primitive in eval_macro(self.instructions, modifiers[0]):
             if primitive[0] == '0':
-                primitives.append(AMCommentPrimitive.from_gerber(primitive))
+                self.primitives.append(AMCommentPrimitive.from_gerber(primitive))
             elif primitive[0] == '1':
-                primitives.append(AMCirclePrimitive.from_gerber(primitive))
+                self.primitives.append(AMCirclePrimitive.from_gerber(primitive))
             elif primitive[0:2] in ('2,', '20'):
-                primitives.append(AMVectorLinePrimitive.from_gerber(primitive))
+                self.primitives.append(AMVectorLinePrimitive.from_gerber(primitive))
             elif primitive[0:2] == '21':
-                primitives.append(AMCenterLinePrimitive.from_gerber(primitive))
+                self.primitives.append(AMCenterLinePrimitive.from_gerber(primitive))
             elif primitive[0:2] == '22':
-                primitives.append(AMLowerLeftLinePrimitive.from_gerber(primitive))
+                self.primitives.append(AMLowerLeftLinePrimitive.from_gerber(primitive))
             elif primitive[0] == '4':
-                primitives.append(AMOutlinePrimitive.from_gerber(primitive))
+                self.primitives.append(AMOutlinePrimitive.from_gerber(primitive))
             elif primitive[0] == '5':
-                primitives.append(AMPolygonPrimitive.from_gerber(primitive))
+                self.primitives.append(AMPolygonPrimitive.from_gerber(primitive))
             elif primitive[0] =='6':
-                primitives.append(AMMoirePrimitive.from_gerber(primitive))
+                self.primitives.append(AMMoirePrimitive.from_gerber(primitive))
             elif primitive[0] == '7':
-                primitives.append(AMThermalPrimitive.from_gerber(primitive))
+                self.primitives.append(AMThermalPrimitive.from_gerber(primitive))
             else:
-                primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
-
-        return primitives
+                self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
 
     def to_inch(self):
         for primitive in self.primitives:

@@ -32,6 +32,7 @@ class Token:
     LEFT_PARENS = "("
     RIGHT_PARENS = ")"
     EQUALS = "="
+    EOF = "EOF"
 
 
 def token_to_opcode(token):
@@ -71,7 +72,8 @@ class Scanner:
     def peek(self):
         if not self.eof():
             return self.buff[self.n]
-        return ""
+
+        return Token.EOF
 
     def ungetc(self):
         if self.n > 0:
@@ -102,6 +104,11 @@ class Scanner:
         while not self.eof() and self.peek() != end:
             s += self.getc()
         return s.strip()
+
+
+def print_instructions(instructions):
+    for opcode, argument in instructions:
+        print "%s %s" % (OpCode.str(opcode), str(argument) if argument is not None else "")
 
 
 def read_macro(macro):
@@ -185,9 +192,10 @@ def read_macro(macro):
             elif c == "0":
                 if is_primitive and not found_primitive_code:
                     instructions.append((OpCode.PUSH, scanner.readstr("*")))
+                    found_primitive_code = True
                 else:
                     # decimal or integer disambiguation
-                    if scanner.peek() not in '.':
+                    if scanner.peek() not in '.' or scanner.peek() == Token.EOF:
                         instructions.append((OpCode.PUSH, 0))
 
             elif c in "123456789.":
@@ -207,7 +215,7 @@ def read_macro(macro):
             instructions.append((token_to_opcode(pop()), None))
 
         # at end, we either have a primitive or a equation
-        if is_primitive:
+        if is_primitive and found_primitive_code:
             instructions.append((OpCode.PRIM, primitive_code))
 
         if is_equation:
@@ -221,8 +229,7 @@ if __name__ == '__main__':
     instructions = read_macro(sys.argv[1])
 
     print "insructions:"
-    for opcode, argument in instructions:
-        print "%s %s" % (OpCode.str(opcode), str(argument) if argument is not None else "")
+    print_instructions(instructions)
 
     print "eval:"
     for primitive in eval_macro(instructions):
