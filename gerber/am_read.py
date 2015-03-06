@@ -126,6 +126,9 @@ def read_macro(macro):
         equation_left_side = 0
         primitive_code = 0
 
+        unary_minus_allowed = False
+        unary_minus = False
+
         if Token.EQUALS in block:
             is_equation = True
         else:
@@ -159,7 +162,14 @@ def read_macro(macro):
                 while not empty():
                     instructions.append((token_to_opcode(pop()), None))
 
+                unary_minus_allowed = True
+
             elif c in Token.OPERATORS:
+                if c == Token.SUB and unary_minus_allowed:
+                    unary_minus = True
+                    unary_minus_allowed = False
+                    continue
+
                 while not empty() and is_op(top()) and precedence(top()) >= precedence(c):
                     instructions.append((token_to_opcode(pop()), None))
 
@@ -204,8 +214,12 @@ def read_macro(macro):
                 if is_primitive and not found_primitive_code:
                     primitive_code = scanner.readint()
                 else:
-                    instructions.append((OpCode.PUSH, scanner.readfloat()))
+                    n = scanner.readfloat()
+                    if unary_minus:
+                        unary_minus = False
+                        n *= -1
 
+                    instructions.append((OpCode.PUSH, n))
             else:
                 # whitespace or unknown char
                 pass
