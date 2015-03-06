@@ -27,6 +27,9 @@ _NNAME = re.compile(r'^NNAME\d+$')
 # Board Edge Coordinates
 _COORD = re.compile(r'X?(?P<x>[\d\s]*)?Y?(?P<y>[\d\s]*)?')
 
+_SM_FIELD = {'0': 'none', '1': 'primary side', '2': 'secondary side', '3': 'both'}
+
+
 
 def read(filename):
     """ Read data from filename and return an IPC_D_356
@@ -81,8 +84,19 @@ class IPC_D_356(CamFile):
 
     @property
     def nets(self):
-        return list(set([rec.net_name for rec in self.test_records
-                         if rec.net_name is not None]))
+        nets = []
+        for net in list(set([rec.net_name for rec in self.test_records
+                             if rec.net_name is not None])):
+            adjacent_nets = set()
+            for record in self.adjacency_records:
+                if record.net == net:
+                    adjacent_nets = adjacent_nets.update(record.adjacent_nets)
+                elif net in record.adjacent_nets:
+                    adjacent_nets.add(record.net)
+            nets.append(IPC356_Net(net, adjacent_nets))
+        return nets
+                
+                    
 
     @property
     def components(self):
@@ -94,13 +108,16 @@ class IPC_D_356(CamFile):
         return [rec.id for rec in self.test_records if rec.id == 'VIA']
 
     @property
-    def board_outline(self):
-        outline = [stmt for stmt in self.statements if isinstance(stmt, IPC356_BoardEdge)]
-        if len(outline):
-            return outline[0].points
-        else:
-            return None
+    def outlines(self):
+        return [stmt for stmt in self.statements 
+                if isinstance(stmt, IPC356_Outline)]
 
+
+
+    @property
+    def adjacency_records(self):
+        return [record for record in self.statements 
+                if isinstance(record, IPC356_Adjacency)]
 
     def render(self, ctx, layer='both', filename=None):
         for p in self.primitives:
@@ -182,12 +199,17 @@ class IPC_D_356_Parser(object):
                 record.net_name = self.nnames[record.net_name]
             self.statements.append(record)
 
+        elif line[0:3] == '378':
+            # Conductor
+            self.statements.append(IPC356_Conductor.from_line(line, self.settings))
+            
         elif line[0:3] == '379':
-            # Net Adjacency Info
-            pass
+            # Net Adjacency
+            self.statements.append(IPC356_Adjacency.from_line(line))
+            
         elif line[0:3] == '389':
-            # Altium Board Edge Info
-            self.statements.append(IPC356_BoardEdge.from_line(line, self.settings))
+            # Outline
+            self.statements.append(IPC356_Outline.from_line(line, self.settings))
 
 
 class IPC356_Comment(object):
@@ -296,7 +318,8 @@ class IPC356_TestRecord(object):
 
         if len(line) >= 74:
             end = len(line) - 1 if len(line) < 75 else 74
-            record['soldermask_info'] = line[73:74].strip()
+            sm_info = line[73:74].strip()
+            record['soldermask_info'] = _SM_FIELD.get(sm_info)
 
         if len(line) >= 76:
             end = len(line) - 1 if len(line < 80) else 79
@@ -309,13 +332,14 @@ class IPC356_TestRecord(object):
             setattr(self, key, kwargs[key])
 
     def __repr__(self):
-        return '<IPC-D-356 Test Record: Net: %s Type: %s>' % (self.net_name,
+        return '<IPC-D-356 %s Test Record: %s>' % (self.net_name,
                                                             self.feature_type)
 
-class IPC356_BoardEdge(object):
+class IPC356_Outline(object):
 
     @classmethod
     def from_line(cls, line, settings):
+        type = line[3:17].strip()
         scale = 0.0001 if settings.units == 'inch' else 0.001
         points = []
         x = 0
@@ -326,27 +350,78 @@ class IPC356_BoardEdge(object):
             x = int(coord_dict['x']) if coord_dict['x'] is not '' else x
             y = int(coord_dict['y']) if coord_dict['y'] is not '' else y
             points.append((x * scale, y * scale))
-        return cls(points)
+        return cls(type, points)
 
-    def __init__(self, points):
+    def __init__(self, type, points):
+        self.type = type
         self.points = points
 
     def __repr__(self):
-        return '<IPC-D-356 Board Edge Definition>'
+        return '<IPC-D-356 %s Outline Definition>' % self.type
+
+
+class IPC356_Conductor(object):
+    @classmethod
+    def from_line(cls, line, settings):
+        if line[0:3] != '378':
+            raise ValueError('Not a valid IPC-D-356 Conductor statement')
+            
+        scale = 0.0001 if settings.units == 'inch' else 0.001
+        net_name = line[3:17].strip()
+        layer = int(line[19:21])
+        
+        # Parse out aperture definiting
+        raw_aperture = line[22:].split()[0]
+        aperture_dict = _COORD.match(raw_aperture).groupdict()
+        x = 0
+        y = 0
+        x = int(aperture_dict['x']) * scale if aperture_dict['x'] is not '' else None
+        y = int(aperture_dict['y']) * scale if aperture_dict['y'] is not '' else None
+        aperture = (x, y)
+        
+        # Parse out conductor shapes
+        shapes = []
+        coord_list = ' '.join(line[22:].split()[1:])
+        raw_shapes = coord_list.split('*')
+        for rshape in raw_shapes:
+            x = 0
+            y = 0
+            shape = []
+            coords = rshape.split()
+            for coord in coords:
+                coord_dict = _COORD.match(coord).groupdict()
+                x = int(coord_dict['x']) if coord_dict['x'] is not '' else x
+                y = int(coord_dict['y']) if coord_dict['y'] is not '' else y
+                shape.append((x * scale, y * scale))
+            shapes.append(tuple(shape))
+        return cls(net_name, layer, aperture, tuple(shapes))
+        
+    def __init__(self, net_name, layer, aperture, shapes):
+        self.net_name = net_name
+        self.layer = layer
+        self.aperture = aperture
+        self.shapes = shapes
+
+    def __repr__(self):
+        return '<IPC-D-356 %s Conductor Record>' % self.net_name
 
 
 class IPC356_Adjacency(object):
 
     @classmethod
     def from_line(cls, line):
-        nets = line.strip().split()[1:]
-        return cls(nets)
+        if line[0:3] != '379':
+            raise ValueError('Not a valid IPC-D-356 Conductor statement')
+        nets = line[3:].strip().split()
+        
+        return cls(nets[0], nets[1:])
 
-    def __init__(self, nets):
-        self.nets = nets
-
+    def __init__(self, net, adjacent_nets):
+        self.net = net
+        self.adjacent_nets = adjacent_nets
+        
     def __repr__(self):
-        return '<IPC-D-356 Adjacency Record>'
+        return '<IPC-D-356 %s Adjacency Record>' % self.net
 
 
 class IPC356_EndOfFile(object):
@@ -358,3 +433,12 @@ class IPC356_EndOfFile(object):
 
     def __repr__(self):
         return '<IPC-D-356 EOF>'
+        
+class IPC356_Net(object):
+    def __init__(self, name, adjacent_nets):
+        self.name = name
+        self.adjacent_nets = set(adjacent_nets) if adjacent_nets is not None else set()
+        
+
+    def __repr__(self):
+        return '<IPC-D-356 Net %s>' % self.name
