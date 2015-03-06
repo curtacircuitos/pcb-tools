@@ -104,7 +104,7 @@ class GerberCairoContext(GerberContext):
         self.ctx.fill()
 
     def _render_circle(self, circle, color):
-        center = map(mul, circle.position, self.scale)
+        center = tuple(map(mul, circle.position, self.scale))
         self.ctx.set_source_rgba(*color, alpha=self.alpha)
         self.ctx.set_line_width(0)
         self.ctx.arc(*center, radius=circle.radius * SCALE, angle1=0, angle2=2 * math.pi)
@@ -125,6 +125,16 @@ class GerberCairoContext(GerberContext):
 
     def _render_drill(self, circle, color):
         self._render_circle(circle, color)
+
+    def _render_test_record(self, primitive, color):
+        self.ctx.select_font_face('monospace', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
+        self.ctx.set_font_size(200)
+        self._render_circle(Circle(primitive.position, 0.01), color)
+        self.ctx.set_source_rgb(*color)
+        self.ctx.move_to(*[SCALE * (coord + 0.01) for coord in primitive.position])
+        self.ctx.scale(1, -1)
+        self.ctx.show_text(primitive.net_name)
+        self.ctx.scale(1, -1)
 
     def dump(self, filename):
         self.surface.write_to_png(filename)

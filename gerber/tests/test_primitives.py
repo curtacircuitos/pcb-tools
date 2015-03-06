@@ -681,13 +681,13 @@ def test_donut_conversion():
     d.to_inch()
     assert_equal(d.position, (0.1, 1.0))
     assert_equal(d.inner_diameter, 10.0)
-    assert_equal(d.outer_diaemter, 100.0)
+    assert_equal(d.outer_diameter, 100.0)
 
     d = Donut((0.1, 1.0), 'round', 10.0, 100.0)
     d.to_metric()
     assert_equal(d.position, (2.54, 25.4))
     assert_equal(d.inner_diameter, 254.0)
-    assert_equal(d.outer_diaemter, 2540.0)
+    assert_equal(d.outer_diameter, 2540.0)
 
 def test_donut_offset():
     d = Donut((0, 0), 'round', 1, 10)

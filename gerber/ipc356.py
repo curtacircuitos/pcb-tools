@@ -18,7 +18,8 @@
 
 import math
 import re
-from .cam import FileSettings
+from .cam import CamFile, FileSettings
+from .primitives import TestRecord
 
 # Net Name Variables
 _NNAME = re.compile(r'^NNAME\d+$')
@@ -44,7 +45,7 @@ def read(filename):
     return IPC_D_356.from_file(filename)
 
 
-class IPC_D_356(object):
+class IPC_D_356(CamFile):
 
     @classmethod
     def from_file(self, filename):
@@ -52,10 +53,12 @@ class IPC_D_356(object):
         return p.parse(filename)
 
 
-    def __init__(self, statements, settings):
+    def __init__(self, statements, settings, primitives=None):
         self.statements = statements
         self.units = settings.units
         self.angle_units = settings.angle_units
+        self.primitives = [TestRecord((rec.x_coord, rec.y_coord), rec.net_name,
+                                      rec.access) for rec in self.test_records]
 
     @property
     def settings(self):
@@ -98,6 +101,19 @@ class IPC_D_356(object):
         else:
             return None
 
+
+    def render(self, ctx, layer='both', filename=None):
+        for p in self.primitives:
+            if layer == 'both' and p.layer in ('top', 'bottom', 'both'):
+                ctx.render(p)
+            elif layer == 'top' and p.layer in ('top', 'both'):
+                ctx.render(p)
+            elif layer == 'bottom' and p.layer in ('bottom', 'both'):
+                ctx.render(p)
+        if filename is not None:
+            ctx.dump(filename)
+
+
 class IPC_D_356_Parser(object):
     # TODO: Allow multi-line statements (e.g. Altium board edge)
     def __init__(self):
@@ -112,49 +128,66 @@ class IPC_D_356_Parser(object):
 
     def parse(self, filename):
         with open(filename, 'r') as f:
+            oldline = ''
             for line in f:
-
-                if line[0] == 'C':
-                    # Comment
-                    self.statements.append(IPC356_Comment.from_line(line))
-
-                elif line[0] == 'P':
-                    # Parameter
-                    p = IPC356_Parameter.from_line(line)
-                    if p.parameter == 'UNITS':
-                        if p.value in ('CUST', 'CUST 0'):
-                            self.units = 'inch'
-                            self.angle_units = 'degrees'
-                        elif p.value == 'CUST 1':
-                            self.units = 'metric'
-                            self.angle_units = 'degrees'
-                        elif p.value == 'CUST 2':
-                            self.units = 'inch'
-                            self.angle_units = 'radians'
-                    self.statements.append(p)
-                    if _NNAME.match(p.parameter):
-                        # Add to list of net name variables
-                        self.nnames[p.parameter] = p.value
-
-                elif line[0] == '3' and line[2] == '7':
-                    # Test Record
-                    record = IPC356_TestRecord.from_line(line, self.settings)
-
-                    # Substitute net name variables
-                    net = record.net_name
-                    if (_NNAME.match(net) and net in self.nnames.keys()):
-                        record.net_name = self.nnames[record.net_name]
-                    self.statements.append(record)
-
-                elif line[0:3] == '389':
-                    # Altium Board Edge Info
-                    self.statements.append(IPC356_BoardEdge.from_line(line, self.settings))
-
-                elif line[0] == '9':
-                    self.multiline = False
-                    self.statements.append(IPC356_EndOfFile())
+                # Check for existing multiline data...
+                if oldline != '':
+                    if len(line) and line[0] == '0':
+                        oldline = oldline.rstrip('\r\n') + line[3:].rstrip()
+                    else:
+                        self._parse_line(oldline)
+                        oldline = line
+                else:
+                    oldline = line
+        self._parse_line(oldline)
 
         return IPC_D_356(self.statements, self.settings)
+
+
+    def _parse_line(self, line):
+        if not len(line):
+            return
+        if line[0] == 'C':
+            # Comment
+            self.statements.append(IPC356_Comment.from_line(line))
+
+        elif line[0] == 'P':
+            # Parameter
+            p = IPC356_Parameter.from_line(line)
+            if p.parameter == 'UNITS':
+                if p.value in ('CUST', 'CUST 0'):
+                    self.units = 'inch'
+                    self.angle_units = 'degrees'
+                elif p.value == 'CUST 1':
+                    self.units = 'metric'
+                    self.angle_units = 'degrees'
+                elif p.value == 'CUST 2':
+                    self.units = 'inch'
+                    self.angle_units = 'radians'
+            self.statements.append(p)
+            if _NNAME.match(p.parameter):
+                # Add to list of net name variables
+                self.nnames[p.parameter] = p.value
+
+        elif line[0] == '9':
+            self.statements.append(IPC356_EndOfFile())
+
+        elif line[0:3] in ('317', '327', '367'):
+            # Test Record
+            record = IPC356_TestRecord.from_line(line, self.settings)
+
+            # Substitute net name variables
+            net = record.net_name
+            if (_NNAME.match(net) and net in self.nnames.keys()):
+                record.net_name = self.nnames[record.net_name]
+            self.statements.append(record)
+
+        elif line[0:3] == '379':
+            # Net Adjacency Info
+            pass
+        elif line[0:3] == '389':
+            # Altium Board Edge Info
+            self.statements.append(IPC356_BoardEdge.from_line(line, self.settings))
 
 
 class IPC356_Comment(object):
@@ -301,6 +334,19 @@ class IPC356_BoardEdge(object):
     def __repr__(self):
         return '<IPC-D-356 Board Edge Definition>'
 
+
+class IPC356_Adjacency(object):
+
+    @classmethod
+    def from_line(cls, line):
+        nets = line.strip().split()[1:]
+        return cls(nets)
+
+    def __init__(self, nets):
+        self.nets = nets
+
+    def __repr__(self):
+        return '<IPC-D-356 Adjacency Record>'
 
 
 class IPC356_EndOfFile(object):

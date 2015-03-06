@@ -26,6 +26,9 @@ files.
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 # License:
 
+from math import radians, sin, cos
+from operator import sub
+
 MILLIMETERS_PER_INCH = 25.4
 
 def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
@@ -238,7 +241,57 @@ def validate_coordinates(position):
 
 
 def metric(value):
+    """ Convert inch value to millimeters
+
+    Parameters
+    ----------
+    value : float
+        A value in inches.
+
+    Returns
+    -------
+    value : float
+        The equivalent value expressed in millimeters.
+    """
     return value * MILLIMETERS_PER_INCH
 
 def inch(value):
+    """ Convert millimeter value to inches
+
+    Parameters
+    ----------
+    value : float
+        A value in millimeters.
+
+    Returns
+    -------
+    value : float
+        The equivalent value expressed in inches.
+    """
     return value / MILLIMETERS_PER_INCH
+
+
+def rotate_point(point, angle, center=(0.0, 0.0)):
+    """ Rotate a point about another point.
+
+    Parameters
+    -----------
+    point : tuple(<float>, <float>)
+        Point to rotate about origin or center point
+
+    angle : float
+        Angle to rotate the point [degrees]
+
+    center : tuple(<float>, <float>)
+        Coordinates about which the point is rotated. Defaults to the origin.
+
+    Returns
+    -------
+    rotated_point : tuple(<float>, <float>)
+        `point` rotated about `center` by `angle` degrees.
+    """
+    angle = radians(angle)
+    xdelta, ydelta = tuple(map(sub, point, center))
+    x = center[0] + (cos(angle) * xdelta) - (sin(angle) * ydelta)
+    y = center[1] + (sin(angle) * xdelta) - (cos(angle) * ydelta)
+    return (x, y)

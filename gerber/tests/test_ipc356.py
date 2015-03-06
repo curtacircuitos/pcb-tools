@@ -25,7 +25,7 @@ def test_parser():
     assert_equal(len(ipcfile.vias), 14)
     assert_equal(ipcfile.test_records[-1].net_name, 'A_REALLY_LONG_NET_NAME')
     assert_equal(set(ipcfile.board_outline),
-                 {(0., 0.), (2.25, 0.), (2.25, 1.5), (0., 1.5)})
+                 {(0., 0.), (2.25, 0.), (2.25, 1.5), (0., 1.5), (0.13, 0.024)})
 
 def test_comment():
     c = IPC356_Comment('Layer Stackup:')

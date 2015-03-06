@@ -713,8 +713,7 @@ class Donut(Primitive):
     """
     def __init__(self, position, shape, inner_diameter, outer_diameter, **kwargs):
         super(Donut, self).__init__(**kwargs)
-        if len(position) != 2:
-            raise TypeError('Position must be a tuple (n=2) of coordinates')
+        validate_coordinates(position)
         self.position = position
         if shape not in ('round', 'square', 'hexagon', 'octagon'):
             raise ValueError('Valid shapes are round, square, hexagon or octagon')
@@ -730,7 +729,6 @@ class Donut(Primitive):
             # Hexagon
             self.width = 0.5 * math.sqrt(3.) * outer_diameter
             self.height = outer_diameter
-
 
     @property
     def lower_left(self):
@@ -755,14 +753,56 @@ class Donut(Primitive):
         self.width = inch(self.width)
         self.height = inch(self.height)
         self.inner_diameter = inch(self.inner_diameter)
-        self.outer_diaemter = inch(self.outer_diameter)
+        self.outer_diameter = inch(self.outer_diameter)
 
     def to_metric(self):
         self.position = tuple(map(metric, self.position))
         self.width = metric(self.width)
         self.height = metric(self.height)
         self.inner_diameter = metric(self.inner_diameter)
-        self.outer_diaemter = metric(self.outer_diameter)
+        self.outer_diameter = metric(self.outer_diameter)
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+
+class SquareRoundDonut(Primitive):
+    """ A Square with a circular cutout in the center
+    """
+    def __init__(self, position, inner_diameter, outer_diameter, **kwargs):
+        super(SquareRoundDonut, self).__init__(**kwargs)
+        validate_coordinates(position)
+        self.position = position
+        if inner_diameter >= outer_diameter:
+            raise ValueError('Outer diameter must be larger than inner diameter.')
+        self.inner_diameter = inner_diameter
+        self.outer_diameter = outer_diameter
+
+    @property
+    def lower_left(self):
+        return tuple([c - self.outer_diameter / 2. for c in self.position])
+
+    @property
+    def upper_right(self):
+        return tuple([c + self.outer_diameter / 2. for c in self.position])
+
+    @property
+    def bounding_box(self):
+        min_x = self.lower_left[0]
+        max_x = self.upper_right[0]
+        min_y = self.lower_left[1]
+        max_y = self.upper_right[1]
+        return ((min_x, max_x), (min_y, max_y))
+
+    def to_inch(self):
+        self.position = tuple(map(inch, self.position))
+        self.inner_diameter = inch(self.inner_diameter)
+        self.outer_diameter = inch(self.outer_diameter)
+
+    def to_metric(self):
+        self.position = tuple(map(metric, self.position))
+        self.inner_diameter = metric(self.inner_diameter)
+        self.outer_diameter = metric(self.outer_diameter)
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
@@ -773,8 +813,7 @@ class Drill(Primitive):
     """
     def __init__(self, position, diameter):
         super(Drill, self).__init__('dark')
-        if len(position) != 2:
-            raise TypeError('Position must be a tuple (n=2) of coordinates')
+        validate_coordinates(position)
         self.position = position
         self.diameter = diameter
 
@@ -800,4 +839,14 @@ class Drill(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+class TestRecord(Primitive):
+    """ Netlist Test record
+    """
+    def __init__(self, position, net_name, layer, **kwargs):
+        super(TestRecord, self).__init__(**kwargs)
+        validate_coordinates(position)
+        self.position = position
+        self.net_name = net_name
+        self.layer = layer
 
