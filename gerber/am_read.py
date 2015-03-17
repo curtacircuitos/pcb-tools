@@ -97,6 +97,9 @@ class Scanner:
         n = ""
         while not self.eof() and (self.peek() in string.digits or self.peek() == "."):
             n += self.getc()
+        # weird case where zero is ommited inthe last modifider, like in ',0.'
+        if n == ".":
+            return 0
         return float(n)
 
     def readstr(self, end="*"):
@@ -112,7 +115,6 @@ def print_instructions(instructions):
 
 
 def read_macro(macro):
-
     instructions = []
 
     for block in macro.split("*"):
