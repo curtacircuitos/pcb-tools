@@ -317,16 +317,16 @@ class RepeatHoleStmt(ExcellonStatement):
 
     @classmethod
     def from_excellon(cls, line, settings):
-        match = re.compile(r'R(?P<rcount>[0-9]*)X?(?P<xdelta>\d*\.?\d*)?Y?'
-                           '(?P<ydelta>\d*\.?\d*)?').match(line)
+        match = re.compile(r'R(?P<rcount>[0-9]*)X?(?P<xdelta>[+\-]?\d*\.?\d*)?Y?'
+                           '(?P<ydelta>[+\-]?\d*\.?\d*)?').match(line)
         stmt = match.groupdict()
         count = int(stmt['rcount'])
         xdelta = (parse_gerber_value(stmt['xdelta'], settings.format,
                                      settings.zero_suppression)
-                  if stmt['xdelta']  is not '' else None)
+                  if stmt['xdelta'] is not '' else None)
         ydelta = (parse_gerber_value(stmt['ydelta'], settings.format,
                                      settings.zero_suppression)
-                  if stmt['ydelta']  is not '' else None)
+                  if stmt['ydelta'] is not '' else None)
         return cls(count, xdelta, ydelta)
 
     def __init__(self, count, xdelta=0.0, ydelta=0.0):
@@ -336,24 +336,31 @@ class RepeatHoleStmt(ExcellonStatement):
 
     def to_excellon(self, settings):
         stmt = 'R%d' % self.count
-        if self.xdelta != 0.0:
+        if self.xdelta is not None and self.xdelta != 0.0:
             stmt += 'X%s' % write_gerber_value(self.xdelta, settings.format,
                                                settings.zero_suppression)
-        if self.ydelta != 0.0:
+        if self.ydelta is not None and self.ydelta != 0.0:
             stmt += 'Y%s' % write_gerber_value(self.ydelta, settings.format,
                                                settings.zero_suppression)
         return stmt
 
     def to_inch(self):
-        self.xdelta = inch(self.xdelta)
-        self.ydelta = inch(self.ydelta)
+        if self.xdelta is not None:
+            self.xdelta = inch(self.xdelta)
+        if self.ydelta is not None:
+            self.ydelta = inch(self.ydelta)
 
     def to_metric(self):
-        self.xdelta = metric(self.xdelta)
-        self.ydelta = metric(self.ydelta)
+        if self.xdelta is not None:
+            self.xdelta = metric(self.xdelta)
+        if self.ydelta is not None:
+            self.ydelta = metric(self.ydelta)
 
     def __str__(self):
-        return '<Repeat Hole: %d times>' % self.count
+        return '<Repeat Hole: %d times, offset X: %g Y: %g>' % (
+            self.count,
+            self.xdelta if self.xdelta is not None else 0,
+            self.ydelta if self.ydelta is not None else 0)
 
 
 class CommentStmt(ExcellonStatement):

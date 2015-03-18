@@ -54,6 +54,8 @@ class ExcellonFile(CamFile):
 
     The ExcellonFile class represents a single excellon file.
 
+    http://www.excellon.com/manuals/program.htm
+
     Parameters
     ----------
     tools : list
@@ -305,8 +307,8 @@ class ExcellonParser(object):
             stmt = RepeatHoleStmt.from_excellon(line, self._settings())
             self.statements.append(stmt)
             for i in range(stmt.count):
-                self.pos[0] += stmt.xdelta
-                self.pos[1] += stmt.ydelta
+                self.pos[0] += stmt.xdelta if stmt.xdelta is not None else 0
+                self.pos[1] += stmt.ydelta if stmt.ydelta is not None else 0
                 self.hits.append((self.active_tool, tuple(self.pos)))
                 self.active_tool._hit()
 

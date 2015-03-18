@@ -216,7 +216,7 @@ def test_repeatholestmt_conversion():
 
 def test_repeathole_str():
     stmt = RepeatHoleStmt.from_excellon('R4X015Y32', FileSettings())
-    assert_equal(str(stmt), '<Repeat Hole: 4 times>')
+    assert_equal(str(stmt), '<Repeat Hole: 4 times, offset X: 1.5 Y: 32>')
 
 def test_commentstmt_factory():
     """ Test CommentStmt factory method
