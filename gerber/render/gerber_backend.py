@@ -26,7 +26,7 @@ from ..gerber_statements import *
 ## it has been moved here because it is gerber_backend specific
 def aperture_data(aperture):
 
-    if isinstance(aperture, Circle):
+    if isinstance(aperture, Circle) or isinstance(aperture, Drill):
         return ('C', aperture.diameter)  # what about %ADD10C,0.5X0.25*% and %ADD10C,0.5X0.29X0.29*% ??
 
     elif isinstance(aperture, Rectangle):
@@ -38,7 +38,7 @@ def aperture_data(aperture):
     elif isinstance(aperture, Polygon):
         raise TypeError('Polygon aperture are not supported yet')
 
-    elif isinstance(aperture, None):
+    elif isinstance(aperture, type(None)):
         raise TypeError('Likely a macro built that didn\'t work')
 
     else:
@@ -56,13 +56,12 @@ class GerberRs274xContext(GerberContext):
         self.macros = {}
         self.x = None
         self.y = None
-        self.op = "D02"
+        self.op = None
         self.aperture = None
-        self.interpolation = 'linear'  # should be None
-        self.direction = 'clockwise'   # should be None
+        self.interpolation = None
+        self.direction = None
         # note: Image polarity is deprecated
-        self.level_polarity = 'dark'    # standard default is 'dark', but at the same time, standard says it is wise to not rely on it
-        self.quadrant_mode = 'multi-quadrant' # real default is single quadrant, should be None
+        self.level_polarity = None    # standard default is 'dark', but at the same time, standard says it is wise to not rely on it
         #self.rounding_error = (10**self.settings.format[1])/2
         self.verbose = False
 
@@ -72,15 +71,14 @@ class GerberRs274xContext(GerberContext):
 
     def _render_level_polarity(self,level_polarity):
         if self.level_polarity != level_polarity:
-            self.primitives_statements.append(LPParamStmt(level_polarity))
+            self.primitives_statements.append(LPParamStmt('LP',level_polarity))
             self.level_polarity = level_polarity
 
 
     def _render_aperture(self,aperture):
 
-        if aperture != self.aperture:
-
-            data = aperture_data(aperture)
+        data = aperture_data(aperture)
+        if data != self.aperture:
 
             if not self.apertures_dcode.has_key(data):
                 dcode = 10+len(self.apertures_data)
@@ -90,7 +88,7 @@ class GerberRs274xContext(GerberContext):
                 dcode = self.apertures_dcode[data]
 
             self.primitives_statements.append(ApertureStmt(dcode))
-            self.aperture = aperture
+            self.aperture = data
 
 
     def _render_coord(self,(x,y),interpolation,direction,op,(i,j)=(None,None)):
@@ -105,30 +103,33 @@ class GerberRs274xContext(GerberContext):
         else:
             self.y = y
 
-        # LUT for function change.
-        # in the key, the two first char are the actual state,
-        # while the two last are the desired state
-        key = ( self.interpolation[0] + (self.interpolation[0] == 'l' and '.' or self.direction[1]) + 
-                     interpolation[0] + (     interpolation[0] == 'l' and '.' or      direction[1]))
-        function = {
-            'l.l.': None,
-            'l.al': 'G02',
-            'l.ao': 'G03',
-            'all.': 'G01',
-            'aol.': 'G01',
-            'alal': None,
-            'aoao': None,
-        }[key]
+        (function, ) = {
+            ( None,     None,               'linear', None)              : ( 'G01',  ),
+            ( None,     None,               'arc',    'clockwise')       : ( 'G02', ),
+            ( None,     None,               'arc',    'counterclockwise'): ( 'G03', ),
+            ( 'linear', None,               'linear', None)              : ( None,  ),
+            ( 'linear', None,               'arc',    'clockwise')       : ( 'G02', ),
+            ( 'linear', None,               'arc',    'counterclockwise'): ( 'G03', ),
+            ( 'arc',    'clockwise',        'linear', None)              : ( 'G01',  ),
+            ( 'arc',    'clockwise',        'arc',    'clockwise')       : ( None, ),
+            ( 'arc',    'clockwise',        'arc',    'counterclockwise'): ( 'G03', ),
+            ( 'arc',    'counterclockwise', 'linear', None)              : ( 'G01',  ),
+            ( 'arc',    'counterclockwise', 'arc',    'clockwise')       : ( 'G02', ),
+            ( 'arc',    'counterclockwise', 'arc',    'counterclockwise'): ( None, ),
+        }[(self.interpolation, self.direction, interpolation, direction)]
 
-        self.interpolation = interpolation
-        self.direction = direction
 
-        if self.op == op:
-            op=None
+        assert(op is not None)
+        if op == "D01" and self.op == "D01":
+                op=None
         else:
             self.op = op
 
-        if x is not None or y is not None or function is not None:
+        if op != 'D02' or x is not None or y is not None:
+            self.interpolation = interpolation
+            self.direction = direction
+            if op == 'D01' and x is None and y is None:
+                x = self.x
             self.primitives_statements.append(CoordStmt(function=function, x=x, y=y, i=i, j=j, op=op, settings=None))
 
 
@@ -152,10 +153,10 @@ class GerberRs274xContext(GerberContext):
         self._render_level_polarity(line.level_polarity)
         self._render_aperture(line.aperture)
         if line.start != line.end:
-            self._render_coord(line.start, 'linear', 'clockwise', 'D02')
-            self._render_coord(line.end, 'linear', 'clockwise', 'D01')
+            self._render_coord(line.start, 'linear', None, 'D02')
+            self._render_coord(line.end, 'linear', None, 'D01')
         else:
-            self._render_coord(line.end, 'linear', 'clockwise', 'D03')
+            self._render_coord(line.end, 'linear', None, 'D03')
 
 
     def _render_arc(self, arc, color):
@@ -166,7 +167,7 @@ class GerberRs274xContext(GerberContext):
         self.comment('  ctr %s' % ( arc.center, ))
         self._render_level_polarity(arc.level_polarity)
         self._render_aperture(arc.aperture)
-        self._render_coord(arc.start, 'arc', arc.direction, 'D02')
+        self._render_coord(arc.start, 'linear', None, 'D02')
         center = (arc.center[0] - arc.start[0], arc.center[1]-arc.start[1])
         self._render_coord(arc.end, 'arc', arc.direction, 'D01', center)
 
@@ -177,9 +178,9 @@ class GerberRs274xContext(GerberContext):
         self.comment('')
         self.comment('Region %s' % ( arc.level_polarity ))
         self._render_level_polarity(region.level_polarity)
-        self._render_coord(region.points[0], 'linear', 'clockwise', 'D02')
+        self._render_coord(region.points[0], 'linear', None, 'D02')
         for point in region.points[1:]:
-            self._render_coord(point, 'linear', 'clockwise', 'D01')
+            self._render_coord(point, 'linear', None, 'D01')
 
 
     def _render_circle(self, circle, color):
@@ -190,7 +191,7 @@ class GerberRs274xContext(GerberContext):
         self.declare_primitive(circle)
         self._render_level_polarity(circle.level_polarity)
         self._render_aperture(circle)
-        self._render_coord(circle.position, 'linear', 'clockwise', 'D03')
+        self._render_coord(circle.position, 'linear', None, 'D03')
 
 
     def _render_rectangle(self, rectangle, color):
@@ -201,7 +202,7 @@ class GerberRs274xContext(GerberContext):
         self.comment('   hgt %s' % ( rectangle.height ))
         self._render_level_polarity(rectangle.level_polarity)
         self._render_aperture(rectangle)
-        self._render_coord(rectangle.position, 'linear', 'clockwise', 'D03')
+        self._render_coord(rectangle.position, 'linear', None, 'D03')
 
     def _render_obround(self, obround, color):
         self.comment('')
@@ -211,23 +212,23 @@ class GerberRs274xContext(GerberContext):
         self.comment('    hgt %s' % ( obround.height ))
         self._render_level_polarity(obround.level_polarity)
         self._render_aperture(obround)
-        self._render_coord(obround.position, 'linear', 'clockwise', 'D03')
+        self._render_coord(obround.position, 'linear', None, 'D03')
 
     def _render_drill(self, circle, color):
         self.comment('')
         self.comment('Drill %s' % ( circle.level_polarity ))
         self.comment('  pos %s' % ( circle.position, ))
         self.comment('  rad %s' % ( circle.radius ))
-        self.primitives_statements.append(CommentStmt(' -- drill'))
         self._render_level_polarity(circle.level_polarity)
         self._render_aperture(circle)
-        self._render_coord(circle.position, 'linear', 'clockwise', 'D03')
+        self._render_coord(circle.position, 'linear', None, 'D03')
 
     def _render_test_record(self, primitive, color):
         self.comment('')
-        self.comment('Test record %s' % ( primitive ))
-        self.primitives_statements.append(CommentStmt(' -- test record not rendered'))
-        return
+        self.comment('Test record')
+        self.comment('   position %s' % (primitive.position,))
+        self.comment('   net      %s' % (primitive.net_name,))
+        self.comment('   layer    %s' % (primitive.layer,))
 
     def aperture_debug_statements(self,dcode,atype,fmod):
         if self.verbose:
@@ -263,13 +264,14 @@ class GerberRs274xContext(GerberContext):
             yield ADParamStmt('AD', dcode, atype, smod)
 
 
-        yield LPParamStmt('LP', 'dark')
+        #yield LPParamStmt('LP', 'dark')
         yield QuadrantModeStmt('multi-quadrant')
 
         for statement in self.primitives_statements:
             yield statement
 
         yield QuadrantModeStmt('single-quadrant')
+        yield CoordStmt(function=None, x=0, y=0, i=None, j=None, op="D02", settings=None)
         yield EofStmt()
 
     def dump(self,filename,settings):

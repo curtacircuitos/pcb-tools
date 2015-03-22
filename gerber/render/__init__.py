@@ -27,3 +27,4 @@ SVG is the only supported format.
 from .svgwrite_backend import GerberSvgContext
 from .cairo_backend import GerberCairoContext
 from .gerber_backend import GerberRs274xContext
+from .excellon_backend import GerberExcellonContext
