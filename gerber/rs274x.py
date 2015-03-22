@@ -395,19 +395,23 @@ class GerberParser(object):
     def _define_aperture(self, d, shape, modifiers):
         aperture = None
         if shape == 'C':
+            ## TODO: support %ADD10C,0.5X0.25*% and %ADD10C,0.5X0.29X0.29*%
             diameter = modifiers[0][0]
             aperture = Circle(position=None, diameter=diameter)
         elif shape == 'R':
+            ## TODO: support %ADD22R,0.044X0.025X0.019*% and %ADD22R,0.044X0.025X0.024X0.013*%
             width = modifiers[0][0]
             height = modifiers[0][1]
             aperture = Rectangle(position=None, width=width, height=height)
         elif shape == 'O':
+            ## TODO: support %ADD22O,0.046X0.026X0.019*% and %ADD22O,0.026X0.046X0.013X0.022*%
             width = modifiers[0][0]
             height = modifiers[0][1]
             aperture = Obround(position=None, width=width, height=height)
         elif shape == 'P':
             # FIXME: not supported yet?
-            raise NotImplementedError('P aperture not implemented')
+            ## TODO: support %ADD17P,.040X6*% and %ADD17P,.040X6X0.0X0.019*% and %ADD17P,.040X6X15.0X0.023 X0.013*%
+            raise NotImplementedError('Regular Polygon aperture not implemented')
             pass
         else:
             aperture = self.macros[shape].build(modifiers)
@@ -484,12 +488,15 @@ class GerberParser(object):
             pass
 
         elif self.op == "D03":
+
             primitive = copy.deepcopy(self.apertures[self.aperture])
             # XXX: temporary fix because there are no primitives for Macros and Polygon
-            if primitive is not None:
+            if primitive is None:
+                raise Exception("Undefined aperture %d used" % self.aperture)
+            else:
                 # XXX: just to make it easy to spot
                 if isinstance(primitive, type([])):
-                    print(primitive[0].to_gerber())
+                    print(primitive[0].to_gerber())     # heu... to_gerber is not a method of primitives?
                 else:
                     primitive.position = (x, y)
                     primitive.level_polarity = self.level_polarity
