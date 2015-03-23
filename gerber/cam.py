@@ -240,7 +240,11 @@ class CamFile(object):
     def bounds(self):
         """ File boundaries
         """
-        pass
+        bbox = outline.primitives[0].bounding_box  ## will raise an exception if there is no primitives and that is ok
+        for i in outline.primitives:
+            b = i.bounding_box
+            bbox = ( (min(bbox[0][0],b[0][0]),max(bbox[1][0],b[1][0])), (min(bbox[0][1],b[0][1]),max(bbox[1][1],b[1][1])))
+        return bbox
 
     def render(self, ctx, filename=None):
         """ Generate image of layer.

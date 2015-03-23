@@ -27,7 +27,7 @@ from .primitives import *
 from .cam import CamFile, FileSettings
 
 
-def read(filename):
+def read(filename, add_debug_comment_statement=False):
     """ Read data from filename and return a GerberFile
 
     Parameters
@@ -35,12 +35,16 @@ def read(filename):
     filename : string
         Filename of file to parse
 
+    add_debug_comment_statement: True. False; default to False
+        Will add 'G04' statements into the read GerberFile class to indicate 
+        where each primitives have been discovered.
+
     Returns
     -------
     file : :class:`gerber.rs274x.GerberFile`
         A GerberFile created from the specified file.
     """
-    return GerberParser().parse(filename)
+    return GerberParser(add_debug_comment_statement=add_debug_comment_statement).parse(filename)
 
 
 class GerberFile(CamFile):
@@ -133,6 +137,13 @@ class GerberFile(CamFile):
             primitive.offset(x_offset, y_offset)
 
 
+#    def apply(self, *ops):
+#        #for statement in self.statements:
+#        #    statement.apply()
+#        for primitive in self.primitives:
+#            primitive.apply()
+
+
 class GerberParser(object):
     """ GerberParser
     """
@@ -184,7 +195,7 @@ class GerberParser(object):
     REGION_MODE_STMT = re.compile(r'(?P<mode>G3[67])\*')
     QUAD_MODE_STMT = re.compile(r'(?P<mode>G7[45])\*')
 
-    def __init__(self):
+    def __init__(self, add_debug_comment_statement=False):
         self.settings = FileSettings()
         self.statements = []
         self.primitives = []
@@ -193,7 +204,7 @@ class GerberParser(object):
         self.current_region = None
         self.x = 0
         self.y = 0
-
+        self.op = "D02"
         self.aperture = 0
         self.interpolation = 'linear'
         self.direction = 'clockwise'
@@ -202,6 +213,7 @@ class GerberParser(object):
         self.region_mode = 'off'
         self.quadrant_mode = 'multi-quadrant'
         self.step_and_repeat = (1, 1, 0, 0)
+        self.add_debug_comment_statement = add_debug_comment_statement
 
 
     def parse(self, filename):
@@ -377,24 +389,29 @@ class GerberParser(object):
             return
 
         else:
-            raise Exception("Invalid statement to evaluate")
+            raise TypeError("Invalid statement to evaluate")
 
 
     def _define_aperture(self, d, shape, modifiers):
         aperture = None
         if shape == 'C':
+            ## TODO: support %ADD10C,0.5X0.25*% and %ADD10C,0.5X0.29X0.29*%
             diameter = modifiers[0][0]
             aperture = Circle(position=None, diameter=diameter)
         elif shape == 'R':
+            ## TODO: support %ADD22R,0.044X0.025X0.019*% and %ADD22R,0.044X0.025X0.024X0.013*%
             width = modifiers[0][0]
             height = modifiers[0][1]
             aperture = Rectangle(position=None, width=width, height=height)
         elif shape == 'O':
+            ## TODO: support %ADD22O,0.046X0.026X0.019*% and %ADD22O,0.026X0.046X0.013X0.022*%
             width = modifiers[0][0]
             height = modifiers[0][1]
             aperture = Obround(position=None, width=width, height=height)
         elif shape == 'P':
             # FIXME: not supported yet?
+            ## TODO: support %ADD17P,.040X6*% and %ADD17P,.040X6X0.0X0.019*% and %ADD17P,.040X6X15.0X0.023 X0.013*%
+            raise NotImplementedError('Regular Polygon aperture not implemented')
             pass
         else:
             aperture = self.macros[shape].build(modifiers)
@@ -404,6 +421,9 @@ class GerberParser(object):
     def _evaluate_mode(self, stmt):
         if stmt.type == 'RegionMode':
             if self.region_mode == 'on' and stmt.mode == 'off':
+                if self.add_debug_comment_statement:
+                    self.statements.append(CommentStmt(" primitive #{0} is Region(start={1}, level_polarity={2})".format(
+                        len(self.primitives), self.current_region, self.level_polarity)))
                 self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity))
                 self.current_region = None
             self.region_mode = stmt.mode
@@ -436,7 +456,10 @@ class GerberParser(object):
             self.interpolation = 'arc'
             self.direction = ('clockwise' if stmt.function in ('G02', 'G2') else 'counterclockwise')
 
-        if stmt.op == "D01":
+        if stmt.op:
+            self.op = stmt.op
+
+        if self.op == "D01":
             if self.region_mode == 'on':
                 if self.current_region is None:
                     self.current_region = [(self.x, self.y), ]
@@ -446,24 +469,42 @@ class GerberParser(object):
                 end = (x, y)
                 #width = self.apertures[self.aperture].stroke_width
                 if self.interpolation == 'linear':
+
+                    if self.add_debug_comment_statement:
+                        self.statements.append(CommentStmt(" primitive #{4} is Line(start={0}, end={1}, aperture={2}, level_polarity={3})".format(
+                            start, end, self.aperture, self.level_polarity, len(self.primitives))))
+
                     self.primitives.append(Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity))
                 else:
                     center = (start[0] + stmt.i, start[1] + stmt.j)
+
+                    if self.add_debug_comment_statement:
+                        self.statements.append(CommentStmt(" primitive #{4} is Arc(start={0}, end={1}, center={5}, direction={6}, aperture={2}, level_polarity={3})".format(
+                            start, end, self.aperture, self.level_polarity, len(self.primitives), center, self.direction)))
+
                     self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity))
 
-        elif stmt.op == "D02":
+        elif self.op == "D02":
             pass
 
-        elif stmt.op == "D03":
+        elif self.op == "D03":
+
             primitive = copy.deepcopy(self.apertures[self.aperture])
             # XXX: temporary fix because there are no primitives for Macros and Polygon
-            if primitive is not None:
+            if primitive is None:
+                raise Exception("Undefined aperture %d used" % self.aperture)
+            else:
                 # XXX: just to make it easy to spot
                 if isinstance(primitive, type([])):
-                    print(primitive[0].to_gerber())
+                    print(primitive[0].to_gerber())     # heu... to_gerber is not a method of primitives?
                 else:
                     primitive.position = (x, y)
                     primitive.level_polarity = self.level_polarity
+
+                    if self.add_debug_comment_statement:
+                        self.statements.append(CommentStmt(" primitive #{0} is aperture={1}, level_polarity={2}, position={3}".format(
+                            len(self.primitives), self.aperture, self.level_polarity, primitive.position)))
+
                     self.primitives.append(primitive)
 
         self.x, self.y = x, y

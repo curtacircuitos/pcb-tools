@@ -375,6 +375,10 @@ class AMParamStmt(ParamStmt):
             else:
                 self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
 
+        ## ok, in rs274x.py, the return value of build is assigned to GerberParser.macros[shape]
+        ##  shall it be self.primitives?
+        ##  what if a macro is built more than once?
+
     def to_inch(self):
         for primitive in self.primitives:
             primitive.to_inch()
