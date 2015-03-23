@@ -25,7 +25,8 @@ from ..excellon_statements import *
 
 
 class GerberExcellonContext(GerberContext):
-    """GerberContext units are ignored in favor of passed gerberFile"""
+    """
+    """
 
     def __init__(self):
         GerberContext.__init__(self)

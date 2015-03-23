@@ -59,6 +59,10 @@ class Primitive(object):
     def offset(self, x_offset=0, y_offset=0):
         pass
 
+    def mirror_yaxis(self):
+        """mirror will 'mirror' the image using the y-axis"""
+        pass
+
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
 
@@ -154,6 +158,9 @@ class Line(Primitive):
         self.start = tuple(map(add, self.start, (x_offset, y_offset)))
         self.end = tuple(map(add, self.end, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.start[0] *= -1
+        self.end[0] *= -1
 
 class Arc(Primitive):
     """
@@ -248,6 +255,11 @@ class Arc(Primitive):
         self.end = tuple(map(add, self.end, (x_offset, y_offset)))
         self.center = tuple(map(add, self.center, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.start[0] *= -1
+        self.end[0] *= -1
+        self.center[0] *= -1
+        self.direction = self.direction == 'clockwise' and 'counterclockwise' or 'clockwise'
 
 class Circle(Primitive):
     """
@@ -282,6 +294,9 @@ class Circle(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+    def mirror_yaxis(self):
+        self.position[0] *= -1
 
 
 class Ellipse(Primitive):
@@ -321,6 +336,9 @@ class Ellipse(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+    def mirror_yaxis(self):
+        self.position[0] *= -1
 
 
 class Rectangle(Primitive):
@@ -369,6 +387,9 @@ class Rectangle(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class Diamond(Primitive):
     """
@@ -415,6 +436,9 @@ class Diamond(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+    def mirror_yaxis(self):
+        self.position[0] *= -1
 
 
 class ChamferRectangle(Primitive):
@@ -467,6 +491,9 @@ class ChamferRectangle(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class RoundRectangle(Primitive):
     """
@@ -517,6 +544,9 @@ class RoundRectangle(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+    def mirror_yaxis(self):
+        self.position[0] *= -1
 
 
 class Obround(Primitive):
@@ -587,6 +617,9 @@ class Obround(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class Polygon(Primitive):
     """
@@ -617,6 +650,9 @@ class Polygon(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class Region(Primitive):
     """
@@ -643,6 +679,9 @@ class Region(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.points = [tuple(map(add, point, (x_offset, y_offset)))
                        for point in self.points]
+
+    def mirror_yaxis(self):
+        self.points[ (-x,y) for (x,y) in self.points ]
 
 
 class RoundButterfly(Primitive):
@@ -677,6 +716,9 @@ class RoundButterfly(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class SquareButterfly(Primitive):
     """ A square with two diagonally-opposite quadrants removed
@@ -706,6 +748,9 @@ class SquareButterfly(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+    def mirror_yaxis(self):
+        self.position[0] *= -1
 
 
 class Donut(Primitive):
@@ -765,6 +810,9 @@ class Donut(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class SquareRoundDonut(Primitive):
     """ A Square with a circular cutout in the center
@@ -807,6 +855,9 @@ class SquareRoundDonut(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class Drill(Primitive):
     """ A drill hole
@@ -839,6 +890,10 @@ class Drill(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+
+    def mirror_yaxis(self):
+        self.position[0] *= -1
+
 
 class TestRecord(Primitive):
     """ Netlist Test record
