@@ -295,3 +295,6 @@ def rotate_point(point, angle, center=(0.0, 0.0)):
     x = center[0] + (cos(angle) * xdelta) - (sin(angle) * ydelta)
     y = center[1] + (sin(angle) * xdelta) - (cos(angle) * ydelta)
     return (x, y)
+
+def mirror_yaxis(position):
+    return ( -position[0], position[1])
