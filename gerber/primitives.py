@@ -17,7 +17,7 @@
 import math
 from operator import add, sub
 
-from .utils import validate_coordinates, inch, metric
+from .utils import validate_coordinates, inch, metric, mirror_yaxis
 
 
 class Primitive(object):
