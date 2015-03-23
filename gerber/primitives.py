@@ -681,7 +681,7 @@ class Region(Primitive):
                        for point in self.points]
 
     def mirror_yaxis(self):
-        self.points[ (-x,y) for (x,y) in self.points ]
+        self.points = [ (-x,y) for x,y in self.points ]
 
 
 class RoundButterfly(Primitive):
