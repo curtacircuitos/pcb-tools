@@ -289,7 +289,7 @@ class ADParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.d = d
         self.shape = shape
-        if modifiers is not None:
+        if modifiers:
             self.modifiers = [tuple([float(x) for x in m.split("X")]) for m in modifiers.split(",") if len(m)]
         else:
             self.modifiers = []
@@ -301,7 +301,7 @@ class ADParamStmt(ParamStmt):
         self.modifiers = [tuple([metric(x) for x in modifier]) for modifier in self.modifiers]
 
     def to_gerber(self, settings=None):
-        if len(self.modifiers):
+        if any(self.modifiers):
             return '%ADD{0}{1},{2}*%'.format(self.d, self.shape, ','.join(['X'.join(["%.4g" % x for x in modifier]) for modifier in self.modifiers]))
         else:
             return '%ADD{0}{1}*%'.format(self.d, self.shape)
