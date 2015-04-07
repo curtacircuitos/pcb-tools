@@ -954,7 +954,7 @@ class CommentStmt(Statement):
 
     def __init__(self, comment):
         Statement.__init__(self, "COMMENT")
-        self.comment = comment
+        self.comment = comment if comment is not None else ""
 
     def to_gerber(self, settings=None):
         return 'G04{0}*'.format(self.comment)
@@ -1026,3 +1026,7 @@ class UnknownStmt(Statement):
 
     def to_gerber(self, settings=None):
         return self.line
+
+    def __str__(self):
+        return '<Unknown Statement: \'%s\'>' % self.line
+
