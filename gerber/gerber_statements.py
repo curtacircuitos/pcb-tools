@@ -720,7 +720,7 @@ class SFParamStmt(ParamStmt):
     def __str__(self):
         scale_factor = ''
         if self.a is not None:
-            scale_factor += ('X: %g' % self.a)
+            scale_factor += ('X: %g ' % self.a)
         if self.b is not None:
             scale_factor += ('Y: %g' % self.b)
         return ('<Scale Factor: %s>' % scale_factor)

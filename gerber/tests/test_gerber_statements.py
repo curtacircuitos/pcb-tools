@@ -283,7 +283,7 @@ def test_SFParamStmt_offset():
 def test_SFParamStmt_string():
     stmt = {'param': 'SF', 'a': '1.4', 'b': '0.9'}
     sf = SFParamStmt.from_dict(stmt)
-    assert_equal(str(sf), '<Scale Factor: X: 1.4Y: 0.9>')
+    assert_equal(str(sf), '<Scale Factor: X: 1.4 Y: 0.9>')
 
 def test_LPParamStmt_factory():
     """ Test LPParamStmt factory
