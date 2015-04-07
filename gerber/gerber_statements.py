@@ -760,6 +760,37 @@ class LNParamStmt(ParamStmt):
         return '<Level Name: %s>' % self.name
 
 
+class DeprecatedStmt(Statement):
+    """ Unimportant deprecated statement, will be parsed but not emitted.
+    """
+    @classmethod
+    def from_gerber(cls, line):
+        return cls(line)
+
+    def __init__(self, line):
+        """ Initialize DeprecatedStmt class
+
+        Parameters
+        ----------
+        line : string
+            Deprecated statement text
+
+        Returns
+        -------
+        DeprecatedStmt
+            Initialized DeprecatedStmt class.
+
+        """
+        Statement.__init__(self, "DEPRECATED")
+        self.line = line
+
+    def to_gerber(self, settings=None):
+        return ''
+
+    def __str__(self):
+        return '<Deprecated Statement: \'%s\'>' % self.line
+
+
 class CoordStmt(Statement):
     """ Coordinate Data Block
     """

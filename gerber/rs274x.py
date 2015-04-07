@@ -160,23 +160,28 @@ class GerberParser(object):
     OF = r"(?P<param>OF)(A(?P<a>{decimal}))?(B(?P<b>{decimal}))?".format(decimal=DECIMAL)
     SF = r"(?P<param>SF)(?P<discarded>.*)"
     LN = r"(?P<param>LN)(?P<name>.*)"
+    DEPRECATED_UNIT = re.compile(r'(?P<mode>G7[01])\*')
+    DEPRECATED_FORMAT = re.compile(r'(?P<format>G9[01])\*')
     # end deprecated
 
     PARAMS = (FS, MO, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY, AD_MACRO, AM, AS, IN, IP, IR, MI, OF, SF, LN)
+
     PARAM_STMT = [re.compile(r"%?{0}\*%?".format(p)) for p in PARAMS]
+
+    COORD_FUNCTION = r"G0?[123]"
+    COORD_OP = r"D0?[123]"
 
     COORD_STMT = re.compile((
         r"(?P<function>{function})?"
         r"(X(?P<x>{number}))?(Y(?P<y>{number}))?"
         r"(I(?P<i>{number}))?(J(?P<j>{number}))?"
-        r"(?P<op>{op})?\*".format(number=NUMBER, function=FUNCTION, op=COORD_OP)))
+        r"(?P<op>{op})?\*".format(number=NUMBER, function=COORD_FUNCTION, op=COORD_OP)))
 
-    APERTURE_STMT = re.compile(r"(?P<deprecated>(G54)|G55)?D(?P<d>\d+)\*")
+    APERTURE_STMT = re.compile(r"(?P<deprecated>(G54)|(G55))?D(?P<d>\d+)\*")
 
+    COMMENT_STMT = re.compile(r"G0?4(?P<comment>[^*]*)(\*)?")
 
-    COMMENT_STMT = re.compile(r"G04(?P<comment>[^*]*)(\*)?")
-
-    EOF_STMT = re.compile(r"(?P<eof>M02)\*")
+    EOF_STMT = re.compile(r"(?P<eof>M[0]?[012])\*")
 
     REGION_MODE_STMT = re.compile(r'(?P<mode>G3[67])\*')
     QUAD_MODE_STMT = re.compile(r'(?P<mode>G7[45])\*')
@@ -330,6 +335,21 @@ class GerberParser(object):
                     line = r
                     continue
 
+                # deprecated codes (parsed but ignored)
+                (deprecated_unit, r) = _match_one(self.DEPRECATED_UNIT, line)
+                if deprecated_unit:
+                    yield DeprecatedStmt.from_gerber(line)
+                    line = r
+                    did_something = True
+                    continue
+
+                (deprecated_format, r) = _match_one(self.DEPRECATED_FORMAT, line)
+                if deprecated_format:
+                    yield DeprecatedStmt.from_gerber(line)
+                    line = r
+                    did_something = True
+                    continue
+
                 # eof
                 (eof, r) = _match_one(self.EOF_STMT, line)
                 if eof:
@@ -370,7 +390,7 @@ class GerberParser(object):
         elif isinstance(stmt, (RegionModeStmt, QuadrantModeStmt)):
             self._evaluate_mode(stmt)
 
-        elif isinstance(stmt, (CommentStmt, UnknownStmt, EofStmt)):
+        elif isinstance(stmt, (CommentStmt, UnknownStmt, DeprecatedStmt, EofStmt)):
             return
 
         else:
