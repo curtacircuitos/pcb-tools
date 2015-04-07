@@ -292,7 +292,7 @@ class ADParamStmt(ParamStmt):
         if modifiers:
             self.modifiers = [tuple([float(x) for x in m.split("X")]) for m in modifiers.split(",") if len(m)]
         else:
-            self.modifiers = []
+            self.modifiers = [tuple()]
 
     def to_inch(self):
         self.modifiers = [tuple([inch(x) for x in modifier]) for modifier in self.modifiers]
