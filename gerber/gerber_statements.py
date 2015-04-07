@@ -97,7 +97,14 @@ class FSParamStmt(ParamStmt):
         """
         """
         param = stmt_dict.get('param')
-        zeros = 'leading' if stmt_dict.get('zero') == 'L' else 'trailing'
+
+        if stmt_dict.get('zero') == 'L':
+            zeros = 'leading'
+        elif stmt_dict.get('zero') == 'T':
+            zeros = 'trailing'
+        else:
+            zeros = 'none'
+
         notation = 'absolute' if stmt_dict.get('notation') == 'A' else 'incremental'
         fmt = tuple(map(int, stmt_dict.get('x')))
         return cls(param, zeros, notation, fmt)
@@ -117,7 +124,7 @@ class FSParamStmt(ParamStmt):
             Parameter.
 
         zero_suppression : string
-            Zero-suppression mode. May be either 'leading' or 'trailing'
+            Zero-suppression mode. May be either 'leading', 'trailing' or 'none' (all zeros are present)
 
         notation : string
             Notation mode. May be either 'absolute' or 'incremental'

@@ -139,12 +139,9 @@ class GerberParser(object):
     NUMBER = r"[\+-]?\d+"
     DECIMAL = r"[\+-]?\d+([.]?\d+)?"
     STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
-    NAME = r"[a-zA-Z_$][a-zA-Z_$0-9]+"
-    FUNCTION = r"G\d{2}"
+    NAME = r"[a-zA-Z_$\.][a-zA-Z_$\.0-9+\-]+"
 
-    COORD_OP = r"D[0]?[123]"
-
-    FS = r"(?P<param>FS)(?P<zero>(L|T))?(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
+    FS = r"(?P<param>FS)(?P<zero>(L|T|D))?(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
     MO = r"(?P<param>MO)(?P<mo>(MM|IN))"
     LP = r"(?P<param>LP)(?P<lp>(D|C))"
     AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>C)[,]?(?P<modifiers>[^,]*)?"

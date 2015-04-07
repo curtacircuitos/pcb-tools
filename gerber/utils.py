@@ -54,7 +54,7 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
         (number of integer-part digits, number of decimal-part digits)
 
     zero_suppression : string
-        Zero-suppression mode. May be 'leading' or 'trailing'
+        Zero-suppression mode. May be 'leading', 'trailing' or 'none'
 
     Returns
     -------
@@ -82,11 +82,14 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     if negative:
         value = value.lstrip('-')
 
+    missing_digits = MAX_DIGITS - len(value)
 
-    digits = list('0' * MAX_DIGITS)
-    offset = 0 if zero_suppression == 'trailing' else (MAX_DIGITS - len(value))
-    for i, digit in enumerate(value):
-        digits[i + offset] = digit
+    if zero_suppression == 'trailing':
+        digits = list(value + ('0' * missing_digits))
+    elif zero_suppression == 'leading':
+        digits = list(('0' * missing_digits) + value)
+    else:
+        digits = list(value)
 
     result = float(''.join(digits[:integer_digits] + ['.'] + digits[integer_digits:]))
     return -result if negative else result
@@ -114,7 +117,7 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
         (number of integer-part digits, number of decimal-part digits)
 
     zero_suppression : string
-        Zero-suppression mode. May be 'leading' or 'trailing'
+        Zero-suppression mode. May be 'leading', 'trailing' or 'none'
 
     Returns
     -------
@@ -150,7 +153,7 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     if zero_suppression == 'trailing':
         while digits and digits[-1] == '0':
             digits.pop()
-    else:
+    elif zero_suppression == 'leading':
         while digits and digits[0] == '0':
             digits.pop(0)
 
