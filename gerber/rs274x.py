@@ -195,7 +195,7 @@ class GerberParser(object):
         self.current_region = None
         self.x = 0
         self.y = 0
-
+        self.op = "D02"
         self.aperture = 0
         self.interpolation = 'linear'
         self.direction = 'clockwise'
@@ -453,7 +453,10 @@ class GerberParser(object):
             self.interpolation = 'arc'
             self.direction = ('clockwise' if stmt.function in ('G02', 'G2') else 'counterclockwise')
 
-        if stmt.op == "D01":
+        if stmt.op:
+            self.op = stmt.op
+
+        if self.op == "D01":
             if self.region_mode == 'on':
                 if self.current_region is None:
                     self.current_region = [(self.x, self.y), ]
@@ -470,10 +473,10 @@ class GerberParser(object):
                     center = (start[0] + i, start[1] + j)
                     self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity))
 
-        elif stmt.op == "D02":
+        elif self.op == "D02":
             pass
 
-        elif stmt.op == "D03":
+        elif self.op == "D03":
             primitive = copy.deepcopy(self.apertures[self.aperture])
             # XXX: temporary fix because there are no primitives for Macros and Polygon
             if primitive is not None:
