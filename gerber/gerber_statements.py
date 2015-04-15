@@ -391,7 +391,7 @@ class AMParamStmt(ParamStmt):
             primitive.to_metric()
 
     def to_gerber(self, settings=None):
-        return '%AM{0}*{1}%'.format(self.name, '\n'.join([primitive.to_gerber(settings) for primitive in self.primitives]))
+        return '%AM{0}*{1}*%'.format(self.name, self.macro)
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, self.macro)
@@ -785,7 +785,7 @@ class DeprecatedStmt(Statement):
         self.line = line
 
     def to_gerber(self, settings=None):
-        return ''
+        return self.line
 
     def __str__(self):
         return '<Deprecated Statement: \'%s\'>' % self.line
