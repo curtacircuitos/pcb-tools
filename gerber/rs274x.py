@@ -455,6 +455,9 @@ class GerberParser(object):
 
         if stmt.op:
             self.op = stmt.op
+        else:
+            # no implicit op allowed, force here if coord block doesn't have it
+            stmt.op = self.op
 
         if self.op == "D01":
             if self.region_mode == 'on':
