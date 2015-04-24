@@ -899,8 +899,8 @@ class Drill(Primitive):
     def to_metric(self):
         if self.units == 'inch':
             self.units = 'metric'
-        self.position = tuple(map(metric, self.position))
-        self.diameter = metric(self.diameter)
+            self.position = tuple(map(metric, self.position))
+            self.diameter = metric(self.diameter)
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
