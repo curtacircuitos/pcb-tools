@@ -75,30 +75,57 @@ def test_line_vertices():
         assert_equal(set(vertices), set(l.vertices))
 
 def test_line_conversion():
-    c = Circle((0, 0), 25.4)
-    l = Line((2.54, 25.4), (254.0, 2540.0), c)
+    c = Circle((0, 0), 25.4, units='metric')
+    l = Line((2.54, 25.4), (254.0, 2540.0), c, units='metric')
+    
+    # No effect
+    l.to_metric()
+    assert_equal(l.start, (2.54, 25.4))
+    assert_equal(l.end, (254.0, 2540.0))
+    assert_equal(l.aperture.diameter, 25.4)
+    
+    l.to_inch()
+    assert_equal(l.start, (0.1, 1.0))
+    assert_equal(l.end, (10.0, 100.0))
+    assert_equal(l.aperture.diameter, 1.0)
+    
+    # No effect
     l.to_inch()
     assert_equal(l.start, (0.1, 1.0))
     assert_equal(l.end, (10.0, 100.0))
     assert_equal(l.aperture.diameter, 1.0)
 
-    c = Circle((0, 0), 1.0)
-    l = Line((0.1, 1.0), (10.0, 100.0), c)
+    c = Circle((0, 0), 1.0, units='inch')
+    l = Line((0.1, 1.0), (10.0, 100.0), c, units='inch')
+    
+    # No effect
+    l.to_inch()
+    assert_equal(l.start, (0.1, 1.0))
+    assert_equal(l.end, (10.0, 100.0))
+    assert_equal(l.aperture.diameter, 1.0)
+    
+    
+    l.to_metric()
+    assert_equal(l.start, (2.54, 25.4))
+    assert_equal(l.end, (254.0, 2540.0))
+    assert_equal(l.aperture.diameter, 25.4)
+    
+    #No effect
     l.to_metric()
     assert_equal(l.start, (2.54, 25.4))
     assert_equal(l.end, (254.0, 2540.0))
     assert_equal(l.aperture.diameter, 25.4)
 
-    r = Rectangle((0, 0), 25.4, 254.0)
-    l = Line((2.54, 25.4), (254.0, 2540.0), r)
+    r = Rectangle((0, 0), 25.4, 254.0, units='metric')
+    l = Line((2.54, 25.4), (254.0, 2540.0), r, units='metric')
     l.to_inch()
     assert_equal(l.start, (0.1, 1.0))
     assert_equal(l.end, (10.0, 100.0))
     assert_equal(l.aperture.width, 1.0)
     assert_equal(l.aperture.height, 10.0)
 
-    r = Rectangle((0, 0), 1.0, 10.0)
-    l = Line((0.1, 1.0), (10.0, 100.0), r)
+    r = Rectangle((0, 0), 1.0, 10.0, units='inch')
+    l = Line((0.1, 1.0), (10.0, 100.0), r, units='inch')
     l.to_metric()
     assert_equal(l.start, (2.54, 25.4))
     assert_equal(l.end, (254.0, 2540.0))
@@ -151,16 +178,16 @@ def test_arc_bounds():
         assert_equal(a.bounding_box, bounds)
 
 def test_arc_conversion():
-    c = Circle((0, 0), 25.4)
-    a = Arc((2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0),'clockwise', c)
+    c = Circle((0, 0), 25.4, units='metric')
+    a = Arc((2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0),'clockwise', c, units='metric')
     a.to_inch()
     assert_equal(a.start, (0.1, 1.0))
     assert_equal(a.end, (10.0, 100.0))
     assert_equal(a.center, (1000.0, 10000.0))
     assert_equal(a.aperture.diameter, 1.0)
 
-    c = Circle((0, 0), 1.0)
-    a = Arc((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0),'clockwise', c)
+    c = Circle((0, 0), 1.0, units='inch')
+    a = Arc((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0),'clockwise', c, units='inch')
     a.to_metric()
     assert_equal(a.start, (2.54, 25.4))
     assert_equal(a.end, (254.0, 2540.0))
@@ -192,11 +219,15 @@ def test_circle_bounds():
     assert_equal(c.bounding_box, ((0, 2), (0, 2)))
 
 def test_circle_conversion():
-    c = Circle((2.54, 25.4), 254.0)
+    c = Circle((2.54, 25.4), 254.0, units='metric')
+    c.to_metric()   #shouldn't do antyhing
     c.to_inch()
+    c.to_inch()     #shouldn't do anything
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
-    c = Circle((0.1, 1.0), 10.0)
+    c = Circle((0.1, 1.0), 10.0, units='inch')
+    c.to_inch()
+    c.to_metric()
     c.to_metric()
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
@@ -229,13 +260,17 @@ def test_ellipse_bounds():
     assert_equal(e.bounding_box, ((1, 3), (0, 4)))
 
 def test_ellipse_conversion():
-    e = Ellipse((2.54, 25.4), 254.0, 2540.)
+    e = Ellipse((2.54, 25.4), 254.0, 2540., units='metric')
+    e.to_metric()
+    e.to_inch()
     e.to_inch()
     assert_equal(e.position, (0.1, 1.))
     assert_equal(e.width, 10.)
     assert_equal(e.height, 100.)
 
-    e = Ellipse((0.1, 1.), 10.0, 100.)
+    e = Ellipse((0.1, 1.), 10.0, 100., units='inch')
+    e.to_inch()
+    e.to_metric()
     e.to_metric()
     assert_equal(e.position, (2.54, 25.4))
     assert_equal(e.width, 254.)
@@ -271,12 +306,16 @@ def test_rectangle_bounds():
     assert_array_almost_equal(ybounds, (-math.sqrt(2), math.sqrt(2)))
 
 def test_rectangle_conversion():
-    r = Rectangle((2.54, 25.4), 254.0, 2540.0)
+    r = Rectangle((2.54, 25.4), 254.0, 2540.0, units='metric')
+    r.to_metric()
+    r.to_inch()
     r.to_inch()
     assert_equal(r.position, (0.1, 1.0))
     assert_equal(r.width, 10.0)
     assert_equal(r.height, 100.0)
-    r = Rectangle((0.1, 1.0), 10.0, 100.0)
+    r = Rectangle((0.1, 1.0), 10.0, 100.0, units='inch')
+    r.to_inch()
+    r.to_metric()
     r.to_metric()
     assert_equal(r.position, (2.54,25.4))
     assert_equal(r.width, 254.0)
@@ -312,13 +351,13 @@ def test_diamond_bounds():
     assert_array_almost_equal(ybounds, (-1, 1))
 
 def test_diamond_conversion():
-    d = Diamond((2.54, 25.4), 254.0, 2540.0)
+    d = Diamond((2.54, 25.4), 254.0, 2540.0, units='metric')
     d.to_inch()
     assert_equal(d.position, (0.1, 1.0))
     assert_equal(d.width, 10.0)
     assert_equal(d.height, 100.0)
 
-    d = Diamond((0.1, 1.0), 10.0, 100.0)
+    d = Diamond((0.1, 1.0), 10.0, 100.0, units='inch')
     d.to_metric()
     assert_equal(d.position, (2.54, 25.4))
     assert_equal(d.width, 254.0)
@@ -358,14 +397,14 @@ def test_chamfer_rectangle_bounds():
     assert_array_almost_equal(ybounds, (-math.sqrt(2), math.sqrt(2)))
 
 def test_chamfer_rectangle_conversion():
-    r = ChamferRectangle((2.54, 25.4), 254.0, 2540.0, 0.254, (True, True, False, False))
+    r = ChamferRectangle((2.54, 25.4), 254.0, 2540.0, 0.254, (True, True, False, False), units='metric')
     r.to_inch()
     assert_equal(r.position, (0.1, 1.0))
     assert_equal(r.width, 10.0)
     assert_equal(r.height, 100.0)
     assert_equal(r.chamfer, 0.01)
 
-    r = ChamferRectangle((0.1, 1.0), 10.0, 100.0, 0.01, (True, True, False, False))
+    r = ChamferRectangle((0.1, 1.0), 10.0, 100.0, 0.01, (True, True, False, False), units='inch')
     r.to_metric()
     assert_equal(r.position, (2.54,25.4))
     assert_equal(r.width, 254.0)
@@ -406,14 +445,14 @@ def test_round_rectangle_bounds():
     assert_array_almost_equal(ybounds, (-math.sqrt(2), math.sqrt(2)))
 
 def test_round_rectangle_conversion():
-    r = RoundRectangle((2.54, 25.4), 254.0, 2540.0, 0.254, (True, True, False, False))
+    r = RoundRectangle((2.54, 25.4), 254.0, 2540.0, 0.254, (True, True, False, False), units='metric')
     r.to_inch()
     assert_equal(r.position, (0.1, 1.0))
     assert_equal(r.width, 10.0)
     assert_equal(r.height, 100.0)
     assert_equal(r.radius, 0.01)
 
-    r = RoundRectangle((0.1, 1.0), 10.0, 100.0, 0.01, (True, True, False, False))
+    r = RoundRectangle((0.1, 1.0), 10.0, 100.0, 0.01, (True, True, False, False), units='inch')
     r.to_metric()
     assert_equal(r.position, (2.54,25.4))
     assert_equal(r.width, 254.0)
@@ -470,13 +509,13 @@ def test_obround_subshapes():
     assert_array_almost_equal(ss['circle2'].position, (-1.5, 0))
 
 def test_obround_conversion():
-    o = Obround((2.54,25.4), 254.0, 2540.0)
+    o = Obround((2.54,25.4), 254.0, 2540.0, units='metric')
     o.to_inch()
     assert_equal(o.position, (0.1, 1.0))
     assert_equal(o.width, 10.0)
     assert_equal(o.height, 100.0)
 
-    o= Obround((0.1, 1.0), 10.0, 100.0)
+    o= Obround((0.1, 1.0), 10.0, 100.0, units='inch')
     o.to_metric()
     assert_equal(o.position, (2.54, 25.4))
     assert_equal(o.width, 254.0)
@@ -514,12 +553,12 @@ def test_polygon_bounds():
     assert_array_almost_equal(ybounds, (-2, 6))
 
 def test_polygon_conversion():
-    p = Polygon((2.54, 25.4), 3, 254.0)
+    p = Polygon((2.54, 25.4), 3, 254.0, units='metric')
     p.to_inch()
     assert_equal(p.position, (0.1, 1.0))
     assert_equal(p.radius, 10.0)
 
-    p = Polygon((0.1, 1.0), 3, 10.0)
+    p = Polygon((0.1, 1.0), 3, 10.0, units='inch')
     p.to_metric()
     assert_equal(p.position, (2.54, 25.4))
     assert_equal(p.radius, 254.0)
@@ -550,12 +589,12 @@ def test_region_bounds():
 
 def test_region_conversion():
     points = ((2.54, 25.4), (254.0,2540.0), (25400.0,254000.0), (2.54,25.4))
-    r = Region(points)
+    r = Region(points, units='metric')
     r.to_inch()
     assert_equal(set(r.points), {(0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0)})
 
     points = ((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0), (0.1, 1.0))
-    r = Region(points)
+    r = Region(points, units='inch')
     r.to_metric()
     assert_equal(set(r.points), {(2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0)})
 
@@ -584,12 +623,12 @@ def test_round_butterfly_ctor_validation():
     assert_raises(TypeError, RoundButterfly, (3,4,5), 5)
 
 def test_round_butterfly_conversion():
-     b = RoundButterfly((2.54, 25.4), 254.0)
+     b = RoundButterfly((2.54, 25.4), 254.0, units='metric')
      b.to_inch()
      assert_equal(b.position, (0.1, 1.0))
      assert_equal(b.diameter, 10.0)
 
-     b = RoundButterfly((0.1, 1.0), 10.0)
+     b = RoundButterfly((0.1, 1.0), 10.0, units='inch')
      b.to_metric()
      assert_equal(b.position, (2.54, 25.4))
      assert_equal(b.diameter, (254.0))
@@ -633,12 +672,12 @@ def test_square_butterfly_bounds():
     assert_array_almost_equal(ybounds, (-1, 1))
 
 def test_squarebutterfly_conversion():
-     b = SquareButterfly((2.54, 25.4), 254.0)
+     b = SquareButterfly((2.54, 25.4), 254.0, units='metric')
      b.to_inch()
      assert_equal(b.position, (0.1, 1.0))
      assert_equal(b.side, 10.0)
 
-     b = SquareButterfly((0.1, 1.0), 10.0)
+     b = SquareButterfly((0.1, 1.0), 10.0, units='inch')
      b.to_metric()
      assert_equal(b.position, (2.54, 25.4))
      assert_equal(b.side, (254.0))
@@ -677,13 +716,13 @@ def test_donut_bounds():
     assert_equal(ybounds, (-1., 1.))
 
 def test_donut_conversion():
-    d = Donut((2.54, 25.4), 'round', 254.0, 2540.0)
+    d = Donut((2.54, 25.4), 'round', 254.0, 2540.0, units='metric')
     d.to_inch()
     assert_equal(d.position, (0.1, 1.0))
     assert_equal(d.inner_diameter, 10.0)
     assert_equal(d.outer_diameter, 100.0)
 
-    d = Donut((0.1, 1.0), 'round', 10.0, 100.0)
+    d = Donut((0.1, 1.0), 'round', 10.0, 100.0, units='inch')
     d.to_metric()
     assert_equal(d.position, (2.54, 25.4))
     assert_equal(d.inner_diameter, 254.0)
@@ -723,12 +762,12 @@ def test_drill_bounds():
     assert_array_almost_equal(ybounds, (1, 3))
 
 def test_drill_conversion():
-    d = Drill((2.54, 25.4), 254.)
+    d = Drill((2.54, 25.4), 254., units='metric')
     d.to_inch()
     assert_equal(d.position, (0.1, 1.0))
     assert_equal(d.diameter, 10.0)
 
-    d = Drill((0.1, 1.0), 10.)
+    d = Drill((0.1, 1.0), 10., units='inch')
     d.to_metric()
     assert_equal(d.position, (2.54, 25.4))
     assert_equal(d.diameter, 254.0)

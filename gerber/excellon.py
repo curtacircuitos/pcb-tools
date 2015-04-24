@@ -81,7 +81,7 @@ class ExcellonFile(CamFile):
                                            filename=filename)
         self.tools = tools
         self.hits = hits
-        self.primitives = [Drill(position, tool.diameter)
+        self.primitives = [Drill(position, tool.diameter, units=settings.units)
                            for tool, position in self.hits]
 
     @property
