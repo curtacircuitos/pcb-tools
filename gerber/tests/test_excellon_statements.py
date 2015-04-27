@@ -111,6 +111,9 @@ def test_toolselection_factory():
     stmt = ToolSelectionStmt.from_excellon('T0223')
     assert_equal(stmt.tool, 2)
     assert_equal(stmt.compensation_index, 23)
+    stmt = ToolSelectionStmt.from_excellon('T042')
+    assert_equal(stmt.tool, 42)
+    assert_equal(stmt.compensation_index, None)
 
 def test_toolselection_dump():
     """ Test ToolSelectionStmt to_excellon()

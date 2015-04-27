@@ -234,9 +234,14 @@ class ToolSelectionStmt(ExcellonStatement):
         """
         line = line[1:]
         compensation_index = None
-        tool = int(line[:2])
-        if len(line) > 2:
+
+        # up to 3 characters for tool number (Frizting uses that)
+        if len(line) <= 3:
+            tool = int(line)
+        else:
+            tool = int(line[:2])
             compensation_index = int(line[2:])
+
         return cls(tool, compensation_index)
 
     def __init__(self, tool, compensation_index=None):
