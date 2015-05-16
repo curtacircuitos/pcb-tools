@@ -219,6 +219,9 @@ class ExcellonParser(object):
         with open(filename, 'r') as f:
             for line in f:
                 self._parse(line.strip())
+                
+        for stmt in self.statements:
+            stmt.units = self.units
         return ExcellonFile(self.statements, self.tools, self.hits,
                             self._settings(), filename)
 

@@ -39,6 +39,9 @@ __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
 class ExcellonStatement(object):
     """ Excellon Statement abstract base class
     """
+    
+    units = 'inch'
+     
     @classmethod
     def from_excellon(cls, line):
         raise NotImplementedError('from_excellon must be implemented in a '
@@ -47,12 +50,11 @@ class ExcellonStatement(object):
     def to_excellon(self, settings=None):
         raise NotImplementedError('to_excellon must be implemented in a '
                                   'subclass')
-
     def to_inch(self):
-        pass
+        self.units = 'inch'
 
     def to_metric(self):
-        pass
+        self.units = 'metric'
 
     def offset(self, x_offset=0, y_offset=0):
         pass
@@ -274,7 +276,9 @@ class CoordinateStmt(ExcellonStatement):
         else:
             y_coord = parse_gerber_value(line.strip(' Y'), settings.format,
                                          settings.zero_suppression)
-        return cls(x_coord, y_coord)
+        c = cls(x_coord, y_coord)
+        c.units = settings.units
+        return c
 
     def __init__(self, x=None, y=None):
         self.x = x
@@ -291,16 +295,20 @@ class CoordinateStmt(ExcellonStatement):
         return stmt
 
     def to_inch(self):
-        if self.x is not None:
-            self.x = inch(self.x)
-        if self.y is not None:
-            self.y = inch(self.y)
+        if self.units == 'metric':
+            self.units = 'inch'
+            if self.x is not None:
+                self.x = inch(self.x)
+            if self.y is not None:
+                self.y = inch(self.y)
 
     def to_metric(self):
-        if self.x is not None:
-            self.x = metric(self.x)
-        if self.y is not None:
-            self.y = metric(self.y)
+        if self.units == 'inch':
+            self.units = 'metric'
+            if self.x is not None:
+                self.x = metric(self.x)
+            if self.y is not None:
+                self.y = metric(self.y)
 
     def offset(self, x_offset=0, y_offset=0):
         if self.x is not None:
@@ -332,7 +340,9 @@ class RepeatHoleStmt(ExcellonStatement):
         ydelta = (parse_gerber_value(stmt['ydelta'], settings.format,
                                      settings.zero_suppression)
                   if stmt['ydelta'] is not '' else None)
-        return cls(count, xdelta, ydelta)
+        c = cls(count, xdelta, ydelta)
+        c.units = settings.units
+        return c
 
     def __init__(self, count, xdelta=0.0, ydelta=0.0):
         self.count = count
@@ -350,16 +360,20 @@ class RepeatHoleStmt(ExcellonStatement):
         return stmt
 
     def to_inch(self):
-        if self.xdelta is not None:
-            self.xdelta = inch(self.xdelta)
-        if self.ydelta is not None:
-            self.ydelta = inch(self.ydelta)
+        if self.units == 'metric':
+            self.units = 'inch'
+            if self.xdelta is not None:
+                self.xdelta = inch(self.xdelta)
+            if self.ydelta is not None:
+                self.ydelta = inch(self.ydelta)
 
     def to_metric(self):
-        if self.xdelta is not None:
-            self.xdelta = metric(self.xdelta)
-        if self.ydelta is not None:
-            self.ydelta = metric(self.ydelta)
+        if self.units == 'inch':
+            self.units = 'metric'
+            if self.xdelta is not None:
+                self.xdelta = metric(self.xdelta)
+            if self.ydelta is not None:
+                self.ydelta = metric(self.ydelta)
 
     def __str__(self):
         return '<Repeat Hole: %d times, offset X: %g Y: %g>' % (
@@ -421,7 +435,9 @@ class EndOfProgramStmt(ExcellonStatement):
         y = (parse_gerber_value(stmt['y'], settings.format,
                                 settings.zero_suppression)
              if stmt['y'] is not '' else None)
-        return cls(x, y)
+        c = cls(x, y)
+        c.units = settings.units
+        return c
 
     def __init__(self, x=None, y=None):
         self.x = x
@@ -436,16 +452,20 @@ class EndOfProgramStmt(ExcellonStatement):
         return stmt
 
     def to_inch(self):
-        if self.x is not None:
-            self.x = inch(self.x)
-        if self.y is not None:
-            self.y = inch(self.y)
+        if self.units == 'metric':
+            self.units = 'inch'
+            if self.x is not None:
+                self.x = inch(self.x)
+            if self.y is not None:
+                self.y = inch(self.y)
 
     def to_metric(self):
-        if self.x is not None:
-            self.x = metric(self.x)
-        if self.y is not None:
-            self.y = metric(self.y)
+        if self.units == 'inch':
+            self.units = 'metric'
+            if self.x is not None:
+                self.x = metric(self.x)
+            if self.y is not None:
+                self.y = metric(self.y)
 
     def offset(self, x_offset=0, y_offset=0):
         if self.x is not None:

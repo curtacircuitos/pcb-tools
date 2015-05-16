@@ -43,8 +43,9 @@ class Statement(object):
     type : string
         String identifying the statement type.
     """
-    def __init__(self, stype):
+    def __init__(self, stype, units='inch'):
         self.type = stype
+        self.units = units
 
     def __str__(self):
         s = "<{0} ".format(self.__class__.__name__)
@@ -56,10 +57,10 @@ class Statement(object):
         return s
 
     def to_inch(self):
-        pass
+        self.units = 'inch'
 
     def to_metric(self):
-        pass
+        self.units = 'metric'
 
     def offset(self, x_offset=0, y_offset=0):
         pass
@@ -155,6 +156,8 @@ class FSParamStmt(ParamStmt):
             fmt = ''.join(map(str, self.format))
 
         return '%FS{0}{1}X{2}Y{3}*%'.format(zero_suppression, notation, fmt, fmt)
+
+    
 
     def __str__(self):
         return ('<Format Spec: %d:%d %s zero suppression %s notation>' %
@@ -295,10 +298,14 @@ class ADParamStmt(ParamStmt):
             self.modifiers = [tuple()]
 
     def to_inch(self):
-        self.modifiers = [tuple([inch(x) for x in modifier]) for modifier in self.modifiers]
+        if self.units == 'metric':
+            self.units = 'inch'    
+            self.modifiers = [tuple([inch(x) for x in modifier]) for modifier in self.modifiers]
 
     def to_metric(self):
-        self.modifiers = [tuple([metric(x) for x in modifier]) for modifier in self.modifiers]
+        if self.units == 'inch':
+            self.units = 'metric'    
+            self.modifiers = [tuple([metric(x) for x in modifier]) for modifier in self.modifiers]
 
     def to_gerber(self, settings=None):
         if any(self.modifiers):
@@ -383,12 +390,16 @@ class AMParamStmt(ParamStmt):
                 self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
 
     def to_inch(self):
-        for primitive in self.primitives:
-            primitive.to_inch()
+        if self.units == 'metric':
+            self.units = 'inch'
+            for primitive in self.primitives:
+                primitive.to_inch()
 
     def to_metric(self):
-        for primitive in self.primitives:
-            primitive.to_metric()
+        if self.units == 'inch':
+            self.units = 'metric'
+            for primitive in self.primitives:
+                primitive.to_metric()
 
     def to_gerber(self, settings=None):
         return '%AM{0}*{1}*%'.format(self.name, self.macro)
@@ -630,16 +641,20 @@ class OFParamStmt(ParamStmt):
         return ret + '*%'
 
     def to_inch(self):
-        if self.a is not None:
-            self.a = inch(self.a)
-        if self.b is not None:
-            self.b = inch(self.b)
+        if self.units == 'metric':
+            self.units = 'inch'
+            if self.a is not None:
+                self.a = inch(self.a)
+            if self.b is not None:
+                self.b = inch(self.b)
 
     def to_metric(self):
-        if self.a is not None:
-            self.a = metric(self.a)
-        if self.b is not None:
-            self.b = metric(self.b)
+        if self.units == 'inch':
+            self.units = 'metric'
+            if self.a is not None:
+                self.a = metric(self.a)
+            if self.b is not None:
+                self.b = metric(self.b)
 
     def offset(self, x_offset=0, y_offset=0):
         if self.a is not None:
@@ -700,16 +715,20 @@ class SFParamStmt(ParamStmt):
         return ret + '*%'
 
     def to_inch(self):
-        if self.a is not None:
-            self.a = inch(self.a)
-        if self.b is not None:
-            self.b = inch(self.b)
+        if self.units == 'metric':
+            self.units = 'inch'
+            if self.a is not None:
+                self.a = inch(self.a)
+            if self.b is not None:
+                self.b = inch(self.b)
 
     def to_metric(self):
-        if self.a is not None:
-            self.a = metric(self.a)
-        if self.b is not None:
-            self.b = metric(self.b)
+        if self.units == 'inch':
+            self.units = 'metric'
+            if self.a is not None:
+                self.a = metric(self.a)
+            if self.b is not None:
+                self.b = metric(self.b)
 
     def offset(self, x_offset=0, y_offset=0):
         if self.a is not None:
@@ -871,28 +890,32 @@ class CoordStmt(Statement):
         return ret + '*'
 
     def to_inch(self):
-        if self.x is not None:
-            self.x = inch(self.x)
-        if self.y is not None:
-            self.y = inch(self.y)
-        if self.i is not None:
-            self.i = inch(self.i)
-        if self.j is not None:
-            self.j = inch(self.j)
-        if self.function == "G71":
-            self.function = "G70"
+        if self.units == 'metric':
+            self.units = 'inch'
+            if self.x is not None:
+                self.x = inch(self.x)
+            if self.y is not None:
+                self.y = inch(self.y)
+            if self.i is not None:
+                self.i = inch(self.i)
+            if self.j is not None:
+                self.j = inch(self.j)
+            if self.function == "G71":
+                self.function = "G70"
 
     def to_metric(self):
-        if self.x is not None:
-            self.x = metric(self.x)
-        if self.y is not None:
-            self.y = metric(self.y)
-        if self.i is not None:
-            self.i = metric(self.i)
-        if self.j is not None:
-            self.j = metric(self.j)
-        if self.function == "G70":
-            self.function = "G71"
+        if self.units == 'inch':
+            self.units = 'metric'
+            if self.x is not None:
+                self.x = metric(self.x)
+            if self.y is not None:
+                self.y = metric(self.y)
+            if self.i is not None:
+                self.i = metric(self.i)
+            if self.j is not None:
+                self.j = metric(self.j)
+            if self.function == "G70":
+                self.function = "G71"
 
     def offset(self, x_offset=0, y_offset=0):
         if self.x is not None:

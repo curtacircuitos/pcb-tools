@@ -150,7 +150,13 @@ def test_coordinatestmt_factory():
     assert_equal(stmt.x, 0.9660)
     assert_equal(stmt.y, 0.4639)
     assert_equal(stmt.to_excellon(settings), "X9660Y4639")
-
+    assert_equal(stmt.units, 'inch')
+    
+    settings.units = 'metric'
+    stmt = CoordinateStmt.from_excellon(line, settings)
+    assert_equal(stmt.units, 'metric')
+    
+    
 def test_coordinatestmt_dump():
     """ Test CoordinateStmt to_excellon()
     """
@@ -164,11 +170,40 @@ def test_coordinatestmt_dump():
         assert_equal(stmt.to_excellon(settings), line)
 
 def test_coordinatestmt_conversion():
-    stmt = CoordinateStmt.from_excellon('X254Y254', FileSettings())
+    
+    settings = FileSettings()
+    settings.units = 'metric'
+    stmt = CoordinateStmt.from_excellon('X254Y254', settings)
+    
+    #No effect
+    stmt.to_metric()
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 25.4)
+    
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 1.)
+    
+    #No effect
     stmt.to_inch()
     assert_equal(stmt.x, 1.)
     assert_equal(stmt.y, 1.)
-    stmt = CoordinateStmt.from_excellon('X01Y01', FileSettings())
+    
+    settings.units = 'inch'
+    stmt = CoordinateStmt.from_excellon('X01Y01', settings)
+    
+    #No effect
+    stmt.to_inch()
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 1.)
+    
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 25.4)
+    
+    #No effect
     stmt.to_metric()
     assert_equal(stmt.x, 25.4)
     assert_equal(stmt.y, 25.4)
@@ -194,10 +229,14 @@ def test_coordinatestmt_string():
 
 
 def test_repeathole_stmt_factory():
-    stmt = RepeatHoleStmt.from_excellon('R0004X015Y32', FileSettings(zeros='leading'))
+    stmt = RepeatHoleStmt.from_excellon('R0004X015Y32', FileSettings(zeros='leading', units='inch'))
     assert_equal(stmt.count, 4)
     assert_equal(stmt.xdelta, 1.5)
     assert_equal(stmt.ydelta, 32)
+    assert_equal(stmt.units, 'inch')
+    
+    stmt = RepeatHoleStmt.from_excellon('R0004X015Y32', FileSettings(zeros='leading', units='metric'))
+    assert_equal(stmt.units, 'metric')
 
 def test_repeatholestmt_dump():
     line = 'R4X015Y32'
@@ -206,13 +245,40 @@ def test_repeatholestmt_dump():
 
 def test_repeatholestmt_conversion():
     line = 'R4X0254Y254'
-    stmt = RepeatHoleStmt.from_excellon(line, FileSettings())
+    settings = FileSettings()
+    settings.units = 'metric'
+    stmt = RepeatHoleStmt.from_excellon(line, settings)
+    
+    #No effect
+    stmt.to_metric()
+    assert_equal(stmt.xdelta, 2.54)
+    assert_equal(stmt.ydelta, 25.4)
+    
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.xdelta, 0.1)
+    assert_equal(stmt.ydelta, 1.)
+    
+    #no effect
     stmt.to_inch()
     assert_equal(stmt.xdelta, 0.1)
     assert_equal(stmt.ydelta, 1.)
 
     line = 'R4X01Y1'
-    stmt = RepeatHoleStmt.from_excellon(line, FileSettings())
+    settings.units = 'inch'
+    stmt = RepeatHoleStmt.from_excellon(line, settings)
+    
+    #no effect
+    stmt.to_inch()
+    assert_equal(stmt.xdelta, 1.)
+    assert_equal(stmt.ydelta, 10.)
+    
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.xdelta, 25.4)
+    assert_equal(stmt.ydelta, 254.)
+    
+    #No effect
     stmt.to_metric()
     assert_equal(stmt.xdelta, 25.4)
     assert_equal(stmt.ydelta, 254.)
@@ -258,12 +324,16 @@ def test_rewindstop_stmt():
     assert_equal(stmt.to_excellon(None), '%')
 
 def test_endofprogramstmt_factory():
-    stmt = EndOfProgramStmt.from_excellon('M30X01Y02', FileSettings())
+    settings = FileSettings(units='inch')
+    stmt = EndOfProgramStmt.from_excellon('M30X01Y02', settings)
     assert_equal(stmt.x, 1.)
     assert_equal(stmt.y, 2.)
-    stmt = EndOfProgramStmt.from_excellon('M30X01', FileSettings())
+    assert_equal(stmt.units, 'inch')
+    settings.units = 'metric'
+    stmt = EndOfProgramStmt.from_excellon('M30X01', settings)
     assert_equal(stmt.x, 1.)
     assert_equal(stmt.y, None)
+    assert_equal(stmt.units, 'metric')
     stmt = EndOfProgramStmt.from_excellon('M30Y02', FileSettings())
     assert_equal(stmt.x, None)
     assert_equal(stmt.y, 2.)
@@ -275,12 +345,38 @@ def test_endofprogramStmt_dump():
         assert_equal(stmt.to_excellon(FileSettings()), line)
 
 def test_endofprogramstmt_conversion():
-    stmt = EndOfProgramStmt.from_excellon('M30X0254Y254', FileSettings())
+    settings = FileSettings()
+    settings.units = 'metric'
+    stmt = EndOfProgramStmt.from_excellon('M30X0254Y254', settings)
+    #No effect
+    stmt.to_metric()
+    assert_equal(stmt.x, 2.54)
+    assert_equal(stmt.y, 25.4)
+    
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.x, 0.1)
+    assert_equal(stmt.y, 1.0)
+    
+    #No effect
     stmt.to_inch()
     assert_equal(stmt.x, 0.1)
     assert_equal(stmt.y, 1.0)
 
-    stmt = EndOfProgramStmt.from_excellon('M30X01Y1', FileSettings())
+    settings.units = 'inch'
+    stmt = EndOfProgramStmt.from_excellon('M30X01Y1', settings)
+    
+    #No effect
+    stmt.to_inch()
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 10.0)
+    
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 254.)
+    
+    #No effect
     stmt.to_metric()
     assert_equal(stmt.x, 25.4)
     assert_equal(stmt.y, 254.)

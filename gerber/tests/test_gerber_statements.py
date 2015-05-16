@@ -10,10 +10,13 @@ from ..cam import FileSettings
 def test_Statement_smoketest():
     stmt = Statement('Test')
     assert_equal(stmt.type, 'Test')
+    stmt.to_metric()
+    assert_in('units=metric', str(stmt))
     stmt.to_inch()
+    assert_in('units=inch', str(stmt))
     stmt.to_metric()
     stmt.offset(1, 1)
-    assert_equal(str(stmt), '<Statement type=Test>')
+    assert_in('type=Test',str(stmt))
 
 def test_FSParamStmt_factory():
     """ Test FSParamStruct factory
@@ -220,12 +223,38 @@ def test_OFParamStmt_dump():
 def test_OFParamStmt_conversion():
     stmt = {'param': 'OF', 'a': '2.54', 'b': '25.4'}
     of = OFParamStmt.from_dict(stmt)
+    of.units='metric'
+
+    # No effect
+    of.to_metric()
+    assert_equal(of.a, 2.54)
+    assert_equal(of.b, 25.4)
+
+    of.to_inch()
+    assert_equal(of.units, 'inch')
+    assert_equal(of.a, 0.1)
+    assert_equal(of.b, 1.0)
+
+    #No effect
     of.to_inch()
     assert_equal(of.a, 0.1)
     assert_equal(of.b, 1.0)
 
     stmt = {'param': 'OF', 'a': '0.1', 'b': '1.0'}
     of = OFParamStmt.from_dict(stmt)
+    of.units = 'inch'
+
+    #No effect
+    of.to_inch()
+    assert_equal(of.a, 0.1)
+    assert_equal(of.b, 1.0)
+
+    of.to_metric()
+    assert_equal(of.units, 'metric')
+    assert_equal(of.a, 2.54)
+    assert_equal(of.b, 25.4)
+
+    #No effect
     of.to_metric()
     assert_equal(of.a, 2.54)
     assert_equal(of.b, 25.4)
@@ -261,12 +290,38 @@ def test_SFParamStmt_dump():
 def test_SFParamStmt_conversion():
     stmt = {'param': 'OF', 'a': '2.54', 'b': '25.4'}
     of = SFParamStmt.from_dict(stmt)
+    of.units = 'metric'
+    of.to_metric()
+
+    #No effect
+    assert_equal(of.a, 2.54)
+    assert_equal(of.b, 25.4)
+
+    of.to_inch()
+    assert_equal(of.units, 'inch')
+    assert_equal(of.a, 0.1)
+    assert_equal(of.b, 1.0)
+
+    #No effect
     of.to_inch()
     assert_equal(of.a, 0.1)
     assert_equal(of.b, 1.0)
 
     stmt = {'param': 'OF', 'a': '0.1', 'b': '1.0'}
     of = SFParamStmt.from_dict(stmt)
+    of.units = 'inch'
+
+    #No effect
+    of.to_inch()
+    assert_equal(of.a, 0.1)
+    assert_equal(of.b, 1.0)
+
+    of.to_metric()
+    assert_equal(of.units, 'metric')
+    assert_equal(of.a, 2.54)
+    assert_equal(of.b, 25.4)
+
+    #No effect
     of.to_metric()
     assert_equal(of.a, 2.54)
     assert_equal(of.b, 25.4)
@@ -350,7 +405,21 @@ def testAMParamStmt_conversion():
     name = 'POLYGON'
     macro = '5,1,8,25.4,25.4,25.4,0*'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
+
     s.build()
+    s.units = 'metric'
+
+    #No effect
+    s.to_metric()
+    assert_equal(s.primitives[0].position, (25.4, 25.4))
+    assert_equal(s.primitives[0].diameter, 25.4)
+
+    s.to_inch()
+    assert_equal(s.units, 'inch')
+    assert_equal(s.primitives[0].position, (1., 1.))
+    assert_equal(s.primitives[0].diameter, 1.)
+
+    #No effect
     s.to_inch()
     assert_equal(s.primitives[0].position, (1., 1.))
     assert_equal(s.primitives[0].diameter, 1.)
@@ -358,6 +427,19 @@ def testAMParamStmt_conversion():
     macro = '5,1,8,1,1,1,0*'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
     s.build()
+    s.units = 'inch'
+
+    #No effect
+    s.to_inch()
+    assert_equal(s.primitives[0].position, (1., 1.))
+    assert_equal(s.primitives[0].diameter, 1.)
+
+    s.to_metric()
+    assert_equal(s.units, 'metric')
+    assert_equal(s.primitives[0].position, (25.4, 25.4))
+    assert_equal(s.primitives[0].diameter, 25.4)
+
+    #No effect
     s.to_metric()
     assert_equal(s.primitives[0].position, (25.4, 25.4))
     assert_equal(s.primitives[0].diameter, 25.4)
@@ -535,10 +617,10 @@ def test_statement_string():
     """ Test Statement.__str__()
     """
     stmt = Statement('PARAM')
-    assert_equal(str(stmt), '<Statement type=PARAM>')
+    assert_in('type=PARAM', str(stmt))
     stmt.test='PASS'
-    assert_true('test=PASS' in str(stmt))
-    assert_true('type=PARAM' in str(stmt))
+    assert_in('test=PASS', str(stmt))
+    assert_in('type=PARAM', str(stmt))
 
 def test_ADParamStmt_factory():
     """ Test ADParamStmt factory
@@ -556,12 +638,37 @@ def test_ADParamStmt_factory():
 def test_ADParamStmt_conversion():
     stmt = {'param': 'AD', 'd': 0, 'shape': 'C', 'modifiers': '25.4X25.4,25.4X25.4'}
     ad = ADParamStmt.from_dict(stmt)
+    ad.units = 'metric'
+
+    #No effect
+    ad.to_metric()
+    assert_equal(ad.modifiers[0], (25.4, 25.4))
+    assert_equal(ad.modifiers[1], (25.4, 25.4))
+
+    ad.to_inch()
+    assert_equal(ad.units, 'inch')
+    assert_equal(ad.modifiers[0], (1., 1.))
+    assert_equal(ad.modifiers[1], (1., 1.))
+
+    #No effect
     ad.to_inch()
     assert_equal(ad.modifiers[0], (1., 1.))
     assert_equal(ad.modifiers[1], (1., 1.))
 
     stmt = {'param': 'AD', 'd': 0, 'shape': 'C', 'modifiers': '1X1,1X1'}
     ad = ADParamStmt.from_dict(stmt)
+    ad.units = 'inch'
+
+    #No effect
+    ad.to_inch()
+    assert_equal(ad.modifiers[0], (1., 1.))
+    assert_equal(ad.modifiers[1], (1., 1.))
+
+    ad.to_metric()
+    assert_equal(ad.modifiers[0], (25.4, 25.4))
+    assert_equal(ad.modifiers[1], (25.4, 25.4))
+
+    #No effect
     ad.to_metric()
     assert_equal(ad.modifiers[0], (25.4, 25.4))
     assert_equal(ad.modifiers[1], (25.4, 25.4))
@@ -646,6 +753,25 @@ def test_coordstmt_dump():
 
 def test_coordstmt_conversion():
     cs = CoordStmt('G71', 25.4, 25.4, 25.4, 25.4, 'D01', FileSettings())
+    cs.units = 'metric'
+
+    #No effect
+    cs.to_metric()
+    assert_equal(cs.x, 25.4)
+    assert_equal(cs.y, 25.4)
+    assert_equal(cs.i, 25.4)
+    assert_equal(cs.j, 25.4)
+    assert_equal(cs.function, 'G71')
+
+    cs.to_inch()
+    assert_equal(cs.units, 'inch')
+    assert_equal(cs.x, 1.)
+    assert_equal(cs.y, 1.)
+    assert_equal(cs.i, 1.)
+    assert_equal(cs.j, 1.)
+    assert_equal(cs.function, 'G70')
+
+    #No effect
     cs.to_inch()
     assert_equal(cs.x, 1.)
     assert_equal(cs.y, 1.)
@@ -654,6 +780,24 @@ def test_coordstmt_conversion():
     assert_equal(cs.function, 'G70')
 
     cs = CoordStmt('G70', 1., 1., 1., 1., 'D01', FileSettings())
+    cs.units = 'inch'
+
+    #No effect
+    cs.to_inch()
+    assert_equal(cs.x, 1.)
+    assert_equal(cs.y, 1.)
+    assert_equal(cs.i, 1.)
+    assert_equal(cs.j, 1.)
+    assert_equal(cs.function, 'G70')
+
+    cs.to_metric()
+    assert_equal(cs.x, 25.4)
+    assert_equal(cs.y, 25.4)
+    assert_equal(cs.i, 25.4)
+    assert_equal(cs.j, 25.4)
+    assert_equal(cs.function, 'G71')
+
+    #No effect
     cs.to_metric()
     assert_equal(cs.x, 25.4)
     assert_equal(cs.y, 25.4)

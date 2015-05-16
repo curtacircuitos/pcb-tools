@@ -214,6 +214,10 @@ class GerberParser(object):
             self.evaluate(stmt)
             self.statements.append(stmt)
 
+        # Initialize statement units
+        for stmt in self.statements:
+            stmt.units = self.settings.units
+
         return GerberFile(self.statements, self.settings, self.primitives, filename)
 
     def dump_json(self):
