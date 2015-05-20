@@ -293,7 +293,7 @@ class ADParamStmt(ParamStmt):
         self.d = d
         self.shape = shape
         if modifiers:
-            self.modifiers = [tuple([float(x) for x in m.split("X")]) for m in modifiers.split(",") if len(m)]
+            self.modifiers = [tuple([float(x) for x in m.split("X") if len(x)]) for m in modifiers.split(",") if len(m)]
         else:
             self.modifiers = [tuple()]
 

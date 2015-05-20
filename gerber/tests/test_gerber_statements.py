@@ -635,6 +635,24 @@ def test_ADParamStmt_factory():
     assert_equal(ad.d, 1)
     assert_equal(ad.shape, 'R')
 
+    stmt = {'param': 'AD', 'd': 1, 'shape': 'C', "modifiers": "1.42"}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.d, 1)
+    assert_equal(ad.shape, 'C')
+    assert_equal(ad.modifiers, [(1.42,)])
+
+    stmt = {'param': 'AD', 'd': 1, 'shape': 'C', "modifiers": "1.42X"}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.d, 1)
+    assert_equal(ad.shape, 'C')
+    assert_equal(ad.modifiers, [(1.42,)])
+
+    stmt = {'param': 'AD', 'd': 1, 'shape': 'R', "modifiers": "1.42X1.24"}
+    ad = ADParamStmt.from_dict(stmt)
+    assert_equal(ad.d, 1)
+    assert_equal(ad.shape, 'R')
+    assert_equal(ad.modifiers, [(1.42, 1.24)])
+
 def test_ADParamStmt_conversion():
     stmt = {'param': 'AD', 'd': 0, 'shape': 'C', 'modifiers': '25.4X25.4,25.4X25.4'}
     ad = ADParamStmt.from_dict(stmt)
