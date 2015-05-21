@@ -11,10 +11,18 @@ from .tests import *
 TOP_COPPER_FILE = os.path.join(os.path.dirname(__file__),
                                 'resources/top_copper.GTL')
 
+MULTILINE_READ_FILE = os.path.join(os.path.dirname(__file__),
+                                'resources/multiline_read.ger')
+
 
 def test_read():
     top_copper = read(TOP_COPPER_FILE)
     assert(isinstance(top_copper, GerberFile))
+
+def test_multiline_read():
+    multiline = read(MULTILINE_READ_FILE)
+    assert(isinstance(multiline, GerberFile))
+    assert_equal(10, len(multiline.statements))
 
 def test_comments_parameter():
     top_copper = read(TOP_COPPER_FILE)

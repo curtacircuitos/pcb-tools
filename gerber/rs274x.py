@@ -241,9 +241,10 @@ class GerberParser(object):
                 continue
 
             # deal with multi-line parameters
-            if line.startswith("%") and not line.endswith("%"):
+            if line.startswith("%") and not line.endswith("%") and not "%" in line[1:]:
                 oldline = line
                 continue
+
 
             did_something = True  # make sure we do at least one loop
             while did_something and len(line) > 0:
@@ -292,6 +293,7 @@ class GerberParser(object):
 
                 # parameter
                 (param, r) = _match_one_from_many(self.PARAM_STMT, line)
+
                 if param:
                     if param["param"] == "FS":
                         stmt = FSParamStmt.from_dict(param)
