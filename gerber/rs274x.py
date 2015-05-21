@@ -341,10 +341,12 @@ class GerberParser(object):
                     line = r
                     continue
 
-                # deprecated codes (parsed but ignored)
+                # deprecated codes
                 (deprecated_unit, r) = _match_one(self.DEPRECATED_UNIT, line)
                 if deprecated_unit:
-                    yield DeprecatedStmt.from_gerber(line)
+                    stmt = MOParamStmt(param="MO", mo="inch" if "G70" in deprecated_unit["mode"] else "metric")
+                    self.settings.units = stmt.mode
+                    yield stmt
                     line = r
                     did_something = True
                     continue
