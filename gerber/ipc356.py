@@ -248,6 +248,7 @@ class IPC356_Parameter(object):
 class IPC356_TestRecord(object):
     @classmethod
     def from_line(cls, line, settings):
+        offset = 0
         units = settings.units
         angle = settings.angle_units
         feature_types = {'1':'through-hole', '2': 'smt',
@@ -263,67 +264,70 @@ class IPC356_TestRecord(object):
         end = len(line) - 1 if len(line) < 18 else 17
         record['net_name'] = line[3:end].strip()
 
-        end = len(line) - 1 if len(line) < 27 else 26
+        if len(line) >= 27 and line[26] != '-':
+            offset = line[26:].find('-')
+            offset = 0 if offset == -1 else offset
+        end = len(line) - 1 if len(line) < (27 + offset) else (26 + offset)
         record['id'] = line[20:end].strip()
 
-        end = len(line) - 1 if len(line) < 32 else 31
-        record['pin'] = (line[27:end].strip() if line[27:end].strip() != ''
+        end = len(line) - 1 if len(line) < (32 + offset) else (31 + offset)
+        record['pin'] = (line[27 + offset:end].strip() if line[27 + offset:end].strip() != ''
                          else None)
 
-        record['location'] = 'middle' if line[31] == 'M' else 'end'
-        if line[32] == 'D':
-            end = len(line) - 1 if len(line) < 38 else 37
-            dia = int(line[33:end].strip())
+        record['location'] = 'middle' if line[31 + offset] == 'M' else 'end'
+        if line[32 + offset] == 'D':
+            end = len(line) - 1 if len(line) < (38 + offset) else (37 + offset)
+            dia = int(line[33 + offset:end].strip())
             record['hole_diameter'] = (dia * 0.0001 if units == 'inch'
                                        else dia * 0.001)
-        if len(line) >= 38:
-            record['plated'] = (line[37] == 'P')
+        if len(line) >= (38 + offset):
+            record['plated'] = (line[37 + offset] == 'P')
 
-        if len(line) >= 40:
-            end = len(line) - 1 if len(line) < 42 else 41
-            record['access'] = access[int(line[39:end])]
+        if len(line) >= (40 + offset):
+            end = len(line) - 1 if len(line) < (42 + offset) else (41 + offset)
+            record['access'] = access[int(line[39 + offset:end])]
 
-        if len(line) >= 43:
-            end = len(line) - 1 if len(line) < 50 else 49
-            coord = int(line[42:49].strip())
+        if len(line) >= (43 + offset):
+            end = len(line) - 1 if len(line) < (50 + offset) else (49 + offset)
+            coord = int(line[42 + offset:end].strip())
             record['x_coord'] = (coord *  0.0001 if units == 'inch'
                                  else coord * 0.001)
 
-        if len(line) >= 51:
-            end = len(line) - 1 if len(line) < 58 else 57
-            coord = int(line[50:57].strip())
+        if len(line) >= (51 + offset):
+            end = len(line) - 1 if len(line) < (58 + offset) else (57 + offset)
+            coord = int(line[50 + offset:end].strip())
             record['y_coord'] = (coord *  0.0001 if units == 'inch'
             else coord * 0.001)
 
-        if len(line) >= 59:
-            end = len(line) - 1 if len(line) < 63 else 62
-            dim = line[58:62].strip()
+        if len(line) >= (59 + offset):
+            end = len(line) - 1 if len(line) < (63 + offset) else (62 + offset)
+            dim = line[58 + offset:end].strip()
             if dim != '':
                 record['rect_x'] = (int(dim) * 0.0001 if units == 'inch'
                                 else int(dim) * 0.001)
 
-        if len(line) >= 64:
-            end = len(line) - 1 if len(line) < 68 else 67
-            dim = line[63:67].strip()
+        if len(line) >= (64 + offset):
+            end = len(line) - 1 if len(line) < (68 + offset) else (67 + offset)
+            dim = line[63 + offset:end].strip()
             if dim != '':
                 record['rect_y'] = (int(dim) * 0.0001 if units == 'inch'
                                     else int(dim) * 0.001)
 
-        if len(line) >= 69:
-            end = len(line) - 1 if len(line) < 72 else 71
-            rot = line[68:71].strip()
+        if len(line) >= (69 + offset):
+            end = len(line) - 1 if len(line) < (72 + offset) else (71 + offset)
+            rot = line[68 + offset:end].strip()
             if rot != '':
                 record['rect_rotation'] = (int(rot) if angle == 'degrees'
                                            else math.degrees(rot))
 
-        if len(line) >= 74:
-            end = len(line) - 1 if len(line) < 75 else 74
-            sm_info = line[73:74].strip()
+        if len(line) >= (74 + offset):
+            end =  74 + offset
+            sm_info = line[73 + offset:end].strip()
             record['soldermask_info'] = _SM_FIELD.get(sm_info)
 
-        if len(line) >= 76:
-            end = len(line) - 1 if len(line < 80) else 79
-            record['optional_info'] = line[75:end]
+        if len(line) >= (76 + offset):
+            end = len(line) - 1 if len(line) < (80 + offset) else 79 + offset
+            record['optional_info'] = line[75 + offset:end]
 
         return cls(**record)
 

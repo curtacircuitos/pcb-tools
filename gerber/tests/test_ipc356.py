@@ -118,3 +118,13 @@ def test_test_record():
     assert_almost_equal(r.rect_x, 0.)
     assert_equal(r.soldermask_info, 'primary side')
 
+    record_string = '317SCL              COMMUNICATION-1    D  40PA00X  34000Y  20000X 600Y1200R270 '
+    r = IPC356_TestRecord.from_line(record_string, FileSettings(units='inch'))
+    assert_equal(r.feature_type, 'through-hole')
+    assert_equal(r.net_name, 'SCL')
+    assert_equal(r.id, 'COMMUNICATION')
+    assert_equal(r.pin, '1')
+    assert_almost_equal(r.hole_diameter, 0.004)
+    assert_true(r.plated)
+    assert_almost_equal(r.x_coord, 3.4)
+    assert_almost_equal(r.y_coord, 2.0)
