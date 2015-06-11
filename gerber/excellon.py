@@ -135,7 +135,7 @@ class ExcellonFile(CamFile):
         rprt += '\nTool List:\n----------\n\n'
         rprt += '  Code      Size     Hits    Path Length\n'
         rprt += '  --------------------------------------\n'
-        for tool in self.tools.itervalues():
+        for tool in iter(self.tools.values()):
             rprt += toolfmt.format(tool.number, tool.diameter, tool.hit_count, self.tool_path_length(tool.number))
         if filename is not None:
             with open(filename, 'w') as f:
@@ -153,7 +153,7 @@ class ExcellonFile(CamFile):
                     break
             
             # Write out coordinates for drill hits by tool
-            for tool in self.tools.itervalues():
+            for tool in iter(self.tools.values()):
                 f.write(ToolSelectionStmt(tool.number).to_excellon(self.settings) + '\n')
                 for hit in self.hits:
                     if hit.tool.number == tool.number:
@@ -168,7 +168,7 @@ class ExcellonFile(CamFile):
             self.units = 'inch'
             for statement in self.statements:
                 statement.to_inch()
-            for tool in self.tools.itervalues():
+            for tool in iter(self.tools.values()):
                 tool.to_inch()
             for primitive in self.primitives:
                 primitive.to_inch()
