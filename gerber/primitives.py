@@ -36,11 +36,13 @@ class Primitive(object):
         Rotation of a primitive about its origin in degrees. Positive rotation
         is counter-clockwise as viewed from the board top.
     """
-    def __init__(self, level_polarity='dark', rotation=0, units=None):
+    def __init__(self, level_polarity='dark', rotation=0, units=None, id=None, statement_id=None):
         self.level_polarity = level_polarity
         self.rotation = rotation
         self.units = units
         self._to_convert = list()
+        self.id = id
+        self.statement_id = statement_id
 
     def bounding_box(self):
         """ Calculate bounding box

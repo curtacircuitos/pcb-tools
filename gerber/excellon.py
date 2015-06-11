@@ -24,6 +24,7 @@ This module provides Excellon file classes and parsing utilities
 """
 
 import math
+import operator
 
 from .excellon_statements import *
 from .cam import CamFile, FileSettings
@@ -47,6 +48,22 @@ def read(filename):
     # File object should use settings from source file by default.
     settings = FileSettings(**detect_excellon_format(filename))
     return ExcellonParser(settings).parse(filename)
+
+
+class DrillHit(object):
+    def __init__(self, tool, position):
+        self.tool = tool
+        self.position = position
+    
+    def to_inch(self):
+        if self.tool.units == 'metric':
+            self.tool.to_inch()
+            self.position = tuple(map(inch, self.position))
+    
+    def to_metric(self):
+        if self.tool.units == 'inch':
+            self.tool.to_metric()
+            self.position = tuple(map(metric, self.position))
 
 
 class ExcellonFile(CamFile):
@@ -81,17 +98,19 @@ class ExcellonFile(CamFile):
                                            filename=filename)
         self.tools = tools
         self.hits = hits
-        self.primitives = [Drill(position, tool.diameter, units=settings.units)
-                           for tool, position in self.hits]
+        
+    @property
+    def primitives(self):
+        return [Drill(hit.position, hit.tool.diameter,units=self.settings.units) for hit in self.hits]
+        
 
     @property
     def bounds(self):
         xmin = ymin = 100000000000
         xmax = ymax = -100000000000
-        for tool, position in self.hits:
-            radius = tool.diameter / 2.
-            x = position[0]
-            y = position[1]
+        for hit in self.hits:
+            radius = hit.tool.diameter / 2.
+            x, y = hit.position
             xmin = min(x - radius, xmin)
             xmax = max(x + radius, xmax)
             ymin = min(y - radius, ymin)
@@ -101,20 +120,23 @@ class ExcellonFile(CamFile):
     def report(self, filename=None):
         """ Print or save drill report
         """
-        toolfmt = '  T%%02d       %%%d.%df       %%d\n' % self.settings.format
-        rprt = 'Excellon Drill Report\n\n'
+        if self.settings.units == 'inch':
+            toolfmt = '  T{:0>2d}      {:%d.%df}     {: >3d}     {:f}in.\n' % self.settings.format
+        else:
+            toolfmt = '  T{:0>2d}      {:%d.%df}     {: >3d}     {:f}mm\n' % self.settings.format
+        rprt = '=====================\nExcellon Drill Report\n=====================\n'
         if self.filename is not None:
             rprt += 'NC Drill File: %s\n\n' % self.filename
-        rprt += 'Drill File Info:\n\n'
+        rprt += 'Drill File Info:\n----------------\n'
         rprt += ('  Data Mode         %s\n' % 'Absolute'
                  if self.settings.notation == 'absolute' else 'Incremental')
         rprt += ('  Units             %s\n' % 'Inches'
                  if self.settings.units == 'inch' else 'Millimeters')
-        rprt += '\nTool List:\n\n'
-        rprt += '  Code      Size        Hits\n'
-        rprt += '  --------------------------\n'
+        rprt += '\nTool List:\n----------\n\n'
+        rprt += '  Code      Size     Hits    Path Length\n'
+        rprt += '  --------------------------------------\n'
         for tool in self.tools.itervalues():
-            rprt += toolfmt % (tool.number, tool.diameter, tool.hit_count)
+            rprt += toolfmt.format(tool.number, tool.diameter, tool.hit_count, self.tool_path_length(tool.number))
         if filename is not None:
             with open(filename, 'w') as f:
                 f.write(rprt)
@@ -122,9 +144,22 @@ class ExcellonFile(CamFile):
 
     def write(self, filename):
         with open(filename, 'w') as f:
+            # Copy the header verbatim
             for statement in self.statements:
-                f.write(statement.to_excellon(self.settings) + '\n')
-
+                print(statement)
+                if not isinstance(statement, ToolSelectionStmt):
+                    f.write(statement.to_excellon(self.settings) + '\n')
+                else:
+                    break
+            
+            # Write out coordinates for drill hits by tool
+            for tool in self.tools.itervalues():
+                f.write(ToolSelectionStmt(tool.number).to_excellon(self.settings) + '\n')
+                for hit in self.hits:
+                    if hit.tool.number == tool.number:
+                        f.write(CoordinateStmt(*hit.position).to_excellon(self.settings) + '\n')
+            f.write(EndOfProgramStmt().to_excellon() + '\n')
+            
     def to_inch(self):
         """
         Convert units to inches
@@ -137,8 +172,8 @@ class ExcellonFile(CamFile):
                 tool.to_inch()
             for primitive in self.primitives:
                 primitive.to_inch()
-            self.hits = [(tool, tuple(map(inch, pos)))
-                         for tool, pos in self.hits]
+            for hit in self.hits:
+                hit.position = tuple(map(inch, hit,position))
 
 
     def to_metric(self):
@@ -152,17 +187,52 @@ class ExcellonFile(CamFile):
                 tool.to_metric()
             for primitive in self.primitives:
                 primitive.to_metric()
-            self.hits = [(tool, tuple(map(metric, pos)))
-                         for tool, pos in self.hits]
+            for hit in self.hits:
+                hit.position = tuple(map(metric, hit.position))
 
     def offset(self, x_offset=0, y_offset=0):
         for statement in self.statements:
             statement.offset(x_offset, y_offset)
         for primitive in self.primitives:
             primitive.offset(x_offset, y_offset)
-        self.hits = [(tool, (pos[0] + x_offset, pos[1] + y_offset))
-                     for tool, pos in self.hits]
+        for hit in self. hits:
+            hit.position = tuple(map(operator.add, hit.position, (x_offset, y_offset)))
 
+    def tool_path_length(self, tool_number):
+        """ Return the path length for a given tool
+        """
+        length = 0.0
+        pos = (0, 0)
+        for hit in self.hits:
+            tool = hit.tool
+            if tool.number == tool_number:
+                length = length + math.hypot(*tuple(map(operator.sub, pos, hit.position)))
+                pos = hit.position
+        return length
+
+
+    def update_tool(self, tool_number, **kwargs):
+        """ Change parameters of a tool
+        """
+        if kwargs.get('feed_rate') is not None:
+            self.tools[tool_number].feed_rate = kwargs.get('feed_rate')
+        if kwargs.get('retract_rate') is not None:
+            self.tools[tool_number].retract_rate = kwargs.get('retract_rate')
+        if kwargs.get('rpm') is not None:
+            self.tools[tool_number].rpm = kwargs.get('rpm')
+        if kwargs.get('diameter') is not None:
+            self.tools[tool_number].diameter = kwargs.get('diameter')
+        if kwargs.get('max_hit_count') is not None:
+            self.tools[tool_number].max_hit_count = kwargs.get('max_hit_count')
+        if kwargs.get('depth_offset') is not None:
+            self.tools[tool_number].depth_offset = kwargs.get('depth_offset')
+        # Update drill hits
+        newtool = self.tools[tool_number]
+        for hit in self.hits:
+            if hit.tool.number == newtool.number:
+                hit.tool = newtool
+        
+                
 
 class ExcellonParser(object):
     """ Excellon File Parser
@@ -248,6 +318,8 @@ class ExcellonParser(object):
             self.statements.append(RewindStopStmt())
             if self.state == 'HEADER':
                 self.state = 'DRILL'
+            elif self.state == 'INIT':
+                self.state = 'HEADER'
 
         elif line[:3] == 'M95':
             self.statements.append(HeaderEndStmt())
@@ -312,7 +384,7 @@ class ExcellonParser(object):
             for i in range(stmt.count):
                 self.pos[0] += stmt.xdelta if stmt.xdelta is not None else 0
                 self.pos[1] += stmt.ydelta if stmt.ydelta is not None else 0
-                self.hits.append((self.active_tool, tuple(self.pos)))
+                self.hits.append(DrillHit(self.active_tool, tuple(self.pos)))
                 self.active_tool._hit()
 
         elif line[0] in ['X', 'Y']:
@@ -331,7 +403,7 @@ class ExcellonParser(object):
                 if y is not None:
                     self.pos[1] += y
             if self.state == 'DRILL':
-                self.hits.append((self.active_tool, tuple(self.pos)))
+                self.hits.append(DrillHit(self.active_tool, tuple(self.pos)))
                 self.active_tool._hit()
         else:
             self.statements.append(UnknownStmt.from_excellon(line))
@@ -402,7 +474,7 @@ def detect_excellon_format(filename):
                 size = tuple([t[1] - t[0] for t in p.bounds])
                 hole_area = 0.0
                 for hit in p.hits:
-                    tool = hit[0]
+                    tool = hit.tool
                     hole_area += math.pow(math.pi * tool.diameter / 2., 2)
                 results[key] = (size, p.hole_count, hole_area)
             except:

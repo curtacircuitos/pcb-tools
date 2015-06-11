@@ -22,7 +22,7 @@ Excellon Statements
 """
 
 import re
-
+import uuid
 from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
                     inch, metric)
 
@@ -40,13 +40,15 @@ class ExcellonStatement(object):
     """ Excellon Statement abstract base class
     """
     
-    units = 'inch'
-     
     @classmethod
     def from_excellon(cls, line):
         raise NotImplementedError('from_excellon must be implemented in a '
                                   'subclass')
-
+    
+    def __init__(self, unit='inch', id=None):
+        self.units = unit
+        self.id = uuid.uuid4().int if id is None else id
+    
     def to_excellon(self, settings=None):
         raise NotImplementedError('to_excellon must be implemented in a '
                                   'subclass')
@@ -107,7 +109,7 @@ class ExcellonTool(ExcellonStatement):
     """
 
     @classmethod
-    def from_excellon(cls, line, settings):
+    def from_excellon(cls, line, settings, id=None):
         """ Create a Tool from an excellon file tool definition line.
 
         Parameters
@@ -126,6 +128,7 @@ class ExcellonTool(ExcellonStatement):
         commands = re.split('([BCFHSTZ])', line)[1:]
         commands = [(command, value) for command, value in pairwise(commands)]
         args = {}
+        args['id'] = id
         nformat = settings.format
         zero_suppression = settings.zero_suppression
         for cmd, val in commands:
@@ -165,6 +168,8 @@ class ExcellonTool(ExcellonStatement):
         return cls(settings, **tool_dict)
 
     def __init__(self, settings, **kwargs):
+        if kwargs.get('id') is not None:
+            super(ExcellonTool, self).__init__(id=kwargs.get('id'))
         self.settings = settings
         self.number = kwargs.get('number')
         self.feed_rate = kwargs.get('feed_rate')
@@ -221,7 +226,7 @@ class ExcellonTool(ExcellonStatement):
 class ToolSelectionStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
+    def from_excellon(cls, line, **kwargs):
         """ Create a ToolSelectionStmt from an excellon file line.
 
         Parameters
@@ -244,9 +249,10 @@ class ToolSelectionStmt(ExcellonStatement):
             tool = int(line[:2])
             compensation_index = int(line[2:])
 
-        return cls(tool, compensation_index)
+        return cls(tool, compensation_index, **kwargs)
 
-    def __init__(self, tool, compensation_index=None):
+    def __init__(self, tool, compensation_index=None, **kwargs):
+        super(ToolSelectionStmt, self).__init__(**kwargs)
         tool = int(tool)
         compensation_index = (int(compensation_index) if compensation_index
                               is not None else None)
@@ -263,7 +269,7 @@ class ToolSelectionStmt(ExcellonStatement):
 class CoordinateStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line, settings):
+    def from_excellon(cls, line, settings, **kwargs):
         x_coord = None
         y_coord = None
         if line[0] == 'X':
@@ -276,11 +282,12 @@ class CoordinateStmt(ExcellonStatement):
         else:
             y_coord = parse_gerber_value(line.strip(' Y'), settings.format,
                                          settings.zero_suppression)
-        c = cls(x_coord, y_coord)
+        c = cls(x_coord, y_coord, **kwargs)
         c.units = settings.units
         return c
 
-    def __init__(self, x=None, y=None):
+    def __init__(self, x=None, y=None, **kwargs):
+        super(CoordinateStmt, self).__init__(**kwargs)
         self.x = x
         self.y = y
 
@@ -329,7 +336,7 @@ class CoordinateStmt(ExcellonStatement):
 class RepeatHoleStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line, settings):
+    def from_excellon(cls, line, settings, **kwargs):
         match = re.compile(r'R(?P<rcount>[0-9]*)X?(?P<xdelta>[+\-]?\d*\.?\d*)?Y?'
                            '(?P<ydelta>[+\-]?\d*\.?\d*)?').match(line)
         stmt = match.groupdict()
@@ -340,11 +347,12 @@ class RepeatHoleStmt(ExcellonStatement):
         ydelta = (parse_gerber_value(stmt['ydelta'], settings.format,
                                      settings.zero_suppression)
                   if stmt['ydelta'] is not '' else None)
-        c = cls(count, xdelta, ydelta)
+        c = cls(count, xdelta, ydelta, **kwargs)
         c.units = settings.units
         return c
 
-    def __init__(self, count, xdelta=0.0, ydelta=0.0):
+    def __init__(self, count, xdelta=0.0, ydelta=0.0, **kwargs):
+        super(RepeatHoleStmt, self).__init__(**kwargs)
         self.count = count
         self.xdelta = xdelta
         self.ydelta = ydelta
@@ -385,10 +393,11 @@ class RepeatHoleStmt(ExcellonStatement):
 class CommentStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
+    def from_excellon(cls, line, **kwargs):
         return cls(line.lstrip(';'))
 
-    def __init__(self, comment):
+    def __init__(self, comment, **kwargs):
+        super(CommentStmt, self).__init__(**kwargs)
         self.comment = comment
 
     def to_excellon(self, settings=None):
@@ -397,8 +406,8 @@ class CommentStmt(ExcellonStatement):
 
 class HeaderBeginStmt(ExcellonStatement):
 
-    def __init__(self):
-        pass
+    def __init__(self, **kwargs):
+        super(HeaderBeginStmt, self).__init__(**kwargs)
 
     def to_excellon(self, settings=None):
         return 'M48'
@@ -406,8 +415,8 @@ class HeaderBeginStmt(ExcellonStatement):
 
 class HeaderEndStmt(ExcellonStatement):
 
-    def __init__(self):
-        pass
+    def __init__(self, **kwargs):
+        super(HeaderEndStmt, self).__init__(**kwargs)
 
     def to_excellon(self, settings=None):
         return 'M95'
@@ -415,8 +424,8 @@ class HeaderEndStmt(ExcellonStatement):
 
 class RewindStopStmt(ExcellonStatement):
 
-    def __init__(self):
-        pass
+    def __init__(self, **kwargs):
+        super(RewindStopStmt, self).__init__(**kwargs)
 
     def to_excellon(self, settings=None):
         return '%'
@@ -425,7 +434,7 @@ class RewindStopStmt(ExcellonStatement):
 class EndOfProgramStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line, settings):
+    def from_excellon(cls, line, settings, **kwargs):
         match = re.compile(r'M30X?(?P<x>\d*\.?\d*)?Y?'
                            '(?P<y>\d*\.?\d*)?').match(line)
         stmt = match.groupdict()
@@ -435,11 +444,12 @@ class EndOfProgramStmt(ExcellonStatement):
         y = (parse_gerber_value(stmt['y'], settings.format,
                                 settings.zero_suppression)
              if stmt['y'] is not '' else None)
-        c = cls(x, y)
+        c = cls(x, y, **kwargs)
         c.units = settings.units
         return c
 
-    def __init__(self, x=None, y=None):
+    def __init__(self, x=None, y=None, **kwargs):
+        super(EndOfProgramStmt, self).__init__(**kwargs)
         self.x = x
         self.y = y
 
@@ -476,12 +486,13 @@ class EndOfProgramStmt(ExcellonStatement):
 class UnitStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
+    def from_excellon(cls, line, **kwargs):
         units = 'inch' if 'INCH' in line else 'metric'
         zeros = 'leading' if 'LZ' in line else 'trailing'
-        return cls(units, zeros)
+        return cls(units, zeros, **kwargs)
 
-    def __init__(self, units='inch', zeros='leading'):
+    def __init__(self, units='inch', zeros='leading', **kwargs):
+        super(UnitStmt, self).__init__(**kwargs)
         self.units = units.lower()
         self.zeros = zeros
 
@@ -500,10 +511,11 @@ class UnitStmt(ExcellonStatement):
 class IncrementalModeStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
-        return cls('off') if 'OFF' in line else cls('on')
+    def from_excellon(cls, line, **kwargs):
+        return cls('off', **kwargs) if 'OFF' in line else cls('on', **kwargs)
 
-    def __init__(self, mode='off'):
+    def __init__(self, mode='off', **kwargs):
+        super(IncrementalModeStmt, self).__init__(**kwargs)
         if mode.lower() not in ['on', 'off']:
             raise ValueError('Mode may be "on" or "off"')
         self.mode = mode
@@ -515,11 +527,12 @@ class IncrementalModeStmt(ExcellonStatement):
 class VersionStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
+    def from_excellon(cls, line, **kwargs):
         version = int(line.split(',')[1])
-        return cls(version)
+        return cls(version, **kwargs)
 
-    def __init__(self, version=1):
+    def __init__(self, version=1, **kwargs):
+        super(VersionStmt, self).__init__(**kwargs)
         version = int(version)
         if version not in [1, 2]:
             raise ValueError('Valid versions are  1 or 2')
@@ -532,11 +545,12 @@ class VersionStmt(ExcellonStatement):
 class FormatStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
+    def from_excellon(cls, line, **kwargs):
         fmt = int(line.split(',')[1])
-        return cls(fmt)
+        return cls(fmt, **kwargs)
 
-    def __init__(self, format=1):
+    def __init__(self, format=1, **kwargs):
+        super(FormatStmt, self).__init__(**kwargs)
         format = int(format)
         if format not in [1, 2]:
             raise ValueError('Valid formats are 1 or 2')
@@ -549,11 +563,12 @@ class FormatStmt(ExcellonStatement):
 class LinkToolStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
+    def from_excellon(cls, line, **kwargs):
         linked = [int(tool) for tool in line.split('/')]
-        return cls(linked)
+        return cls(linked, **kwargs)
 
-    def __init__(self, linked_tools):
+    def __init__(self, linked_tools, **kwargs):
+        super(LinkToolStmt, self).__init__(**kwargs)
         self.linked_tools = [int(x) for x in linked_tools]
 
     def to_excellon(self, settings=None):
@@ -563,12 +578,13 @@ class LinkToolStmt(ExcellonStatement):
 class MeasuringModeStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
+    def from_excellon(cls, line, **kwargs):
         if not ('M71' in line or 'M72' in line):
             raise ValueError('Not a measuring mode statement')
-        return cls('inch') if 'M72' in line else cls('metric')
+        return cls('inch', **kwargs) if 'M72' in line else cls('metric', **kwargs)
 
-    def __init__(self, units='inch'):
+    def __init__(self, units='inch', **kwargs):
+        super(MeasuringModeStmt, self).__init__(**kwargs)
         units = units.lower()
         if units not in ['inch', 'metric']:
             raise ValueError('units must be "inch" or "metric"')
@@ -585,8 +601,8 @@ class MeasuringModeStmt(ExcellonStatement):
 
 class RouteModeStmt(ExcellonStatement):
 
-    def __init__(self):
-        pass
+    def __init__(self, **kwargs):
+        super(RouteModeStmt, self).__init__(**kwargs)
 
     def to_excellon(self, settings=None):
         return 'G00'
@@ -594,8 +610,8 @@ class RouteModeStmt(ExcellonStatement):
 
 class DrillModeStmt(ExcellonStatement):
 
-    def __init__(self):
-        pass
+    def __init__(self, **kwargs):
+        super(DrillModeStmt, self).__init__(**kwargs)
 
     def to_excellon(self, settings=None):
         return 'G05'
@@ -603,8 +619,8 @@ class DrillModeStmt(ExcellonStatement):
 
 class AbsoluteModeStmt(ExcellonStatement):
 
-    def __init__(self):
-        pass
+    def __init__(self, **kwargs):
+        super(AbsoluteModeStmt, self).__init__(**kwargs)
 
     def to_excellon(self, settings=None):
         return 'G90'
@@ -613,10 +629,11 @@ class AbsoluteModeStmt(ExcellonStatement):
 class UnknownStmt(ExcellonStatement):
 
     @classmethod
-    def from_excellon(cls, line):
-        return cls(line)
+    def from_excellon(cls, line, **kwargs):
+        return cls(line, **kwargs)
 
-    def __init__(self, stmt):
+    def __init__(self, stmt, **kwargs):
+        super(UnknownStmt, self).__init__(**kwargs)
         self.stmt = stmt
 
     def to_excellon(self, settings=None):
