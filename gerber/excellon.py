@@ -136,17 +136,18 @@ class ExcellonFile(CamFile):
         rprt += '  Code      Size     Hits    Path Length\n'
         rprt += '  --------------------------------------\n'
         for tool in iter(self.tools.values()):
-            rprt += toolfmt.format(tool.number, tool.diameter, tool.hit_count, self.tool_path_length(tool.number))
+            rprt += toolfmt.format(tool.number, tool.diameter, tool.hit_count, self.path_length(tool.number))
         if filename is not None:
             with open(filename, 'w') as f:
                 f.write(rprt)
         return rprt
 
-    def write(self, filename):
+    def write(self, filename=None):
+        filename = filename if filename is not None else self.filename
         with open(filename, 'w') as f:
+            
             # Copy the header verbatim
             for statement in self.statements:
-                print(statement)
                 if not isinstance(statement, ToolSelectionStmt):
                     f.write(statement.to_excellon(self.settings) + '\n')
                 else:
@@ -198,18 +199,32 @@ class ExcellonFile(CamFile):
         for hit in self. hits:
             hit.position = tuple(map(operator.add, hit.position, (x_offset, y_offset)))
 
-    def tool_path_length(self, tool_number):
+    def path_length(self, tool_number=None):
         """ Return the path length for a given tool
         """
-        length = 0.0
-        pos = (0, 0)
+        lengths = {}
+        positions = {}
         for hit in self.hits:
             tool = hit.tool
-            if tool.number == tool_number:
-                length = length + math.hypot(*tuple(map(operator.sub, pos, hit.position)))
-                pos = hit.position
-        return length
+            num = tool.number
+            positions[num] = (0, 0) if positions.get(num) is None else positions[num]
+            lengths[num] = 0.0 if lengths.get(num) is None else lengths[num]
+            lengths[num] = lengths[num] + math.hypot(*tuple(map(operator.sub, positions[num], hit.position)))
+            positions[num] = hit.position
+        
+        if tool_number is None:
+            return lengths
+        else:
+            return lengths.get(tool_number)
 
+    def hit_count(self, tool_number=None):
+            counts = {}
+            for tool in iter(self.tools.values()):
+                counts[tool.number] = tool.hit_count
+            if tool_number is None:
+                return counts
+            else:
+                return counts.get(tool_number)
 
     def update_tool(self, tool_number, **kwargs):
         """ Change parameters of a tool
