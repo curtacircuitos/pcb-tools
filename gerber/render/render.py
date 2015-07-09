@@ -62,6 +62,7 @@ class GerberContext(object):
         self._drill_color = (0.25, 0.25, 0.25)
         self._background_color = (0.0, 0.0, 0.0)
         self._alpha = 1.0
+        self._invert = False
 
     @property
     def units(self):
@@ -121,6 +122,14 @@ class GerberContext(object):
         if alpha < 0 or alpha > 1:
             raise ValueError('Alpha must be between 0.0 and 1.0')
         self._alpha = alpha
+
+    @property
+    def invert(self):
+        return self._invert
+
+    @invert.setter
+    def invert(self, invert):
+        self._invert = invert
 
     def render(self, primitive):
         color = (self.color if primitive.level_polarity == 'dark'
