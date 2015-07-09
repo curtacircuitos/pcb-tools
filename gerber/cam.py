@@ -253,9 +253,11 @@ class CamFile(object):
         filename : string <optional>
             If provided, save the rendered image to `filename`
         """
+        ctx._paint_background()
+        
         if ctx.invert:
             ctx._paint_inverted_layer()
-            
+
         for p in self.primitives:
             ctx.render(p)
         if filename is not None:

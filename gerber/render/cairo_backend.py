@@ -72,7 +72,7 @@ class GerberCairoContext(GerberContext):
         center = map(mul, arc.center, self.scale)
         start = map(mul, arc.start, self.scale)
         end = map(mul, arc.end, self.scale)
-        radius = self.scale * arc.radius
+        radius = self.scale[0] * arc.radius
         angle1 = arc.start_angle
         angle2 = arc.end_angle
         width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
@@ -138,6 +138,10 @@ class GerberCairoContext(GerberContext):
         self.ctx.set_operator(cairo.OPERATOR_OVER)
         self.ctx.paint()
         self.ctx.set_operator(cairo.OPERATOR_CLEAR)
+
+    def _paint_background(self):
+        self.ctx.set_source_rgba(*self.background_color)
+        self.ctx.paint()
 
     def dump(self, filename):
         is_svg = filename.lower().endswith(".svg")
