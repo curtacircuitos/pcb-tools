@@ -220,7 +220,8 @@ class CamFile(object):
             self.zeros = 'leading'
             self.format = (2, 5)
         self.statements = statements if statements is not None else []
-        self.primitives = primitives
+        if primitives is not None:
+            self.primitives = primitives
         self.filename = filename
         self.layer_name = layer_name
 

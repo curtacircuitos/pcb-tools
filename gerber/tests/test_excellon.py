@@ -24,6 +24,17 @@ def test_read():
     ncdrill = read(NCDRILL_FILE)
     assert(isinstance(ncdrill, ExcellonFile))
 
+def test_write():
+    ncdrill = read(NCDRILL_FILE)
+    ncdrill.write('test.ncd')
+    with open(NCDRILL_FILE) as src:
+            srclines = src.readlines()
+            
+    with open('test.ncd') as res:
+            for idx, line in enumerate(res):
+                assert_equal(line.strip(), srclines[idx].strip())
+    os.remove('test.ncd')
+
 def test_read_settings():
     ncdrill = read(NCDRILL_FILE)
     assert_equal(ncdrill.settings['format'], (2, 4))
@@ -47,9 +58,11 @@ def test_conversion():
     ncdrill.to_metric()
     assert_equal(ncdrill.settings.units, 'metric')
 
+    inch_primitives = ncdrill_inch.primitives
+    
     for tool in iter(ncdrill_inch.tools.values()):
         tool.to_metric()
-    for primitive in ncdrill_inch.primitives:
+    for primitive in inch_primitives:
         primitive.to_metric()
     for statement in ncdrill_inch.statements:
         statement.to_metric()
@@ -57,7 +70,7 @@ def test_conversion():
     for m_tool, i_tool in zip(iter(ncdrill.tools.values()), iter(ncdrill_inch.tools.values())):
         assert_equal(i_tool, m_tool)
 
-    for m, i in zip(ncdrill.primitives,ncdrill_inch.primitives):
+    for m, i in zip(ncdrill.primitives,inch_primitives):
         assert_equal(m, i)
 
 
