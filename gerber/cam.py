@@ -253,8 +253,8 @@ class CamFile(object):
         filename : string <optional>
             If provided, save the rendered image to `filename`
         """
+        ctx.set_bounds(self.bounds)
         ctx._paint_background()
-        
         if ctx.invert:
             ctx._paint_inverted_layer()
 

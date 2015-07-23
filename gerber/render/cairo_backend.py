@@ -31,20 +31,21 @@ class GerberCairoContext(GerberContext):
         self.scale = (scale, scale)
         self.surface = None
         self.ctx = None
+        self.bg = False
         
     def set_bounds(self, bounds):
         origin_in_inch = (bounds[0][0], bounds[1][0])
         size_in_inch = (abs(bounds[0][1] - bounds[0][0]), abs(bounds[1][1] - bounds[1][0]))
         size_in_pixels = map(mul, size_in_inch, self.scale)
 
-        self.surface_buffer = tempfile.NamedTemporaryFile()
-
-        self.surface = cairo.SVGSurface(self.surface_buffer, size_in_pixels[0], size_in_pixels[1])
-        self.ctx = cairo.Context(self.surface)
-        self.ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
-        self.ctx.scale(1, -1)
-        self.ctx.translate(-(origin_in_inch[0] * self.scale[0]), (-origin_in_inch[1]*self.scale[0]) - size_in_pixels[1])
-        # self.ctx.translate(-(origin_in_inch[0] * self.scale[0]), -origin_in_inch[1]*self.scale[1])
+        if self.surface is None:
+            self.surface_buffer = tempfile.NamedTemporaryFile()
+            self.surface = cairo.SVGSurface(self.surface_buffer, size_in_pixels[0], size_in_pixels[1])
+            self.ctx = cairo.Context(self.surface)
+            self.ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
+            self.ctx.scale(1, -1)
+            self.ctx.translate(-(origin_in_inch[0] * self.scale[0]), (-origin_in_inch[1]*self.scale[0]) - size_in_pixels[1])
+            # self.ctx.translate(-(origin_in_inch[0] * self.scale[0]), -origin_in_inch[1]*self.scale[1])
 
     def _render_line(self, line, color):
         start = map(mul, line.start, self.scale)
@@ -140,8 +141,10 @@ class GerberCairoContext(GerberContext):
         self.ctx.set_operator(cairo.OPERATOR_CLEAR)
 
     def _paint_background(self):
-        self.ctx.set_source_rgba(*self.background_color)
-        self.ctx.paint()
+        if not self.bg:
+            self.bg = True
+            self.ctx.set_source_rgba(*self.background_color)
+            self.ctx.paint()
 
     def dump(self, filename):
         is_svg = filename.lower().endswith(".svg")
