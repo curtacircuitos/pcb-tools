@@ -154,7 +154,9 @@ class GerberCairoContext(GerberContext):
             self.surface_buffer.flush()
 
             with open(filename, "w") as f:
-                f.write(open(self.surface_buffer.name, "r").read())
+                self.surface_buffer.seek(0)
+                f.write(self.surface_buffer.read())
                 f.flush()
+
         else:
             self.surface.write_to_png(filename)
