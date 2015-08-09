@@ -61,7 +61,10 @@ class Primitive(object):
                 else:
                     try:
                         if len(value) > 1:
-                            if isinstance(value[0], tuple):
+                            if hasattr(value[0], 'to_inch'):
+                                for v in value:
+                                    v.to_inch()
+                            elif isinstance(value[0], tuple):
                                 setattr(self, attr, [tuple(map(inch, point)) for point in value])
                             else:
                                 setattr(self, attr, tuple(map(inch, value)))
@@ -79,7 +82,10 @@ class Primitive(object):
                 else:
                     try:
                         if len(value) > 1:
-                            if isinstance(value[0], tuple):
+                            if hasattr(value[0], 'to_metric'):
+                                for v in value:
+                                    v.to_metric()
+                            elif isinstance(value[0], tuple):
                                 setattr(self, attr, [tuple(map(metric, point)) for point in value])
                             else:
                                 setattr(self, attr, tuple(map(metric, value)))
@@ -582,23 +588,25 @@ class Polygon(Primitive):
 class Region(Primitive):
     """
     """
-    def __init__(self, points, **kwargs):
+    def __init__(self, primitives, **kwargs):
         super(Region, self).__init__(**kwargs)
-        self.points = points
-        self._to_convert = ['points']
+        self.primitives = primitives
+        self._to_convert = ['primitives']
 
     @property
     def bounding_box(self):
-        x_list, y_list = zip(*self.points)
-        min_x = min(x_list)
-        max_x = max(x_list)
-        min_y = min(y_list)
-        max_y = max(y_list)
+        xlims, ylims = zip(*[p.bounding_box for p in self.primitives])
+        minx, maxx = zip(*xlims)
+        miny, maxy = zip(*ylims)
+        min_x = min(minx)
+        max_x = max(maxx)
+        min_y = min(miny)
+        max_y = max(maxy)
         return ((min_x, max_x), (min_y, max_y))
 
     def offset(self, x_offset=0, y_offset=0):
-        self.points = [tuple(map(add, point, (x_offset, y_offset)))
-                       for point in self.points]
+        for p in self.primitives:
+            p.offset(x_offset, y_offset)
 
 
 class RoundButterfly(Primitive):

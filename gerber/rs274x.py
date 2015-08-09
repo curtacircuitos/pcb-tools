@@ -468,22 +468,29 @@ class GerberParser(object):
             stmt.op = self.op
 
         if self.op == "D01":
-            if self.region_mode == 'on':
-                if self.current_region is None:
-                    self.current_region = [(self.x, self.y), ]
-                self.current_region.append((x, y,))
-            else:
-                start = (self.x, self.y)
-                end = (x, y)
+            start = (self.x, self.y)
+            end = (x, y)
 
-                if self.interpolation == 'linear':
+            if self.interpolation == 'linear':
+                if self.region_mode == 'off':
                     self.primitives.append(Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
                 else:
-                    i = 0 if stmt.i is None else stmt.i
-                    j = 0 if stmt.j is None else stmt.j
-                    center = (start[0] + i, start[1] + j)
+                    if self.current_region is None:
+                        self.current_region = [Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units),]
+                    else:    
+                        self.current_region.append(Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
+            else:
+                i = 0 if stmt.i is None else stmt.i
+                j = 0 if stmt.j is None else stmt.j
+                center = (start[0] + i, start[1] + j)
+                if self.region_mode == 'off':
                     self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
-
+                else:
+                    if self.current_region is None:
+                        self.current_region = [Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units),]
+                    else:
+                        self.current_region.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
+                                
         elif self.op == "D02":
             pass
 

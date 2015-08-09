@@ -89,13 +89,25 @@ class GerberCairoContext(GerberContext):
         self.ctx.move_to(*end)  # ...lame
 
     def _render_region(self, region, color):
-        points = [tuple(map(mul, point, self.scale)) for point in region.points]
         self.ctx.set_source_rgba(*color, alpha=self.alpha)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (region.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)        
+        self.ctx.set_operator(cairo.OPERATOR_OVER if (region.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
         self.ctx.set_line_width(0)
-        self.ctx.move_to(*points[0])
-        for point in points[1:]:
-            self.ctx.line_to(*point)
+        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        self.ctx.move_to(*tuple(map(mul, region.primitives[0].start, self.scale)))
+        for p in region.primitives:
+            if isinstance(p, Line):
+                self.ctx.line_to(*tuple(map(mul, p.end, self.scale)))
+            else:
+                center = map(mul, p.center, self.scale)
+                start = map(mul, p.start, self.scale)
+                end = map(mul, p.end, self.scale)
+                radius = self.scale[0] * p.radius
+                angle1 = p.start_angle
+                angle2 = p.end_angle
+                if p.direction == 'counterclockwise':
+                    self.ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
+                else:
+                    self.ctx.arc_negative(*center, radius=radius, angle1=angle1, angle2=angle2)
         self.ctx.fill()
 
     def _render_circle(self, circle, color):

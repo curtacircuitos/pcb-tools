@@ -4,6 +4,7 @@
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 from ..primitives import *
 from .tests import *
+from operator import add
 
 
 def test_primitive_smoketest():
@@ -766,38 +767,31 @@ def test_polygon_offset():
 def test_region_ctor():
     """ Test Region creation
     """
+    apt = Circle((0,0), 0)
+    lines = (Line((0,0), (1,0), apt), Line((1,0), (1,1), apt), Line((1,1), (0,1), apt), Line((0,1), (0,0), apt))
     points = ((0, 0), (1,0), (1,1), (0,1))
-    r = Region(points)
-    for i, point in enumerate(points):
-        assert_array_almost_equal(r.points[i], point)
+    r = Region(lines)
+    for i, p in enumerate(lines):
+        assert_equal(r.primitives[i], p)
 
 def test_region_bounds():
     """ Test region bounding box calculation
     """
-    points = ((0, 0), (1,0), (1,1), (0,1))
-    r = Region(points)
+    apt = Circle((0,0), 0)
+    lines = (Line((0,0), (1,0), apt), Line((1,0), (1,1), apt), Line((1,1), (0,1), apt), Line((0,1), (0,0), apt))
+    r = Region(lines)
     xbounds, ybounds = r.bounding_box
     assert_array_almost_equal(xbounds, (0, 1))
     assert_array_almost_equal(ybounds, (0, 1))
 
-def test_region_conversion():
-    points = ((2.54, 25.4), (254.0,2540.0), (25400.0,254000.0), (2.54,25.4))
-    r = Region(points, units='metric')
-    r.to_inch()
-    assert_equal(set(r.points), {(0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0)})
-
-    points = ((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0), (0.1, 1.0))
-    r = Region(points, units='inch')
-    r.to_metric()
-    assert_equal(set(r.points), {(2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0)})
 
 def test_region_offset():
-    points = ((0, 0), (1,0), (1,1), (0,1))
-    r = Region(points)
-    r.offset(1, 0)
-    assert_equal(set(r.points), {(1, 0), (2, 0), (2,1), (1, 1)})
+    apt = Circle((0,0), 0)
+    lines = (Line((0,0), (1,0), apt), Line((1,0), (1,1), apt), Line((1,1), (0,1), apt), Line((0,1), (0,0), apt))
+    r = Region(lines)
+    xlim, ylim = r.bounding_box
     r.offset(0, 1)
-    assert_equal(set(r.points), {(1, 1), (2, 1), (2,2), (1, 2)})
+    assert_array_almost_equal((xlim, tuple([y+1 for y in ylim])), r.bounding_box)
 
 def test_round_butterfly_ctor():
     """ Test round butterfly creation
