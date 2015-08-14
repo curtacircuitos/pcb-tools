@@ -207,18 +207,18 @@ class GerberParser(object):
 
 
     def parse(self, filename):
-        fp = open(filename, "r")
-        data = fp.readlines()
+        with open(filename, "r") as fp:
+            data = fp.readlines()
 
-        for stmt in self._parse(data):
-            self.evaluate(stmt)
-            self.statements.append(stmt)
+            for stmt in self._parse(data):
+                self.evaluate(stmt)
+                self.statements.append(stmt)
 
-        # Initialize statement units
-        for stmt in self.statements:
-            stmt.units = self.settings.units
+            # Initialize statement units
+            for stmt in self.statements:
+                stmt.units = self.settings.units
 
-        return GerberFile(self.statements, self.settings, self.primitives, filename)
+            return GerberFile(self.statements, self.settings, self.primitives, filename)
 
     def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
