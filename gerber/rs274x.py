@@ -467,7 +467,7 @@ class GerberParser(object):
             # no implicit op allowed, force here if coord block doesn't have it
             stmt.op = self.op
 
-        if self.op == "D01":
+        if self.op in ("D01", "D1"): # HERE add in (D01 D1)
             if self.region_mode == 'on':
                 if self.current_region is None:
                     self.current_region = [(self.x, self.y), ]
@@ -484,10 +484,10 @@ class GerberParser(object):
                     center = (start[0] + i, start[1] + j)
                     self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
 
-        elif self.op == "D02":
+        elif self.op in ("D02", "D2"):
             pass
 
-        elif self.op == "D03":
+        elif self.op in ("D03", "D3"):
             primitive = copy.deepcopy(self.apertures[self.aperture])
             # XXX: temporary fix because there are no primitives for Macros and Polygon
             if primitive is not None:
