@@ -36,7 +36,25 @@ class GerberSvgContext(GerberContext):
         GerberContext.__init__(self)
         self.scale = (SCALE, -SCALE)
         self.dwg = svgwrite.Drawing()
+        self.draw_object = self.dwg
         self.background = False
+
+    def group(self, id):
+        """ Set or remove a group.
+        params:
+            id - id to assign to the group
+
+        if id is None the group is no longer used and any drawing will happen
+        in the root Drawing object
+        """
+        if id is None:
+            self.draw_object = self.dwg
+        else:
+            self.draw_object = self.dwg.add(self.dwg.g(id=id))
+    
+    def dump_text(self):
+        """ Return the underlying SVG as text """
+        return self.dwg.tostring()
 
     def dump(self, filename):
         self.dwg.saveas(filename)
@@ -49,11 +67,12 @@ class GerberSvgContext(GerberContext):
             vbox = '%f, %f, %f, %f' % (SCALE * xbounds[0], -SCALE * ybounds[1],
                                        size[0], size[1])
             self.dwg = svgwrite.Drawing(viewBox=vbox)
+            self.draw_object = self.dwg
             rect = self.dwg.rect(insert=(SCALE * xbounds[0],
                                          -SCALE * ybounds[1]),
                                  size=size,
                                  fill=svg_color(self.background_color))
-            self.dwg.add(rect)
+            self.draw_object.add(rect)
             self.background = True
 
     def _render_line(self, line, color):
@@ -66,7 +85,7 @@ class GerberSvgContext(GerberContext):
                                   stroke_width=SCALE * width,
                                   stroke_linecap='round')
             aline.stroke(opacity=self.alpha)
-            self.dwg.add(aline)
+            self.draw_object.add(aline)
         elif isinstance(line.aperture, Rectangle):
             points = [tuple(map(mul, point, self.scale)) for point in line.vertices]
             path = self.dwg.path(d='M %f, %f' % points[0],
@@ -75,7 +94,7 @@ class GerberSvgContext(GerberContext):
             path.fill(opacity=self.alpha)
             for point in points[1:]:
                 path.push('L %f, %f' % point)
-            self.dwg.add(path)
+            self.draw_object.add(path)
 
     def _render_arc(self, arc, color):
         start = tuple(map(mul, arc.start, self.scale))
@@ -88,7 +107,7 @@ class GerberSvgContext(GerberContext):
         large_arc = arc.sweep_angle >= 2 * math.pi
         direction = '-' if arc.direction == 'clockwise' else '+'
         arc_path.push_arc(end, 0, radius, large_arc, direction, True)
-        self.dwg.add(arc_path)
+        self.draw_object.add(arc_path)
 
     def _render_region(self, region, color):
         points = [tuple(map(mul, point, self.scale)) for point in region.points]
@@ -98,7 +117,7 @@ class GerberSvgContext(GerberContext):
         region_path.fill(opacity=self.alpha)
         for point in points[1:]:
             region_path.push('L %f, %f' % point)
-        self.dwg.add(region_path)
+        self.draw_object.add(region_path)
 
     def _render_circle(self, circle, color):
         center = map(mul, circle.position, self.scale)
@@ -106,7 +125,7 @@ class GerberSvgContext(GerberContext):
                                   r = SCALE * circle.radius,
                                   fill=svg_color(color))
         acircle.fill(opacity=self.alpha)
-        self.dwg.add(acircle)
+        self.draw_object.add(acircle)
 
     def _render_rectangle(self, rectangle, color):
         center = tuple(map(mul, rectangle.position, self.scale))
@@ -115,7 +134,7 @@ class GerberSvgContext(GerberContext):
         arect = self.dwg.rect(insert=insert, size=size,
                               fill=svg_color(color))
         arect.fill(opacity=self.alpha)
-        self.dwg.add(arect)
+        self.draw_object.add(arect)
 
     def _render_obround(self, obround, color):
         self._render_circle(obround.subshapes['circle1'], color)
@@ -127,4 +146,4 @@ class GerberSvgContext(GerberContext):
         center = map(mul, circle.position, self.scale)
         hit = self.dwg.circle(center=center, r=SCALE * circle.radius,
                               fill=svg_color(color))
-        self.dwg.add(hit)
+        self.draw_object.add(hit)
