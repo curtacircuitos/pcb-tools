@@ -25,7 +25,11 @@ This module provides Excellon file classes and parsing utilities
 
 import math
 import operator
-from cStringIO import StringIO
+
+try:
+    from cStringIO import StringIO
+except(ImportError):
+    from io import StringIO
 
 from .excellon_statements import *
 from .cam import CamFile, FileSettings

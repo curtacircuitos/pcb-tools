@@ -21,8 +21,12 @@
 import copy
 import json
 import re
-from cStringIO import StringIO
 
+try:
+    from cStringIO import StringIO
+except(ImportError):
+    from io import StringIO
+    
 from .gerber_statements import *
 from .primitives import *
 from .cam import CamFile, FileSettings
