@@ -201,30 +201,20 @@ def decimal_string(value, precision=6, padding=False):
         return int(floatstr)
 
 
-def detect_file_format(filename):
+def detect_file_format(data):
     """ Determine format of a file
 
     Parameters
     ----------
-    filename : string
-        Filename of the file to read.
+    data : string
+        string containing file data.
 
     Returns
     -------
     format : string
-        File format. either 'excellon' or 'rs274x'
+        File format. 'excellon' or 'rs274x' or 'unknown'
     """
-
-    # Read the first 20 lines (if possible)
-    lines = []
-    with open(filename, 'r') as f:
-        try:
-            for i in range(20):
-                lines.append(f.readline())
-        except StopIteration:
-            pass
-
-    # Look for
+    lines = data.split('\n')
     for line in lines:
         if 'M48' in line:
             return 'excellon'

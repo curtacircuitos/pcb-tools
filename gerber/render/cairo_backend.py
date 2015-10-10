@@ -172,3 +172,9 @@ class GerberCairoContext(GerberContext):
 
         else:
             self.surface.write_to_png(filename)
+            
+    def dump_svg_str(self):
+        self.surface.finish()
+        self.surface_buffer.flush()
+        return self.surface_buffer.read()
+    

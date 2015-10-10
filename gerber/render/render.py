@@ -181,3 +181,4 @@ class GerberContext(object):
 
     def _render_test_record(self, primitive, color):
         pass
+
