@@ -23,4 +23,4 @@ gerber-tools provides utilities for working with Gerber (RS-274X) and Excellon
 files in python.
 """
 
-from .common import read
+from .common import read, loads

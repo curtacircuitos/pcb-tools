@@ -30,9 +30,6 @@ from gerber.render import GerberCairoContext
 GERBER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'gerbers'))
 
 
-
-
-
 # Open the gerber files
 copper = read(os.path.join(GERBER_FOLDER, 'copper.GTL'))
 mask = read(os.path.join(GERBER_FOLDER, 'soldermask.GTS'))

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
-from ..common import read
+from ..common import read, loads
 from ..excellon import ExcellonFile
 from ..rs274x import GerberFile
 from .tests import *
@@ -23,9 +23,20 @@ def test_file_type_detection():
     assert_true(isinstance(ncdrill, ExcellonFile))
     assert_true(isinstance(top_copper, GerberFile))
 
+
+def test_load_from_string():
+    with open(NCDRILL_FILE, 'r') as f:
+        ncdrill = loads(f.read())
+    with open(TOP_COPPER_FILE, 'r') as f:
+        top_copper = loads(f.read())
+    assert_true(isinstance(ncdrill, ExcellonFile))
+    assert_true(isinstance(top_copper, GerberFile))
+    
+
 def test_file_type_validation():
     """ Test file format validation
     """
     assert_raises(TypeError, read, 'LICENSE')
+
 
 

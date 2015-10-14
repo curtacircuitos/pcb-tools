@@ -26,6 +26,11 @@ This module provides Excellon file classes and parsing utilities
 import math
 import operator
 
+try:
+    from cStringIO import StringIO
+except(ImportError):
+    from io import StringIO
+
 from .excellon_statements import *
 from .cam import CamFile, FileSettings
 from .primitives import Drill
@@ -46,8 +51,27 @@ def read(filename):
 
     """
     # File object should use settings from source file by default.
-    settings = FileSettings(**detect_excellon_format(filename))
+    with open(filename, 'r') as f:
+        data = f.read()
+    settings = FileSettings(**detect_excellon_format(data))
     return ExcellonParser(settings).parse(filename)
+
+def loads(data):
+    """ Read data from string and return an ExcellonFile
+    Parameters
+    ----------
+    data : string
+        string containing Excellon file contents
+
+    Returns
+    -------
+    file : :class:`gerber.excellon.ExcellonFile`
+        An ExcellonFile created from the specified file.
+
+    """
+    # File object should use settings from source file by default.
+    settings = FileSettings(**detect_excellon_format(data))
+    return ExcellonParser(settings).parse_raw(data)
 
 
 class DrillHit(object):
@@ -302,9 +326,12 @@ class ExcellonParser(object):
 
     def parse(self, filename):
         with open(filename, 'r') as f:
-            for line in f:
-                self._parse(line.strip())
-                
+            data = f.read()
+        return self.parse_raw(data, filename)
+
+    def parse_raw(self, data, filename=None):
+        for line in StringIO(data):
+            self._parse(line.strip())
         for stmt in self.statements:
             stmt.units = self.units
         return ExcellonFile(self.statements, self.tools, self.hits,
@@ -428,14 +455,13 @@ class ExcellonParser(object):
                             zeros=self.zeros, notation=self.notation)
 
 
-def detect_excellon_format(filename):
+def detect_excellon_format(data=None, filename=None):
     """ Detect excellon file decimal format and zero-suppression settings.
 
     Parameters
     ----------
-    filename : string
-        Name of the file to parse. This does not check if the file is actually
-        an Excellon file, so do that before calling this.
+    data : string
+        String containing contents of Excellon file.
 
     Returns
     -------
@@ -449,10 +475,16 @@ def detect_excellon_format(filename):
     detected_format = None
     zeros_options = ('leading', 'trailing', )
     format_options = ((2, 4), (2, 5), (3, 3),)
+    
+    if data is None and filename is None:
+        raise ValueError('Either data or filename arguments must be provided')
+    if data is None:
+        with open(filename, 'r') as f:
+            data = f.read()
 
     # Check for obvious clues:
     p = ExcellonParser()
-    p.parse(filename)
+    p.parse_raw(data)
 
     # Get zero_suppression from a unit statement
     zero_statements = [stmt.zeros for stmt in p.statements
@@ -485,8 +517,8 @@ def detect_excellon_format(filename):
             settings = FileSettings(zeros=zeros, format=fmt)
             try:
                 p = ExcellonParser(settings)
-                p.parse(filename)
-                size = tuple([t[1] - t[0] for t in p.bounds])
+                p.parse_raw(data)
+                size = tuple([t[0] - t[1] for t in p.bounds])
                 hole_area = 0.0
                 for hit in p.hits:
                     tool = hit.tool

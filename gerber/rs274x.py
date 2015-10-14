@@ -22,6 +22,11 @@ import copy
 import json
 import re
 
+try:
+    from cStringIO import StringIO
+except(ImportError):
+    from io import StringIO
+    
 from .gerber_statements import *
 from .primitives import *
 from .cam import CamFile, FileSettings
@@ -42,6 +47,9 @@ def read(filename):
     """
     return GerberParser().parse(filename)
 
+
+def loads(data):
+    return GerberParser().parse_raw(data)
 
 class GerberFile(CamFile):
     """ A class representing a single gerber file
@@ -74,7 +82,6 @@ class GerberFile(CamFile):
     """
     def __init__(self, statements, settings, primitives, filename=None):
         super(GerberFile, self).__init__(statements, settings, primitives, filename)
-
 
     @property
     def comments(self):
@@ -205,12 +212,14 @@ class GerberParser(object):
         self.quadrant_mode = 'multi-quadrant'
         self.step_and_repeat = (1, 1, 0, 0)
 
-
     def parse(self, filename):
-        fp = open(filename, "r")
-        data = fp.readlines()
+        with open(filename, "r") as fp:
+            data = fp.read()
+        return self.parse_raw(data, filename=None)
 
-        for stmt in self._parse(data):
+    def parse_raw(self, data, filename=None):
+        lines = [line for line in StringIO(data)]
+        for stmt in self._parse(lines):
             self.evaluate(stmt)
             self.statements.append(stmt)
 
@@ -225,10 +234,10 @@ class GerberParser(object):
         return json.dumps(stmts)
 
     def dump_str(self):
-        s = ""
+        string = ""
         for stmt in self.statements:
-            s += str(stmt) + "\n"
-        return s
+            string += str(stmt) + "\n"
+        return string
 
     def _parse(self, data):
         oldline = ''
@@ -404,7 +413,6 @@ class GerberParser(object):
         else:
             raise Exception("Invalid statement to evaluate")
 
-
     def _define_aperture(self, d, shape, modifiers):
         aperture = None
         if shape == 'C':
@@ -490,7 +498,7 @@ class GerberParser(object):
                         self.current_region = [Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units),]
                     else:
                         self.current_region.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
-                                
+
         elif self.op == "D02":
             pass
 
