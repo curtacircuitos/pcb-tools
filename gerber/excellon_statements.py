@@ -31,24 +31,27 @@ __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'CommentStmt', 'HeaderBeginStmt', 'HeaderEndStmt',
            'RewindStopStmt', 'EndOfProgramStmt', 'UnitStmt',
            'IncrementalModeStmt', 'VersionStmt', 'FormatStmt', 'LinkToolStmt',
-           'MeasuringModeStmt', 'RouteModeStmt', 'DrillModeStmt',
+           'MeasuringModeStmt', 'RouteModeStmt', 'LinearModeStmt', 'DrillModeStmt',
            'AbsoluteModeStmt', 'RepeatHoleStmt', 'UnknownStmt',
-           'ExcellonStatement',]
+           'ExcellonStatement', 'ZAxisRoutPositionStmt',
+           'RetractWithClampingStmt', 'RetractWithoutClampingStmt',
+           'CutterCompensationOffStmt', 'CutterCompensationLeftStmt',
+           'CutterCompensationRightStmt', 'ZAxisInfeedRateStmt']
 
 
 class ExcellonStatement(object):
     """ Excellon Statement abstract base class
     """
-    
+
     @classmethod
     def from_excellon(cls, line):
         raise NotImplementedError('from_excellon must be implemented in a '
                                   'subclass')
-    
+
     def __init__(self, unit='inch', id=None):
         self.units = unit
         self.id = uuid.uuid4().int if id is None else id
-    
+
     def to_excellon(self, settings=None):
         raise NotImplementedError('to_excellon must be implemented in a '
                                   'subclass')
@@ -266,6 +269,34 @@ class ToolSelectionStmt(ExcellonStatement):
         return stmt
 
 
+class ZAxisInfeedRateStmt(ExcellonStatement):
+
+    @classmethod
+    def from_excellon(cls, line, **kwargs):
+        """ Create a ZAxisInfeedRate from an excellon file line.
+
+        Parameters
+        ----------
+        line : string
+            Line from an Excellon file
+
+        Returns
+        -------
+        z_axis_infeed_rate : ToolSelectionStmt
+            ToolSelectionStmt representation of `line.`
+        """
+        rate = int(line[1:])
+
+        return cls(rate, **kwargs)
+
+    def __init__(self, rate, **kwargs):
+        super(ZAxisInfeedRateStmt, self).__init__(**kwargs)
+        self.rate = rate
+
+    def to_excellon(self, settings=None):
+        return 'F%02d' % self.rate
+
+
 class CoordinateStmt(ExcellonStatement):
 
     @classmethod
@@ -290,9 +321,14 @@ class CoordinateStmt(ExcellonStatement):
         super(CoordinateStmt, self).__init__(**kwargs)
         self.x = x
         self.y = y
+        self.mode = None
 
     def to_excellon(self, settings):
         stmt = ''
+        if self.mode == "ROUT":
+            stmt += "G00"
+        if self.mode == "LINEAR":
+            stmt += "G01"
         if self.x is not None:
             stmt += 'X%s' % write_gerber_value(self.x, settings.format,
                                                settings.zero_suppression)
@@ -429,6 +465,60 @@ class RewindStopStmt(ExcellonStatement):
 
     def to_excellon(self, settings=None):
         return '%'
+
+
+class ZAxisRoutPositionStmt(ExcellonStatement):
+
+    def __init__(self, **kwargs):
+        super(ZAxisRoutPositionStmt, self).__init__(**kwargs)
+
+    def to_excellon(self, settings=None):
+        return 'M15'
+
+
+class RetractWithClampingStmt(ExcellonStatement):
+
+    def __init__(self, **kwargs):
+        super(RetractWithClampingStmt, self).__init__(**kwargs)
+
+    def to_excellon(self, settings=None):
+        return 'M16'
+
+
+class RetractWithoutClampingStmt(ExcellonStatement):
+
+    def __init__(self, **kwargs):
+        super(RetractWithoutClampingStmt, self).__init__(**kwargs)
+
+    def to_excellon(self, settings=None):
+        return 'M17'
+
+
+class CutterCompensationOffStmt(ExcellonStatement):
+
+    def __init__(self, **kwargs):
+        super(CutterCompensationOffStmt, self).__init__(**kwargs)
+
+    def to_excellon(self, settings=None):
+        return 'G40'
+
+
+class CutterCompensationLeftStmt(ExcellonStatement):
+
+    def __init__(self, **kwargs):
+        super(CutterCompensationLeftStmt, self).__init__(**kwargs)
+
+    def to_excellon(self, settings=None):
+        return 'G41'
+
+
+class CutterCompensationRightStmt(ExcellonStatement):
+
+    def __init__(self, **kwargs):
+        super(CutterCompensationRightStmt, self).__init__(**kwargs)
+
+    def to_excellon(self, settings=None):
+        return 'G42'
 
 
 class EndOfProgramStmt(ExcellonStatement):
@@ -606,6 +696,15 @@ class RouteModeStmt(ExcellonStatement):
 
     def to_excellon(self, settings=None):
         return 'G00'
+
+
+class LinearModeStmt(ExcellonStatement):
+
+    def __init__(self, **kwargs):
+        super(LinearModeStmt, self).__init__(**kwargs)
+
+    def to_excellon(self, settings=None):
+        return 'G01'
 
 
 class DrillModeStmt(ExcellonStatement):

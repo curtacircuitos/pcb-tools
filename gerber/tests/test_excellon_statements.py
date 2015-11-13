@@ -123,6 +123,28 @@ def test_toolselection_dump():
         stmt = ToolSelectionStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
 
+def test_z_axis_infeed_rate_factory():
+    """ Test ZAxisInfeedRateStmt factory method
+    """
+    stmt = ZAxisInfeedRateStmt.from_excellon('F01')
+    assert_equal(stmt.rate, 1)
+    stmt = ZAxisInfeedRateStmt.from_excellon('F2')
+    assert_equal(stmt.rate, 2)
+    stmt = ZAxisInfeedRateStmt.from_excellon('F03')
+    assert_equal(stmt.rate, 3)
+
+def test_z_axis_infeed_rate_dump():
+    """ Test ZAxisInfeedRateStmt to_excellon()
+    """
+    inputs = [
+        ('F01', 'F01'),
+        ('F2', 'F02'),
+        ('F00003', 'F03')
+    ]
+    for input_rate, expected_output in inputs:
+        stmt = ZAxisInfeedRateStmt.from_excellon(input_rate)
+        assert_equal(stmt.to_excellon(), expected_output)
+
 def test_coordinatestmt_factory():
     """ Test CoordinateStmt factory method
     """
@@ -322,6 +344,30 @@ def test_header_end_stmt():
 def test_rewindstop_stmt():
     stmt = RewindStopStmt()
     assert_equal(stmt.to_excellon(None), '%')
+
+def test_z_axis_rout_position_stmt():
+    stmt = ZAxisRoutPositionStmt()
+    assert_equal(stmt.to_excellon(None), 'M15')
+
+def test_retract_with_clamping_stmt():
+    stmt = RetractWithClampingStmt()
+    assert_equal(stmt.to_excellon(None), 'M16')
+
+def test_retract_without_clamping_stmt():
+    stmt = RetractWithoutClampingStmt()
+    assert_equal(stmt.to_excellon(None), 'M17')
+
+def test_cutter_compensation_off_stmt():
+    stmt = CutterCompensationOffStmt()
+    assert_equal(stmt.to_excellon(None), 'G40')
+
+def test_cutter_compensation_left_stmt():
+    stmt = CutterCompensationLeftStmt()
+    assert_equal(stmt.to_excellon(None), 'G41')
+
+def test_cutter_compensation_right_stmt():
+    stmt = CutterCompensationRightStmt()
+    assert_equal(stmt.to_excellon(None), 'G42')
 
 def test_endofprogramstmt_factory():
     settings = FileSettings(units='inch')
@@ -578,6 +624,10 @@ def test_measmodestmt_conversion():
 def test_routemode_stmt():
     stmt = RouteModeStmt()
     assert_equal(stmt.to_excellon(FileSettings()), 'G00')
+
+def test_linearmode_stmt():
+    stmt = LinearModeStmt()
+    assert_equal(stmt.to_excellon(FileSettings()), 'G01')
 
 def test_drillmode_stmt():
     stmt = DrillModeStmt()
