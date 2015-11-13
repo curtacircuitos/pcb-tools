@@ -476,10 +476,27 @@ class ExcellonParser(object):
 
         elif line[0] == 'T' and self.state != 'HEADER':
             stmt = ToolSelectionStmt.from_excellon(line)
+            self.statements.append(stmt)
+            
             # T0 is used as END marker, just ignore
             if stmt.tool != 0:
+                # FIXME: for weird files with no tools defined, original calc from gerbv
+                if stmt.tool not in self.tools:
+                    if self._settings().units == "inch":
+                        diameter = (16 + 8 * stmt.tool) / 1000.0;
+                    else:
+                        diameter = metric((16 + 8 * stmt.tool) / 1000.0);
+
+                    tool = ExcellonTool(self._settings(), number=stmt.tool, diameter=diameter)
+                    self.tools[tool.number] = tool
+
+                    # FIXME: need to add this tool definition inside header to make sure it is properly written
+                    for i, s in enumerate(self.statements):
+                        if isinstance(s, ToolSelectionStmt) or isinstance(s, ExcellonTool):
+                            self.statements.insert(i, tool)
+                            break
+
                 self.active_tool = self.tools[stmt.tool]
-            self.statements.append(stmt)
 
         elif line[0] == 'R' and self.state != 'HEADER':
             stmt = RepeatHoleStmt.from_excellon(line, self._settings())
