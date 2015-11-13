@@ -483,10 +483,13 @@ class GerberParser(object):
                 if self.region_mode == 'off':
                     self.primitives.append(Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
                 else:
+                    # from gerber spec revision J3, Section 4.5, page 55:
+                    #  The segments are not graphics objects in themselves; segments are part of region which is the graphics object. The segments have no thickness.
+                    #  The current aperture is associated with the region. This has no graphical effect, but allows all its attributes to be applied to the region.
                     if self.current_region is None:
-                        self.current_region = [Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units),]
+                        self.current_region = [Line(start, end, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units),]
                     else:    
-                        self.current_region.append(Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
+                        self.current_region.append(Line(start, end, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units))
             else:
                 i = 0 if stmt.i is None else stmt.i
                 j = 0 if stmt.j is None else stmt.j
