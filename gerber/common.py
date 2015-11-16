@@ -34,7 +34,7 @@ def read(filename):
         CncFile object representing the file, either GerberFile or
         ExcellonFile. Returns None if file is not an Excellon or Gerber file.
     """
-    with open(filename, 'r') as f:
+    with open(filename, 'rU') as f:
         data = f.read()    
     fmt = detect_file_format(data)
     if fmt == 'rs274x':

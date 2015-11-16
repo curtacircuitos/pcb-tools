@@ -51,7 +51,7 @@ def read(filename):
 
     """
     # File object should use settings from source file by default.
-    with open(filename, 'r') as f:
+    with open(filename, 'rU') as f:
         data = f.read()
     settings = FileSettings(**detect_excellon_format(data))
     return ExcellonParser(settings).parse(filename)
@@ -326,7 +326,7 @@ class ExcellonParser(object):
         return len(self.hits)
 
     def parse(self, filename):
-        with open(filename, 'r') as f:
+        with open(filename, 'rU') as f:
             data = f.read()
         return self.parse_raw(data, filename)
 
@@ -557,7 +557,7 @@ def detect_excellon_format(data=None, filename=None):
     if data is None and filename is None:
         raise ValueError('Either data or filename arguments must be provided')
     if data is None:
-        with open(filename, 'r') as f:
+        with open(filename, 'rU') as f:
             data = f.read()
 
     # Check for obvious clues:

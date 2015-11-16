@@ -213,7 +213,7 @@ class GerberParser(object):
         self.step_and_repeat = (1, 1, 0, 0)
 
     def parse(self, filename):
-        with open(filename, "r") as fp:
+        with open(filename, "rU") as fp:
             data = fp.read()
         return self.parse_raw(data, filename=None)
 

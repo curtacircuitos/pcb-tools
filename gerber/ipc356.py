@@ -144,7 +144,7 @@ class IPC_D_356_Parser(object):
         return FileSettings(units=self.units, angle_units=self.angle_units)
 
     def parse(self, filename):
-        with open(filename, 'r') as f:
+        with open(filename, 'rU') as f:
             oldline = ''
             for line in f:
                 # Check for existing multiline data...
