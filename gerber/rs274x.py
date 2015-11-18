@@ -498,9 +498,9 @@ class GerberParser(object):
                     self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
                 else:
                     if self.current_region is None:
-                        self.current_region = [Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units),]
+                        self.current_region = [Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units),]
                     else:
-                        self.current_region.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
+                        self.current_region.append(Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units))
 
         elif self.op == "D02":
             pass
