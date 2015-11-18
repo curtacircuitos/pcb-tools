@@ -17,14 +17,14 @@
 
 if __name__ == '__main__':
     from gerber.common import read
-    from gerber.render import GerberSvgContext
+    from gerber.render import GerberCairoContext
     import sys
 
     if len(sys.argv) < 2:
         sys.stderr.write("Usage: python -m gerber <filename> <filename>...\n")
         sys.exit(1)
 
-    ctx = GerberSvgContext()
+    ctx = GerberCairoContext()
     ctx.alpha = 0.95
     for filename in sys.argv[1:]:
         print("parsing %s" % filename)
