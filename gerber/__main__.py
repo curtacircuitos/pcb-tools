@@ -15,18 +15,15 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
-if __name__ == '__main__':
-    from gerber.common import read
+import argparse
+from gerber.common import read
+
+
+def render_cairo(filenames, dialect):
     from gerber.render import GerberCairoContext
-    import sys
-
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: python -m gerber <filename> <filename>...\n")
-        sys.exit(1)
-
     ctx = GerberCairoContext()
     ctx.alpha = 0.95
-    for filename in sys.argv[1:]:
+    for filename in filenames:
         print("parsing %s" % filename)
         if 'GTO' in filename or 'GBO' in filename:
             ctx.color = (1, 1, 1)
@@ -39,3 +36,43 @@ if __name__ == '__main__':
 
     print('Saving image to test.svg')
     ctx.dump('test.svg')
+
+
+def render_freecad(filenames, dialect):
+    try:
+        from gerber.render import GerberFreecadContext
+    except ImportError:
+        print("Problem importing the Freecad context. Make sure you have "
+              "FreeCAD installed and available on your python path.")
+        raise
+    pass
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Render gerber files to image',
+        prog='python -m gerber'
+    )
+    parser.add_argument(
+        'filenames', metavar='FILENAME', type=str, nargs='+',
+        help='Gerber files'
+    )
+    parser.add_argument(
+        '--backend', '-b', choices=['cairo', 'freecad'], default='cairo',
+        help='Choose the backend to use to generate the output.'
+             'cairo produces svg, freecad produces a 3d model.'
+    )
+    parser.add_argument(
+        '--dialect', '-d', choices=['geda'], default='default',
+        help='Specify the dialect to use to guess layers from the filename'
+    )
+
+    args = parser.parse_args()
+    if args.backend == 'cairo':
+        render_cairo(args.filenames, args.dialect)
+    if args.backend == 'freecad':
+        render_freecad(args.filenames, args.dialect)
+
+
+if __name__ == '__main__':
+    main()
