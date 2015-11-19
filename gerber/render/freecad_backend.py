@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# copyright 2014 Hamilton Kibbe <ham@hamiltonkib.be>
+# Copyright 2015 Chintalagiri Shashank <shashank@chintal.in>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,15 +14,21 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""
-gerber.render
-============
-**Gerber Renderers**
 
-This module provides contexts for rendering images of gerber layers. Currently
-SVG is the only supported format.
+"""
+Docstring for freecad_backend
 """
 
+from .render import GerberContext
 
-from .cairo_backend import GerberCairoContext
-from .freecad_backend import GerberFreecadContext
+import FreeCAD
+
+from operator import mul
+import math
+import tempfile
+
+from ..primitives import *
+
+
+class GerberFreecadContext(GerberContext):
+    pass
