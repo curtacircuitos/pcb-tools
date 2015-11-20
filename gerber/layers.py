@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import os
+import re
 from collections import namedtuple
 
 Hint = namedtuple('Hint', 'layer ext name')
@@ -221,13 +222,16 @@ class GerberLayerDialect(object):
 
 
 class GenericLayerDialect(GerberLayerDialect):
+    # TODO Test this and make sure it actually works.
     def guess_layer(self, filename):
         directory, name = os.path.split(filename)
         name, ext = os.path.splitext(name)
         for hint in hints:
             if ext in hint.ext or \
-                    any(x in name for x in hint.name):
+                    any(re.findall(r'^(\w*[.-])*' + x + '([.-]\w*)?$', name)
+                        for x in hint.name):
                 return hint.layer
+        return 'unknown'
 
 
 class GedaGerberLayerDialect(GerberLayerDialect):
