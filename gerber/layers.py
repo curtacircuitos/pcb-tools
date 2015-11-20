@@ -140,6 +140,40 @@ class GerberLayerDialect(object):
     def unknown(self):
         return self._unknown
 
+    @property
+    def silk_layers(self):
+        return [self.topsilk, self.bottomsilk]
+
+    @property
+    def mask_layers(self):
+        return [self.topmask, self.bottommask]
+
+    @property
+    def paste_layers(self):
+        return [self.toppaste, self.bottompaste]
+
+    @property
+    def outer_copper_layers(self):
+        return [self.top, self.bottom]
+
+    @property
+    def top_layers(self):
+        return [self.top, self.topmask,
+                self.topsilk, self.toppaste]
+
+    @property
+    def bottom_layers(self):
+        return [self.bottom, self.bottompaste,
+                self.bottomsilk, self.bottompaste]
+
+    @property
+    def top_assembly(self):
+        return self.top_layers + [self.outline]
+
+    @property
+    def bottom_assembly(self):
+        return self.bottom_layers + [self.outline]
+
     def print_layermap(self):
         print('TOP         {0}'.format(self.top))
         print('TOPSILK     {0}'.format(self.topsilk))
