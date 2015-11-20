@@ -16,44 +16,6 @@
 # the License.
 
 import argparse
-from gerber.common import read
-
-
-def render_cairo(filenames, dialect, verbose=False):
-    from gerber.render import GerberCairoContext
-    ctx = GerberCairoContext()
-    ctx.alpha = 0.95
-    for filename in filenames:
-        print("parsing %s" % filename)
-        if 'GTO' in filename or 'GBO' in filename:
-            ctx.color = (1, 1, 1)
-            ctx.alpha = 0.8
-        elif 'GTS' in filename or 'GBS' in filename:
-            ctx.color = (0.2, 0.2, 0.75)
-            ctx.alpha = 0.8
-        gerberfile = read(filename)
-        gerberfile.render(ctx)
-
-    print('Saving image to test.svg')
-    ctx.dump('test.svg')
-
-
-def render_freecad(filenames, dialect, verbose=False):
-    try:
-        from gerber.render import GerberFreecadContext
-    except ImportError:
-        print("Problem importing the Freecad context. Make sure you have "
-              "FreeCAD installed and available on your python path.")
-        raise
-    if dialect:
-        layers = dialect(filenames)
-        if verbose:
-            print("Using Layers : ")
-            layers.print_layermap()
-    else:
-        raise AttributeError('FreeCAD backend needs a valid layer map to do '
-                             'anything. Specify an implemented layer name '
-                             'dialect and try again. ')
 
 
 def main():
@@ -64,6 +26,12 @@ def main():
     parser.add_argument(
         'filenames', metavar='FILENAME', type=str, nargs='+',
         help='Gerber files'
+    )
+    parser.add_argument(
+        '--outfile', '-o', metavar='OUTFILE', type=str, nargs='?',
+        default='test',
+        help="Output Filename. Default 'test'. "
+             "(extension will be added on automatically)"
     )
     parser.add_argument(
         '--backend', '-b', choices=['cairo', 'freecad'], default='cairo',
@@ -85,15 +53,23 @@ def main():
             from layers import GedaGerberLayerDialect
             dialect = GedaGerberLayerDialect
         else:
-            raise ValueError('Unknown filename dialect ' + args.dialect)
+            raise ValueError('Unrecognized filename dialect ' + args.dialect)
     else:
         from layers import guess_dialect
         dialect = guess_dialect(args.filenames, verbose=args.verbose)
 
     if args.backend == 'cairo':
-        render_cairo(args.filenames, dialect, verbose=args.verbose)
-    if args.backend == 'freecad':
-        render_freecad(args.filenames, dialect, verbose=args.verbose)
+        from gerber.render import PCBCairoContext
+        pcb_context = PCBCairoContext(args.filenames, dialect,
+                                      verbose=args.verbose)
+    elif args.backend == 'freecad':
+        from gerber.render import PCBFreecadContext
+        pcb_context = PCBFreecadContext(args.filenames, dialect,
+                                        verbose=args.verbose)
+    else:
+        raise ValueError('Unrecognized backend ' + args.backend)
+
+    pcb_context.render(output_filename=args.outfile)
 
 
 if __name__ == '__main__':

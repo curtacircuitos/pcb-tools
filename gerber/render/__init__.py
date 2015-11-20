@@ -25,8 +25,10 @@ SVG is the only supported format.
 
 
 from .cairo_backend import GerberCairoContext
+from .cairo_backend import PCBCairoContext
 
 try:
     from .freecad_backend import GerberFreecadContext
+    from .freecad_backend import PCBFreecadContext
 except ImportError:
     pass

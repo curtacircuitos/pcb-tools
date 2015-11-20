@@ -20,13 +20,30 @@ Docstring for freecad_backend
 """
 
 from .render import GerberContext
+from .render import PCBContext
 
 from operator import mul
 import math
 import tempfile
+import os
 
 from ..primitives import *
 
 
 class GerberFreecadContext(GerberContext):
     pass
+
+
+class PCBFreecadContext(PCBContext):
+    def render(self, output_filename=None):
+        if self.dialect:
+            layers = self.dialect(self.filenames)
+            if self.verbose:
+                print("Using Layers : ")
+                layers.print_layermap()
+        else:
+            raise AttributeError('FreeCAD backend needs a valid layer map to do '
+                                 'anything. Specify an implemented layer name '
+                                 'dialect and try again. ')
+        if os.path.splitext(output_filename)[1].upper() != 'FCSTD':
+            output_filename += '.fcstd'

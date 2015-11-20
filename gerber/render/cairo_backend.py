@@ -16,14 +16,18 @@
 # limitations under the License.
 
 from .render import GerberContext
+from .render import PCBContext
 
 import cairocffi as cairo
 
+from gerber.common import read
 from operator import mul
 import math
 import tempfile
+import os
 
 from ..primitives import *
+
 
 class GerberCairoContext(GerberContext):
     def __init__(self, scale=300):
@@ -32,7 +36,7 @@ class GerberCairoContext(GerberContext):
         self.surface = None
         self.ctx = None
         self.bg = False
-        
+
     def set_bounds(self, bounds):
         origin_in_inch = (bounds[0][0], bounds[1][0])
         size_in_inch = (abs(bounds[0][1] - bounds[0][0]), abs(bounds[1][1] - bounds[1][0]))
@@ -78,7 +82,7 @@ class GerberCairoContext(GerberContext):
         angle2 = arc.end_angle
         width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
         self.ctx.set_source_rgba(*color, alpha=self.alpha)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (arc.level_polarity == "dark" and not self.invert)else cairo.OPERATOR_CLEAR)        
+        self.ctx.set_operator(cairo.OPERATOR_OVER if (arc.level_polarity == "dark" and not self.invert)else cairo.OPERATOR_CLEAR)
         self.ctx.set_line_width(width * self.scale[0])
         self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
         self.ctx.move_to(*start)  # You actually have to do this...
@@ -113,7 +117,7 @@ class GerberCairoContext(GerberContext):
     def _render_circle(self, circle, color):
         center = tuple(map(mul, circle.position, self.scale))
         self.ctx.set_source_rgba(*color, alpha=self.alpha)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (circle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)        
+        self.ctx.set_operator(cairo.OPERATOR_OVER if (circle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
         self.ctx.set_line_width(0)
         self.ctx.arc(*center, radius=circle.radius * self.scale[0], angle1=0, angle2=2 * math.pi)
         self.ctx.fill()
@@ -122,7 +126,7 @@ class GerberCairoContext(GerberContext):
         ll = map(mul, rectangle.lower_left, self.scale)
         width, height = tuple(map(mul, (rectangle.width, rectangle.height), map(abs, self.scale)))
         self.ctx.set_source_rgba(*color, alpha=self.alpha)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (rectangle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)        
+        self.ctx.set_operator(cairo.OPERATOR_OVER if (rectangle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
         self.ctx.set_line_width(0)
         self.ctx.rectangle(*ll,width=width, height=height)
         self.ctx.fill()
@@ -140,7 +144,7 @@ class GerberCairoContext(GerberContext):
         self.ctx.set_font_size(200)
         self._render_circle(Circle(primitive.position, 0.01), color)
         self.ctx.set_source_rgb(*color)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (primitive.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)        
+        self.ctx.set_operator(cairo.OPERATOR_OVER if (primitive.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
         self.ctx.move_to(*[self.scale[0] * (coord + 0.01) for coord in primitive.position])
         self.ctx.scale(1, -1)
         self.ctx.show_text(primitive.net_name)
@@ -172,9 +176,28 @@ class GerberCairoContext(GerberContext):
 
         else:
             self.surface.write_to_png(filename)
-            
+
     def dump_svg_str(self):
         self.surface.finish()
         self.surface_buffer.flush()
         return self.surface_buffer.read()
-    
+
+
+class PCBCairoContext(PCBContext):
+    def render(self, output_filename='test'):
+        ctx = GerberCairoContext()
+        ctx.alpha = 0.95
+        for filename in self.filenames:
+            print("parsing %s" % filename)
+            if 'GTO' in filename or 'GBO' in filename:
+                ctx.color = (1, 1, 1)
+                ctx.alpha = 0.8
+            elif 'GTS' in filename or 'GBS' in filename:
+                ctx.color = (0.2, 0.2, 0.75)
+                ctx.alpha = 0.8
+            gerberfile = read(filename)
+            gerberfile.render(ctx)
+        if os.path.splitext(output_filename)[1].upper() != 'SVG':
+            output_filename += '.svg'
+        print('Saving image to {0}'.format(output_filename))
+        ctx.dump(output_filename)

@@ -30,6 +30,7 @@ from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
 
 from ..primitives import *
 
+
 class GerberContext(object):
     """ Gerber rendering context base class
 
@@ -182,3 +183,12 @@ class GerberContext(object):
     def _render_test_record(self, primitive, color):
         pass
 
+
+class PCBContext(object):
+    def __init__(self, filenames, dialect, verbose):
+        self.filenames = filenames
+        self.dialect = dialect
+        self.verbose = verbose
+
+    def render(self, output_filename=None):
+        raise NotImplementedError
