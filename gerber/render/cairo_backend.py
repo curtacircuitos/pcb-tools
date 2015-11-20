@@ -185,14 +185,16 @@ class GerberCairoContext(GerberContext):
 
 class PCBCairoContext(PCBContext):
     def render(self, output_filename='test'):
+        if self.dialect:
+            layers = self.dialect(self.filenames)
         ctx = GerberCairoContext()
         ctx.alpha = 0.95
         for filename in self.filenames:
             print("parsing %s" % filename)
-            if 'GTO' in filename or 'GBO' in filename:
+            if filename in layers.outer_copper_layers:
                 ctx.color = (1, 1, 1)
                 ctx.alpha = 0.8
-            elif 'GTS' in filename or 'GBS' in filename:
+            elif filename in layers.silk_layers:
                 ctx.color = (0.2, 0.2, 0.75)
                 ctx.alpha = 0.8
             gerberfile = read(filename)
