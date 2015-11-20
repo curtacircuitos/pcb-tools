@@ -25,4 +25,8 @@ SVG is the only supported format.
 
 
 from .cairo_backend import GerberCairoContext
-from .freecad_backend import GerberFreecadContext
+
+try:
+    from .freecad_backend import GerberFreecadContext
+except ImportError:
+    pass
