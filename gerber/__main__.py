@@ -17,6 +17,7 @@
 
 import argparse
 from .layers import available_dialects
+from gerber.render import available_renderers
 
 
 def main():
@@ -35,9 +36,8 @@ def main():
              "(extension will be added on automatically)"
     )
     parser.add_argument(
-        '--backend', '-b', choices=['cairo', 'freecad'], default='cairo',
+        '--backend', '-b', choices=available_renderers.keys(), default='cairo',
         help='Choose the backend to use to generate the output.'
-             'cairo produces svg, freecad produces a 3d model.'
     )
     parser.add_argument(
         '--dialect', '-d', choices=available_dialects.keys(), default=None,
@@ -58,14 +58,10 @@ def main():
         from layers import guess_dialect
         dialect = guess_dialect(args.filenames, verbose=args.verbose)
 
-    if args.backend == 'cairo':
-        from gerber.render import PCBCairoContext
-        pcb_context = PCBCairoContext(args.filenames, dialect,
-                                      verbose=args.verbose)
-    elif args.backend == 'freecad':
-        from gerber.render import PCBFreecadContext
-        pcb_context = PCBFreecadContext(args.filenames, dialect,
-                                        verbose=args.verbose)
+    if args.backend in available_renderers.keys():
+        renderer = available_renderers[args.backend]
+        pcb_context = renderer.pcb_context(args.filenames, dialect,
+                                           verbose=args.verbose)
     else:
         raise ValueError('Unrecognized backend ' + args.backend)
 
