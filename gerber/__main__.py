@@ -19,7 +19,7 @@ import argparse
 from gerber.common import read
 
 
-def render_cairo(filenames, dialect):
+def render_cairo(filenames, dialect, verbose=False):
     from gerber.render import GerberCairoContext
     ctx = GerberCairoContext()
     ctx.alpha = 0.95
@@ -38,14 +38,22 @@ def render_cairo(filenames, dialect):
     ctx.dump('test.svg')
 
 
-def render_freecad(filenames, dialect):
+def render_freecad(filenames, dialect, verbose=False):
     try:
         from gerber.render import GerberFreecadContext
     except ImportError:
         print("Problem importing the Freecad context. Make sure you have "
               "FreeCAD installed and available on your python path.")
         raise
-    pass
+    if dialect:
+        layers = dialect(filenames)
+        if verbose:
+            print("Using Layers : ")
+            layers.print_layermap()
+    else:
+        raise AttributeError('FreeCAD backend needs a valid layer map to do '
+                             'anything. Specify an implemented layer name '
+                             'dialect and try again. ')
 
 
 def main():
@@ -64,7 +72,11 @@ def main():
     )
     parser.add_argument(
         '--dialect', '-d', choices=['geda'], default=None,
-        help='Specify the dialect to use to guess layers from the filename'
+        help='Specify the dialect to use to guess layers from the filename.'
+    )
+    parser.add_argument(
+        '--verbose', '-v', action='store_true', default=False,
+        help='Increase verbosity of the output.'
     )
 
     args = parser.parse_args()
@@ -75,12 +87,13 @@ def main():
         else:
             raise ValueError('Unknown filename dialect ' + args.dialect)
     else:
-        dialect = None
+        from layers import guess_dialect
+        dialect = guess_dialect(args.filenames, verbose=args.verbose)
 
     if args.backend == 'cairo':
-        render_cairo(args.filenames, dialect)
+        render_cairo(args.filenames, dialect, verbose=args.verbose)
     if args.backend == 'freecad':
-        render_freecad(args.filenames, dialect)
+        render_freecad(args.filenames, dialect, verbose=args.verbose)
 
 
 if __name__ == '__main__':

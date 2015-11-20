@@ -21,8 +21,6 @@ Docstring for freecad_backend
 
 from .render import GerberContext
 
-import FreeCAD
-
 from operator import mul
 import math
 import tempfile

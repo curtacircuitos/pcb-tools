@@ -187,7 +187,28 @@ class GedaGerberLayerDialect(GerberLayerDialect):
                 return 'bottomsilk'
             elif name.endswith('.fab'):
                 return 'fab'
+            elif name.endswith('.outline'):
+                return 'outline'
             else:
                 return 'unknown'
         if ext == '.cnc':
             return 'drill'
+
+
+available_dialects = [GedaGerberLayerDialect]
+
+
+def guess_dialect(filenames, verbose=False):
+    if verbose:
+        print("Attempting to guess layer name dialect.")
+    for dialect in available_dialects:
+        if verbose:
+            print("Trying " + str(dialect))
+        result = dialect(filenames)
+        if not result.unknown:
+            print("All files recognized. Using " + str(dialect))
+            return dialect
+        else:
+            print("Unrecognized files : ")
+            for filename in result.unknown:
+                print(filename)
