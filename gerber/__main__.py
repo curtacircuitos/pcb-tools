@@ -63,15 +63,24 @@ def main():
              'cairo produces svg, freecad produces a 3d model.'
     )
     parser.add_argument(
-        '--dialect', '-d', choices=['geda'], default='default',
+        '--dialect', '-d', choices=['geda'], default=None,
         help='Specify the dialect to use to guess layers from the filename'
     )
 
     args = parser.parse_args()
+    if args.dialect:
+        if args.dialect == 'geda':
+            from layers import GedaGerberLayerDialect
+            dialect = GedaGerberLayerDialect
+        else:
+            raise ValueError('Unknown filename dialect ' + args.dialect)
+    else:
+        dialect = None
+
     if args.backend == 'cairo':
-        render_cairo(args.filenames, args.dialect)
+        render_cairo(args.filenames, dialect)
     if args.backend == 'freecad':
-        render_freecad(args.filenames, args.dialect)
+        render_freecad(args.filenames, dialect)
 
 
 if __name__ == '__main__':
