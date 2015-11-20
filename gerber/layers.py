@@ -16,42 +16,64 @@
 # limitations under the License.
 
 import os
+from collections import namedtuple
 
-top_copper_ext = ['gtl', 'cmp', 'top', ]
-top_copper_name = ['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', ]
+Hint = namedtuple('Hint', 'layer ext name')
 
-bottom_copper_ext = ['gbl', 'sld', 'bot', 'sol', ]
-bottom_coppper_name = ['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', ]
-
-internal_layer_ext = ['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1',
-                      'g2', 'g3', 'g4', 'g5', 'g6', ]
-internal_layer_name = ['art', 'internal']
-
-power_plane_name = ['pgp', 'pwr', ]
-ground_plane_name = ['gp1', 'gp2', 'gp3', 'gp4', 'gt5', 'gp6', 'gnd',
-                     'ground', ]
-
-top_silk_ext = ['gto', 'sst', 'plc', 'ts', 'skt', ]
-top_silk_name = ['sst01', 'topsilk', 'silk', 'slk', 'sst', ]
-
-bottom_silk_ext = ['gbo', 'ssb', 'pls', 'bs', 'skb', ]
-bottom_silk_name = ['sst', 'bsilk', 'ssb', 'botsilk', ]
-
-top_mask_ext = ['gts', 'stc', 'tmk', 'smt', 'tr', ]
-top_mask_name = ['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
-                 'mst', ]
-
-bottom_mask_ext = ['gbs', 'sts', 'bmk', 'smb', 'br', ]
-bottom_mask_name = ['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', ]
-
-top_paste_ext = ['gtp', 'tm']
-top_paste_name = ['sp01', 'toppaste', 'pst']
-
-bottom_paste_ext = ['gbp', 'bm']
-bottom_paste_name = ['sp02', 'botpaste', 'psb']
-
-board_outline_ext = ['gko']
-board_outline_name = ['BDR', 'border', 'out', ]
+hints = [
+    Hint(layer='top',
+         ext=['gtl', 'cmp', 'top', ],
+         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', ]
+         ),
+    Hint(layer='bottom',
+         ext=['gbl', 'sld', 'bot', 'sol', ],
+         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', ]
+         ),
+    Hint(layer='internal',
+         ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1',
+              'g2', 'g3', 'g4', 'g5', 'g6', ],
+         name=['art', 'internal']
+         ),
+    # TODO how does this have to be handled?
+    # Hint(layer='power_plane',
+    #      ext=None,
+    #      name=['pgp', 'pwr', ],
+    #      ),
+    # Hint(layer='ground_plane',
+    #      ext=None,
+    #      name=['gp1', 'gp2', 'gp3', 'gp4', 'gt5', 'gp6', 'gnd',
+    #            'ground', ]
+    #      ),
+    Hint(layer='topsilk',
+         ext=['gto', 'sst', 'plc', 'ts', 'skt', ],
+         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', ]
+         ),
+    Hint(layer='bottomsilk',
+         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', ],
+         name=['sst', 'bsilk', 'ssb', 'botsilk', ]
+         ),
+    Hint(layer='topmask',
+         ext=['gts', 'stc', 'tmk', 'smt', 'tr', ],
+         name=['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
+               'mst', ]
+         ),
+    Hint(layer='bottommask',
+         ext=['gbs', 'sts', 'bmk', 'smb', 'br', ],
+         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', ]
+         ),
+    Hint(layer='toppaste',
+         ext=['gtp', 'tm'],
+         name=['sp01', 'toppaste', 'pst']
+         ),
+    Hint(layer='bottompaste',
+         ext=['gbp', 'bm'],
+         name=['sp02', 'botpaste', 'psb']
+         ),
+    Hint(layer='outline',
+         ext=['gko'],
+         name=['BDR', 'border', 'out', ]
+         ),
+]
 
 
 class GerberLayerDialect(object):
@@ -198,6 +220,16 @@ class GerberLayerDialect(object):
             print('            None')
 
 
+class GenericLayerDialect(GerberLayerDialect):
+    def guess_layer(self, filename):
+        directory, name = os.path.split(filename)
+        name, ext = os.path.splitext(name)
+        for hint in hints:
+            if ext in hint.ext or \
+                    any(x in name for x in hint.name):
+                return hint.layer
+
+
 class GedaGerberLayerDialect(GerberLayerDialect):
     def guess_layer(self, filename):
         directory, name = os.path.split(filename)
@@ -229,20 +261,23 @@ class GedaGerberLayerDialect(GerberLayerDialect):
             return 'drill'
 
 
-available_dialects = [GedaGerberLayerDialect]
+available_dialects = {
+    'generic': GenericLayerDialect,
+    'geda': GedaGerberLayerDialect
+}
 
 
 def guess_dialect(filenames, verbose=False):
     if verbose:
         print("Attempting to guess layer name dialect.")
-    for dialect in available_dialects:
+    for key, dialect in available_dialects.iteritems():
         if verbose:
-            print("Trying " + str(dialect))
+            print("Trying {0}".format(key))
         result = dialect(filenames)
         if not result.unknown:
-            print("All files recognized. Using " + str(dialect))
+            print("All files recognized. Using dialect {0}".format(key))
             return dialect
         else:
-            print("Unrecognized files : ")
+            print("Unrecognized files with dialect {0} : ".format(key))
             for filename in result.unknown:
                 print(filename)

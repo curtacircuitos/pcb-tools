@@ -16,6 +16,7 @@
 # the License.
 
 import argparse
+from .layers import available_dialects
 
 
 def main():
@@ -39,7 +40,7 @@ def main():
              'cairo produces svg, freecad produces a 3d model.'
     )
     parser.add_argument(
-        '--dialect', '-d', choices=['geda'], default=None,
+        '--dialect', '-d', choices=available_dialects.keys(), default=None,
         help='Specify the dialect to use to guess layers from the filename.'
     )
     parser.add_argument(
@@ -49,9 +50,8 @@ def main():
 
     args = parser.parse_args()
     if args.dialect:
-        if args.dialect == 'geda':
-            from layers import GedaGerberLayerDialect
-            dialect = GedaGerberLayerDialect
+        if args.dialect in available_dialects.keys():
+            dialect = available_dialects[args.dialect]
         else:
             raise ValueError('Unrecognized filename dialect ' + args.dialect)
     else:
