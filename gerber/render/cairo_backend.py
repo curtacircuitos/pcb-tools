@@ -184,7 +184,7 @@ class GerberCairoContext(GerberContext):
 
 
 class PCBCairoContext(PCBContext):
-    def render(self, output_filename='test'):
+    def render(self, output_filename=None):
         if self.dialect:
             layers = self.dialect(self.filenames)
         ctx = GerberCairoContext()
@@ -199,6 +199,8 @@ class PCBCairoContext(PCBContext):
                 ctx.alpha = 0.8
             gerberfile = read(filename)
             gerberfile.render(ctx)
+        if not output_filename:
+            output_filename = layers.pcbname
         if os.path.splitext(output_filename)[1].upper() != 'SVG':
             output_filename += '.svg'
         print('Saving image to {0}'.format(output_filename))

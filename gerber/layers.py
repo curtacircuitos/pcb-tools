@@ -93,6 +93,7 @@ class GerberLayerDialect(object):
         self._drill = None
         self._fab = None
         self._unknown = None
+        self._pcbname = None
         self._guess_layers()
 
     def guess_layer(self, filename):
@@ -207,6 +208,7 @@ class GerberLayerDialect(object):
         print('BOTTOMMASK  {0}'.format(self.bottommask))
         print('BOTTOMPASTE {0}'.format(self.bottompaste))
         print('OUTLINE     {0}'.format(self.outline))
+        print('DRILL       {0}'.format(self.drill))
         print('INTERNAL : ')
         if self._internal:
             for filename in self._internal:
@@ -220,8 +222,16 @@ class GerberLayerDialect(object):
         else:
             print('            None')
 
+    @property
+    def pcbname(self):
+        return self._pcbname
+
 
 class GenericLayerDialect(GerberLayerDialect):
+    def __init__(self, filenames):
+        super(GenericLayerDialect, self).__init__(filenames)
+        self._pcbname = 'pcb'
+
     # TODO Test this and make sure it actually works.
     def guess_layer(self, filename):
         directory, name = os.path.split(filename)
@@ -240,24 +250,33 @@ class GedaGerberLayerDialect(GerberLayerDialect):
         name, ext = os.path.splitext(name)
         if ext == '.gbr':
             if name.endswith('.top'):
+                self._pcbname = name[:-(len('.top'))]
                 return 'top'
             elif name.endswith('.topmask'):
+                self._pcbname = name[:-(len('.topmask'))]
                 return 'topmask'
             elif name.endswith('.toppaste'):
+                self._pcbname = name[:-(len('.toppaste'))]
                 return 'toppaste'
             elif name.endswith('.topsilk'):
+                self._pcbname = name[:-(len('.topsilk'))]
                 return 'topsilk'
             elif name.endswith('.bottom'):
+                self._pcbname = name[:-(len('.bottom'))]
                 return 'bottom'
             elif name.endswith('.bottommask'):
+                self._pcbname = name[:-(len('.bottommask'))]
                 return 'bottommask'
             elif name.endswith('.bottompaste'):
+                self._pcbname = name[:-(len('.bottompaste'))]
                 return 'bottompaste'
             elif name.endswith('.bottomsilk'):
+                self._pcbname = name[:-(len('.bottomsilk'))]
                 return 'bottomsilk'
             elif name.endswith('.fab'):
                 return 'fab'
             elif name.endswith('.outline'):
+                self._pcbname = name[:-(len('.outline'))]
                 return 'outline'
             else:
                 return 'unknown'
@@ -279,9 +298,10 @@ def guess_dialect(filenames, verbose=False):
             print("Trying {0}".format(key))
         result = dialect(filenames)
         if not result.unknown:
-            print("All files recognized. Using dialect {0}".format(key))
+            if verbose:
+                print("All files recognized. Using dialect {0}".format(key))
             return dialect
-        else:
+        elif verbose:
             print("Unrecognized files with dialect {0} : ".format(key))
             for filename in result.unknown:
                 print(filename)

@@ -31,8 +31,8 @@ def main():
     )
     parser.add_argument(
         '--outfile', '-o', metavar='OUTFILE', type=str, nargs='?',
-        default='test',
-        help="Output Filename. Default 'test'. "
+        default=None,
+        help="Output Filename "
              "(extension will be added on automatically)"
     )
     parser.add_argument(
