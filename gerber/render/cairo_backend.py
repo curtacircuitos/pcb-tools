@@ -186,21 +186,21 @@ class GerberCairoContext(GerberContext):
 class PCBCairoContext(PCBContext):
     def render(self, output_filename=None):
         if self.dialect:
-            layers = self.dialect(self.filenames)
+            self.layers = self.dialect(self.filenames)
         ctx = GerberCairoContext()
         ctx.alpha = 0.95
         for filename in self.filenames:
             print("parsing %s" % filename)
-            if filename in layers.outer_copper_layers:
+            if filename in self.layers.outer_copper_layers:
                 ctx.color = (1, 1, 1)
                 ctx.alpha = 0.8
-            elif filename in layers.silk_layers:
+            elif filename in self.layers.silk_layers:
                 ctx.color = (0.2, 0.2, 0.75)
                 ctx.alpha = 0.8
             gerberfile = read(filename)
             gerberfile.render(ctx)
         if not output_filename:
-            output_filename = layers.pcbname
+            output_filename = self.layers.pcbname
         if os.path.splitext(output_filename)[1].upper() != 'SVG':
             output_filename += '.svg'
         print('Saving image to {0}'.format(output_filename))

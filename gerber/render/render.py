@@ -189,6 +189,7 @@ class PCBContext(object):
         self.filenames = filenames
         self.dialect = dialect
         self.verbose = verbose
+        self.layers = None
 
     def render(self, output_filename=None):
         raise NotImplementedError
