@@ -218,6 +218,8 @@ class GerberFreecadContext(GerberContext):
             element.Sketch = elem_sketch
             element.Length = self.thickness
             self._elements.append(element_name)
+            if not self.pcb_ctx.nox:
+                elem_sketch.ViewObject.hide()
             self.pcb_ctx.output_file.recompute()
 
     def _thin_draw_arc(self, sketch, arc):
@@ -296,6 +298,8 @@ class GerberFreecadContext(GerberContext):
             element.Sketch = elem_sketch
             element.Length = self.thickness
             self._elements.append(element_name)
+            if not self.pcb_ctx.nox:
+                elem_sketch.ViewObject.hide()
             self.pcb_ctx.output_file.recompute()
 
     def _render_circle(self, circle, color):
@@ -331,6 +335,8 @@ class GerberFreecadContext(GerberContext):
             element.Sketch = elem_sketch
             element.Length = self.thickness
             self._elements.append(element_name)
+            if not self.pcb_ctx.nox:
+                elem_sketch.ViewObject.hide()
             self.pcb_ctx.output_file.recompute()
 
     def _render_rectangle(self, primitive, color):
@@ -375,9 +381,24 @@ class PCBFreecadContext(PCBContext):
         super(PCBFreecadContext, self).__init__(filenames, dialect, verbose)
         self._output_name = None
         self._output_file = None
-        self._pcb_thickness = 1.6
-        self._outer_copper_thickness = 0.035
         self._quick = False
+        self._nox = False
+
+        self._pcb_thickness = 1.6
+        self._pcb_color = (171.0/255, 195.0/255, 84.0/255)
+
+        self._outer_copper_thickness = 0.035
+        self._copper_color = (205.0/255, 119.0/255, 55.0/255)
+
+        self._mask_thickness = 0.005
+        self._mask_color = (2.0/255, 55.0/255, 34.0/255)
+        self._mask_alpha = 0.5
+
+        self._silk_color = (1.0, 1.0, 1.0)
+
+    @property
+    def nox(self):
+        return self._nox
 
     @property
     def output_file(self):
@@ -429,6 +450,9 @@ class PCBFreecadContext(PCBContext):
         self._output_file.PCB_Body.Length = self._pcb_thickness
         self._output_file.recompute()
 
+        if not self._nox:
+            self._output_file.PCB_Body.ViewObject.ShapeColor = self._pcb_color
+
     def _create_top_surface(self):
         self._create_top_copper()
         self._create_top_mask()
@@ -436,6 +460,8 @@ class PCBFreecadContext(PCBContext):
         self._create_top_paste()
 
     def _create_top_copper(self):
+        if self.verbose:
+            print("Drawing top copper from {0}".format(self.layers.top))
         top_copper_sketch = self._create_sketch_on_face(
             'Top_Copper_Sketch', self._output_file.PCB_Body, self._get_top_face()
         )
@@ -452,6 +478,18 @@ class PCBFreecadContext(PCBContext):
 
         if not self._quick:
             ctx.fuse('Top_Copper')
+            if not self._nox:
+                obj = getattr(self._output_file, 'Top_Copper_fused')
+                obj.ViewObject.ShapeColor = self._copper_color
+                obj.ViewObject.LineColor = self._copper_color
+                obj.ViewObject.PointColor = self._copper_color
+        else:
+            if not self._nox:
+                for element in ctx._elements:
+                    obj = getattr(self._output_file, element)
+                    obj.ViewObject.ShapeColor = self._copper_color
+                    obj.ViewObject.LineColor = self._copper_color
+                    obj.ViewObject.PointColor = self._copper_color
 
         self._output_file.recompute()
 
@@ -471,8 +509,11 @@ class PCBFreecadContext(PCBContext):
         self._create_bottom_paste()
 
     def _create_bottom_copper(self):
+        if self.verbose:
+            print("Drawing bottom copper from {0}".format(self.layers.bottom))
         bottom_copper_sketch = self._create_sketch_on_face(
-            'Bottom_Copper_Sketch', self._output_file.PCB_Body, self._get_bottom_face()
+            'Bottom_Copper_Sketch',
+            self._output_file.PCB_Body, self._get_bottom_face()
         )
         ctx = GerberFreecadContext()
         ctx.sketch = bottom_copper_sketch
@@ -488,6 +529,18 @@ class PCBFreecadContext(PCBContext):
 
         if not self._quick:
             ctx.fuse('Bottom_Copper')
+            if not self._nox:
+                obj = getattr(self._output_file, 'Bottom_Copper_fused')
+                obj.ViewObject.ShapeColor = self._copper_color
+                obj.ViewObject.LineColor = self._copper_color
+                obj.ViewObject.PointColor = self._copper_color
+        else:
+            if not self._nox:
+                for element in ctx._elements:
+                    obj = getattr(self._output_file, element)
+                    obj.ViewObject.ShapeColor = self._copper_color
+                    obj.ViewObject.LineColor = self._copper_color
+                    obj.ViewObject.PointColor = self._copper_color
 
         self._output_file.recompute()
 
@@ -503,8 +556,9 @@ class PCBFreecadContext(PCBContext):
     def _create_drills(self):
         pass
 
-    def render(self, output_filename=None, quick=False):
+    def render(self, output_filename=None, quick=False, nox=False):
         self._quick = quick
+        self._nox = nox
         if self.dialect:
             self.layers = self.dialect(self.filenames)
             if self.verbose:
@@ -514,6 +568,10 @@ class PCBFreecadContext(PCBContext):
             raise AttributeError('FreeCAD backend needs a valid layer map to do '
                                  'anything. Specify an implemented layer name '
                                  'dialect and try again. ')
+
+        if not self._nox:
+            FreeCADGui.showMainWindow()
+
         if not output_filename:
             output_filename = self.layers.pcbname
         if os.path.splitext(output_filename)[1].upper() == 'FCSTD':

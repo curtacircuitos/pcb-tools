@@ -237,5 +237,5 @@ class PCBContext(object):
         self.verbose = verbose
         self.layers = None
 
-    def render(self, output_filename=None, quick=False):
+    def render(self, output_filename=None, quick=False, nox=False):
         raise NotImplementedError

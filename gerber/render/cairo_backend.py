@@ -184,7 +184,7 @@ class GerberCairoContext(GerberContext):
 
 
 class PCBCairoContext(PCBContext):
-    def render(self, output_filename=None, quick=False):
+    def render(self, output_filename=None, quick=False, nox=False):
         if self.dialect:
             self.layers = self.dialect(self.filenames)
         ctx = GerberCairoContext()
