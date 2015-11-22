@@ -202,10 +202,10 @@ class GerberContext(object):
     def _render_arc(self, arc, color):
         pass
 
-    def _render_region(self, primitive, color):
+    def _render_region(self, region, color):
         pass
 
-    def _render_circle(self, primitive, color):
+    def _render_circle(self, circle, color):
         pass
 
     def _render_rectangle(self, primitive, color):
@@ -237,5 +237,5 @@ class PCBContext(object):
         self.verbose = verbose
         self.layers = None
 
-    def render(self, output_filename=None):
+    def render(self, output_filename=None, quick=False):
         raise NotImplementedError

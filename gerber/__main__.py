@@ -47,6 +47,11 @@ def main():
         '--verbose', '-v', action='store_true', default=False,
         help='Increase verbosity of the output.'
     )
+    parser.add_argument(
+        '--quick', '-q', action='store_true', default=False,
+        help='Skip longer running rendering steps to produce lower quality'
+             ' output faster.'
+    )
 
     args = parser.parse_args()
     if args.dialect:
@@ -65,7 +70,7 @@ def main():
     else:
         raise ValueError('Unrecognized backend ' + args.backend)
 
-    pcb_context.render(output_filename=args.outfile)
+    pcb_context.render(output_filename=args.outfile, quick=args.quick)
 
 
 if __name__ == '__main__':

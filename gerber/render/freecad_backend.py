@@ -22,6 +22,7 @@ Docstring for freecad_backend
 import os
 import platform
 import sys
+from math import sqrt
 from operator import mul
 
 from .render import GerberContext
@@ -58,6 +59,10 @@ class GerberFreecadContext(GerberContext):
         self._verbose = False
         if self.units == 'inch':
             self.scale = (25.4, 25.4)
+        self._pcb_ctx = None
+        self._thickness = None
+        self._elements = []
+        self._prefix = None
 
     @property
     def sketch(self):
@@ -66,6 +71,30 @@ class GerberFreecadContext(GerberContext):
     @sketch.setter
     def sketch(self, value):
         self._sketch = value
+
+    @property
+    def prefix(self):
+        return self._prefix
+
+    @prefix.setter
+    def prefix(self, value):
+        self._prefix = value
+
+    @property
+    def thickness(self):
+        return self._thickness
+
+    @thickness.setter
+    def thickness(self, value):
+        self._thickness = value
+
+    @property
+    def pcb_ctx(self):
+        return self._pcb_ctx
+
+    @pcb_ctx.setter
+    def pcb_ctx(self, value):
+        self._pcb_ctx = value
 
     @property
     def thin_draw(self):
@@ -99,61 +128,210 @@ class GerberFreecadContext(GerberContext):
     def verbose(self, value):
         self._verbose = value
 
+    @staticmethod
+    def _get_flanking_lines(start, end, width):
+        lines = []
+        arcs = []
+
+        x1 = start[0]
+        y1 = start[1]
+        x2 = end[0]
+        y2 = end[1]
+
+        dx = x1 - x2
+        dy = y1 - y2
+        dist = sqrt(dx * dx + dy * dy)
+        dx /= dist
+        dy /= dist
+
+        x3 = x1 + (width/2) * dy
+        y3 = y1 - (width/2) * dx
+        x4 = x2 - (width/2) * dy
+        y4 = y2 + (width/2) * dx
+
+        x5 = x1 - (width/2) * dy
+        y5 = y1 + (width/2) * dx
+        x6 = x2 + (width/2) * dy
+        y6 = y2 - (width/2) * dx
+
+        lines.append(Line((x3, y3), (x6, y6), None))
+        lines.append(Line((x5, y5), (x4, y4), None))
+
+        arcs.append(Arc((x3, y3), (x5, y5), (x1, y1), 'counterclockwise', None))
+        arcs.append(Arc((x4, y4), (x6, y6), (x2, y2), 'counterclockwise', None))
+
+        return lines, arcs
+
+    def _thin_draw_line(self, sketch, line):
+        start = line.start
+        end = line.end
+        sketch.addGeometry(
+            Part.Line(
+                FreeCAD.Vector(start[0], start[1], 0),
+                FreeCAD.Vector(end[0], end[1], 0)
+            )
+        )
+
     def _render_line(self, line, color):
         start = map(mul, line.start, self.scale)
         end = map(mul, line.end, self.scale)
-
-        if line.start == line.end:
+        if start == end:
             if self.verbose:
                 print(
                     "Found zero length line. Skipping line {0} {1}".format(
-                        line.start, line.end
+                        start, end
                     ))
             return
         if self._thin_draw:
-            self._sketch.addGeometry(
-                Part.Line(
-                    FreeCAD.Vector(start[0], start[1], 0),
-                    FreeCAD.Vector(end[0], end[1], 0)
-                )
-            )
+            self._thin_draw_line(self._sketch, Line(start, end, None))
         else:
-            pass
+            element_name = self._prefix + str(len(self._elements) + 1)
+            sketch_name = element_name + '_sketch'
+            self.pcb_ctx.output_file.addObject(
+                'Sketcher::SketchObject', sketch_name
+            )
+            elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+            elem_sketch.Support = self._sketch.Support
 
-    def _render_arc(self, arc, color):
+            self.pcb_ctx.output_file.recompute()
+            if isinstance(line.aperture, Circle):
+                width = line.aperture.diameter * self.scale_scalar
+                lines, arcs = self._get_flanking_lines(start, end, width)
+                for line in lines:
+                    self._thin_draw_line(elem_sketch, line)
+                for arc in arcs:
+                    self._thin_draw_arc(elem_sketch, arc)
+
+            elif isinstance(line.aperture, Rectangle):
+                points = [tuple(map(mul, x, self.scale)) for x in line.vertices]
+                for i in range(len(points)-1):
+                    self._thin_draw_line(
+                        elem_sketch, Line(points[i], points[i+1], None)
+                    )
+                self._thin_draw_line(
+                    elem_sketch, Line(points[-1], points[0], None)
+                )
+
+            self.pcb_ctx.output_file.recompute()
+            self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
+            element = getattr(self.pcb_ctx.output_file, element_name)
+            element.Sketch = elem_sketch
+            element.Length = self.thickness
+            self._elements.append(element_name)
+            self.pcb_ctx.output_file.recompute()
+
+    def _thin_draw_arc(self, sketch, arc):
         if arc.direction == 'clockwise':
             start_angle = arc.end_angle
             end_angle = arc.start_angle
         else:
             start_angle = arc.start_angle
             end_angle = arc.end_angle
-        center = map(mul, arc.center, self.scale)
-        radius = arc.radius * self.scale_scalar
-
-        self._sketch.addGeometry(
-            Part.ArcOfCircle(
-                Part.Circle(
-                    FreeCAD.Vector(center[0], center[1], 0),
-                    FreeCAD.Vector(0, 0, 1), radius
-                ),
-                start_angle,
-                end_angle
+        center = arc.center
+        radius = arc.radius
+        sketch.addGeometry(
+                Part.ArcOfCircle(
+                    Part.Circle(
+                        FreeCAD.Vector(center[0], center[1], 0),
+                        FreeCAD.Vector(0, 0, 1), radius
+                    ),
+                    start_angle,
+                    end_angle
+                )
             )
-        )
 
-    def _render_region(self, primitive, color):
-        print 'render_region', primitive
+    def _render_arc(self, arc, color):
+        center = map(mul, arc.center, self.scale)
+        start = map(mul, arc.start, self.scale)
+        end = map(mul, arc.end, self.scale)
+        if self._thin_draw:
+            self._thin_draw_arc(self._sketch,
+                                Arc(start, end, center, arc.direction, None)
+                                )
+        else:
+            print 'unimplemented render_arc', arc
+
+    def _render_region(self, region, color):
+        if self._thin_draw:
+            for primitive in region.primitives:
+                if isinstance(primitive, Line):
+                    self._render_line(primitive, None)
+                elif isinstance(primitive, Arc):
+                    self._render_arc(primitive, None)
+        else:
+            element_name = self._prefix + str(len(self._elements) + 1)
+            sketch_name = element_name + '_sketch'
+            self.pcb_ctx.output_file.addObject(
+                'Sketcher::SketchObject', sketch_name
+            )
+            elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+            elem_sketch.Support = self._sketch.Support
+
+            self.pcb_ctx.output_file.recompute()
+            for primitive in region.primitives:
+                if isinstance(primitive, Line):
+                    start = map(mul, primitive.start, self.scale)
+                    end = map(mul, primitive.end, self.scale)
+                    if start == end:
+                        if self.verbose:
+                            print(
+                                "Found zero length line. "
+                                "Skipping line {0} {1}".format(
+                                    start, end
+                                ))
+                        continue
+                    self._thin_draw_line(elem_sketch, Line(start, end, None))
+                if isinstance(primitive, Arc):
+                    center = map(mul, primitive.center, self.scale)
+                    start = map(mul, primitive.start, self.scale)
+                    end = map(mul, primitive.end, self.scale)
+                    self._thin_draw_arc(
+                        elem_sketch,
+                        Arc(start, end, center, primitive.direction, None)
+                    )
+            self.pcb_ctx.output_file.recompute()
+
+            self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
+            element = getattr(self.pcb_ctx.output_file, element_name)
+            element.Sketch = elem_sketch
+            element.Length = self.thickness
+            self._elements.append(element_name)
+            self.pcb_ctx.output_file.recompute()
 
     def _render_circle(self, circle, color):
         center = map(mul, circle.position, self.scale)
         radius = circle.radius * self.scale_scalar
 
-        self._sketch.addGeometry(
-                Part.Circle(
-                    FreeCAD.Vector(center[0], center[1], 0),
-                    FreeCAD.Vector(0, 0, 1), radius
-                ),
+        if self.thin_draw:
+            self._sketch.addGeometry(
+                    Part.Circle(
+                        FreeCAD.Vector(center[0], center[1], 0),
+                        FreeCAD.Vector(0, 0, 1), radius
+                    ),
+                )
+        else:
+            element_name = self._prefix + str(len(self._elements) + 1)
+            sketch_name = element_name + '_sketch'
+            self.pcb_ctx.output_file.addObject(
+                'Sketcher::SketchObject', sketch_name
             )
+            elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+            elem_sketch.Support = self._sketch.Support
+
+            self.pcb_ctx.output_file.recompute()
+            elem_sketch.addGeometry(
+                    Part.Circle(
+                        FreeCAD.Vector(center[0], center[1], 0),
+                        FreeCAD.Vector(0, 0, 1), radius
+                    ),
+                )
+            self.pcb_ctx.output_file.recompute()
+            self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
+            element = getattr(self.pcb_ctx.output_file, element_name)
+            element.Sketch = elem_sketch
+            element.Length = self.thickness
+            self._elements.append(element_name)
+            self.pcb_ctx.output_file.recompute()
 
     def _render_rectangle(self, primitive, color):
         print 'render_rectangle', primitive
@@ -176,6 +354,21 @@ class GerberFreecadContext(GerberContext):
     def _paint_background(self):
         pass
 
+    def fuse(self, name):
+        print("Fusing {0} elements. This will take a while. Please be patient. "
+              "Maybe get yourself a cup of coffee.".format(name))
+        self.pcb_ctx.output_file.addObject("Part::MultiFuse", name)
+        fusion = getattr(self.pcb_ctx.output_file, name)
+        elements = [
+            getattr(self.pcb_ctx.output_file, x) for x in self._elements
+            ]
+        fusion.Shapes = elements
+        self.pcb_ctx.output_file.recompute()
+        self.pcb_ctx.output_file.addObject(
+            'Part::Feature', name + '_fused'
+        ).Shape = fusion.Shape.removeSplitter()
+        self.pcb_ctx.output_file.recompute()
+
 
 class PCBFreecadContext(PCBContext):
     def __init__(self, filenames, dialect, verbose):
@@ -183,6 +376,12 @@ class PCBFreecadContext(PCBContext):
         self._output_name = None
         self._output_file = None
         self._pcb_thickness = 1.6
+        self._outer_copper_thickness = 0.035
+        self._quick = False
+
+    @property
+    def output_file(self):
+        return self._output_file
 
     def _create_output_file(self):
         try:
@@ -242,11 +441,17 @@ class PCBFreecadContext(PCBContext):
         )
         ctx = GerberFreecadContext()
         ctx.sketch = top_copper_sketch
-        ctx.thin_draw = True
+        ctx.thin_draw = False
+        ctx.thickness = self._outer_copper_thickness
         ctx.verbose = self.verbose
+        ctx.pcb_ctx = self
+        ctx.prefix = 'TCE_'
 
         gerberfile = read(self.layers.top)
         gerberfile.render(ctx)
+
+        if not self._quick:
+            ctx.fuse('Top_Copper')
 
         self._output_file.recompute()
 
@@ -272,11 +477,17 @@ class PCBFreecadContext(PCBContext):
         ctx = GerberFreecadContext()
         ctx.sketch = bottom_copper_sketch
         ctx.scale_y *= -1
-        ctx.thin_draw = True
+        ctx.thin_draw = False
+        ctx.thickness = self._outer_copper_thickness
         ctx.verbose = self.verbose
+        ctx.pcb_ctx = self
+        ctx.prefix = 'BCE_'
 
         gerberfile = read(self.layers.bottom)
         gerberfile.render(ctx)
+
+        if not self._quick:
+            ctx.fuse('Bottom_Copper')
 
         self._output_file.recompute()
 
@@ -292,7 +503,8 @@ class PCBFreecadContext(PCBContext):
     def _create_drills(self):
         pass
 
-    def render(self, output_filename=None):
+    def render(self, output_filename=None, quick=False):
+        self._quick = quick
         if self.dialect:
             self.layers = self.dialect(self.filenames)
             if self.verbose:
