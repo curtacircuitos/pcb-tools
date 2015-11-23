@@ -229,6 +229,9 @@ class GerberContext(object):
     def _paint_background(self):
         raise NotImplementedError
 
+    def _paint_inverted_layer(self):
+        raise NotImplementedError
+
 
 class PCBContext(object):
     def __init__(self, filenames, dialect, verbose):
