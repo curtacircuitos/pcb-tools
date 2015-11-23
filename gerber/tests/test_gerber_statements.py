@@ -446,11 +446,11 @@ def testAMParamStmt_conversion():
 
 def test_AMParamStmt_dump():
     name = 'POLYGON'
-    macro = '5,1,8,25.4,25.4,25.4,0'
+    macro = '5,1,8,25.4,25.4,25.4,0.0'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
     s.build()
 
-    assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0*%')
+    assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0.0*%')
 
 def test_AMParamStmt_string():
     name = 'POLYGON'
