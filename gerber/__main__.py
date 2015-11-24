@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2013-2014 Paulo Henrique Silva <ph.silva@gmail.com>
+# Copyright 2015 Chintalagiri Shashank <shashank@chintal.in>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,6 +48,17 @@ def main():
         '--verbose', '-v', action='store_true', default=False,
         help='Increase verbosity of the output.'
     )
+    parser.add_argument(
+        '--quick', '-q', action='store_true', default=False,
+        help='Skip longer running rendering steps to produce lower quality'
+             ' output faster.'
+    )
+    parser.add_argument(
+        '--nox', action='store_true', default=False,
+        help='Run without using any GUI elements. This may produce suboptimal'
+             'output. For the freecad backend, colors, transparancy, and '
+             'visibility cannot be set without a GUI instance.'
+    )
 
     args = parser.parse_args()
     if args.dialect:
@@ -65,7 +77,9 @@ def main():
     else:
         raise ValueError('Unrecognized backend ' + args.backend)
 
-    pcb_context.render(output_filename=args.outfile)
+    pcb_context.render(output_filename=args.outfile,
+                       quick=args.quick,
+                       nox=args.nox)
 
 
 if __name__ == '__main__':

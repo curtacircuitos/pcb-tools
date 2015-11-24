@@ -16,6 +16,7 @@
 # limitations under the License.
 import math
 from operator import add, sub
+from copy import deepcopy
 
 from .utils import validate_coordinates, inch, metric
 
@@ -111,6 +112,13 @@ class Line(Primitive):
         self.end = end
         self.aperture = aperture
         self._to_convert = ['start', 'end', 'aperture']
+
+    @property
+    def reversed(self):
+        rline = deepcopy(self)
+        rline.start = self.end
+        rline.end = self.start
+        return rline
 
     @property
     def angle(self):
@@ -322,7 +330,7 @@ class Ellipse(Primitive):
         ux = (self.width / 2.) * math.cos(math.radians(self.rotation))
         vx = (self.height / 2.) * math.cos(math.radians(self.rotation) + (math.pi / 2.))
         return 2 * math.sqrt((ux * ux) + (vx * vx))
-    
+
     @property
     def _abs_height(self):
         uy = (self.width / 2.) * math.sin(math.radians(self.rotation))
@@ -340,7 +348,7 @@ class Rectangle(Primitive):
         self.width = width
         self.height = height
         self._to_convert = ['position', 'width', 'height']
-        
+
 
     @property
     def lower_left(self):
@@ -371,7 +379,7 @@ class Rectangle(Primitive):
     def _abs_height(self):
         return (math.cos(math.radians(self.rotation)) * self.height +
                 math.sin(math.radians(self.rotation)) * self.width)
-        
+
 
 class Diamond(Primitive):
     """

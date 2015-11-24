@@ -59,6 +59,9 @@ class GerberContext(object):
     """
     def __init__(self, units='inch'):
         self._units = units
+        self._scale_x = 1
+        self._scale_y = 1
+        self._scale_scalar = None
         self._color = (0.7215, 0.451, 0.200)
         self._drill_color = (0.25, 0.25, 0.25)
         self._background_color = (0.0, 0.0, 0.0)
@@ -74,6 +77,43 @@ class GerberContext(object):
         if units not in ('inch', 'metric'):
             raise ValueError('Units may be "inch" or "metric"')
         self._units = units
+
+    @property
+    def scale_x(self):
+        return self._scale_x
+
+    @scale_x.setter
+    def scale_x(self, value):
+        self._scale_x = value
+
+    @property
+    def scale_y(self):
+        return self._scale_y
+
+    @scale_y.setter
+    def scale_y(self, value):
+        self._scale_y = value
+
+    @property
+    def scale(self):
+        return self._scale_x, self._scale_y
+
+    @scale.setter
+    def scale(self, value):
+        self._scale_x, self._scale_y = value
+
+    @property
+    def scale_scalar(self):
+        if self._scale_scalar:
+            return self._scale_scalar
+        elif abs(self.scale_x) == abs(self.scale_y):
+            return abs(self.scale_x)
+        else:
+            raise ValueError('Scalar scale factor could not be determined.')
+
+    @scale_scalar.setter
+    def scale_scalar(self, value):
+        self._scale_scalar = value
 
     @property
     def color(self):
@@ -156,16 +196,16 @@ class GerberContext(object):
         else:
             return
 
-    def _render_line(self, primitive, color):
+    def _render_line(self, line, color):
         pass
 
-    def _render_arc(self, primitive, color):
+    def _render_arc(self, arc, color):
         pass
 
-    def _render_region(self, primitive, color):
+    def _render_region(self, region, color):
         pass
 
-    def _render_circle(self, primitive, color):
+    def _render_circle(self, circle, color):
         pass
 
     def _render_rectangle(self, primitive, color):
@@ -183,12 +223,22 @@ class GerberContext(object):
     def _render_test_record(self, primitive, color):
         pass
 
+    def set_bounds(self, bounds):
+        raise NotImplementedError
+
+    def _paint_background(self):
+        raise NotImplementedError
+
+    def _paint_inverted_layer(self):
+        raise NotImplementedError
+
 
 class PCBContext(object):
     def __init__(self, filenames, dialect, verbose):
         self.filenames = filenames
         self.dialect = dialect
         self.verbose = verbose
+        self.layers = None
 
-    def render(self, output_filename=None):
+    def render(self, output_filename=None, quick=False, nox=False):
         raise NotImplementedError

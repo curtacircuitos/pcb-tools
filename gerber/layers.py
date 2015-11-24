@@ -237,9 +237,9 @@ class GenericLayerDialect(GerberLayerDialect):
         directory, name = os.path.split(filename)
         name, ext = os.path.splitext(name)
         for hint in hints:
-            if ext in hint.ext or \
-                    any(re.findall(r'^(\w*[.-])*' + x + '([.-]\w*)?$', name)
-                        for x in hint.name):
+            if ext.lower()[1:] in hint.ext or \
+                    any(re.findall(r'^(\w*[.-])*' + x + '([.-]\w*)?$',
+                        name, re.IGNORECASE) for x in hint.name):
                 return hint.layer
         return 'unknown'
 
