@@ -328,7 +328,7 @@ class GerberFreecadContext(GerberContext):
                                 Arc(start, end, center, arc.direction, None)
                                 )
         else:
-            print ' unimplemented render_arc', arc
+            print(' unimplemented render_arc'.format(arc))
 
     def _render_region(self, region, color):
         if self._thin_draw:
@@ -417,13 +417,13 @@ class GerberFreecadContext(GerberContext):
             self.pcb_ctx.output_file.recompute()
 
     def _render_rectangle(self, primitive, color):
-        print ' render_rectangle', primitive
+        print(' unimplemented render_rectangle {0}'.format(primitive))
 
     def _render_obround(self, primitive, color):
-        print ' render_obround', primitive
+        print(' unimplemented render_obround {0}'.format(primitive))
 
     def _render_polygon(self, primitive, color):
-        print ' render_polygon', primitive
+        print(' unimplemented render_polygon {0}'.format(primitive))
 
     def _render_drill(self, drill, color):
         center = map(mul, drill.position, self.scale)
@@ -465,7 +465,7 @@ class GerberFreecadContext(GerberContext):
             self.pcb_ctx.output_file.recompute()
 
     def _render_test_record(self, primitive, color):
-        print ' render_test_record', primitive
+        print(' unimplemented render_test_record {0}'.format(primitive))
 
     def set_bounds(self, bounds):
         pass
@@ -692,7 +692,7 @@ class PCBFreecadContext(PCBContext):
         ctx = GerberFreecadContext()
         ctx.sketch = top_silk_sketch
         ctx.thin_draw = False
-        ctx.thickness = self._silk_thickness
+        ctx.thickness = -1 * self._silk_thickness
         ctx.verbose = self.verbose
         ctx.pcb_ctx = self
         ctx.prefix = 'TSE_'
