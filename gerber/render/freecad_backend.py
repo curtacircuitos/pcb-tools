@@ -49,6 +49,76 @@ except ImportError:
     import Part
 
 
+class PathElement(object):
+    def __init__(self, lines=None):
+        if lines:
+            self._lines = lines
+        else:
+            self._lines = []
+
+    @property
+    def start(self):
+        return self._lines[0].start
+
+    @property
+    def end(self):
+        return self._lines[-1].end
+
+    @property
+    def ends(self):
+        return [self.start, self.end]
+
+    @property
+    def nodes(self):
+        return [x.start for x in self._lines] + [self._lines[-1].end]
+
+    @property
+    def segments(self):
+        return self._lines
+
+    @property
+    def aperture(self):
+        return self._lines[0].aperture
+
+    def add_segment(self, line):
+        if line.aperture != self.aperture:
+            raise ValueError("Aperture does not match")
+        if line.start == self.end:
+            self._lines.append(line)
+            return
+        elif line.end == self.start:
+            self._lines = [line] + self._lines
+            return
+        rline = line.reversed
+        if rline.start == self.start:
+            self._lines = [rline] + self._lines
+            return
+        elif rline.end == self.end:
+            self._lines.append(rline)
+            return
+        raise ValueError("Ends do not match")
+
+    def render(self):
+        pass
+
+
+class LineOptimizer(object):
+    def __init__(self):
+        self._paths = []
+
+    @property
+    def ends(self):
+        return [x.start for x in self._paths] + [x.end for x in self._paths]
+
+    def get_path_for_line(self, line):
+        for path in self._paths:
+            pends = path.ends
+            if line.start in pends or line.end in pends:
+                if line.aperture == path:
+                    return path
+        return None
+
+
 class GerberFreecadContext(GerberContext):
     def __init__(self):
         super(GerberFreecadContext, self).__init__()
@@ -394,32 +464,6 @@ class GerberFreecadContext(GerberContext):
                 elem_sketch.ViewObject.hide()
             self.pcb_ctx.output_file.recompute()
 
-            # element_name = self._prefix + str(len(self._elements) + 1)
-            # sketch_name = element_name + '_sketch'
-            # self.pcb_ctx.output_file.addObject(
-            #     'Sketcher::SketchObject', sketch_name
-            # )
-            # elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
-            # elem_sketch.Support = self._sketch.Support
-            #
-            # self.pcb_ctx.output_file.recompute()
-            # elem_sketch.addGeometry(
-            #         Part.Circle(
-            #             FreeCAD.Vector(center[0], center[1], 0),
-            #             FreeCAD.Vector(0, 0, 1), radius
-            #         ),
-            #     )
-            # self.pcb_ctx.output_file.recompute()
-            # self.pcb_ctx.output_file.addObject("PartDesign::Pocket", element_name)
-            # element = getattr(self.pcb_ctx.output_file, element_name)
-            # element.Sketch = elem_sketch
-            # element.Length = self.thickness
-            # element.Type = 1
-            # self._elements.append(element_name)
-            # if not self.pcb_ctx.nox:
-            #     elem_sketch.ViewObject.hide()
-            # self.pcb_ctx.output_file.recompute()
-
     def _render_test_record(self, primitive, color):
         print ' render_test_record', primitive
 
@@ -432,10 +476,17 @@ class GerberFreecadContext(GerberContext):
     def _paint_inverted_layer(self):
         pass
 
-    def render_deferred(self):
-        pass
+    def _optimize_deferred(self):
+        return []
 
-    def fuse(self, name):
+    def render_deferred(self):
+        if len(self._deferred):
+            print("Simplifying deferred elements")
+        paths = self._optimize_deferred()
+        for path in paths:
+            path.render(self)
+
+    def fuse(self, name, simplify=True):
         print("Fusing {0} elements. This will take a while. "
               "Please be patient. ".format(name))
         self.pcb_ctx.output_file.addObject("Part::MultiFuse", name)
@@ -445,17 +496,21 @@ class GerberFreecadContext(GerberContext):
             ]
         fusion.Shapes = elements
         self.pcb_ctx.output_file.recompute()
-        self.pcb_ctx.output_file.addObject(
-            'Part::Feature', name + '_fused'
-        ).Shape = fusion.Shape.removeSplitter()
-        if not self.pcb_ctx.nox:
-            fusion.ViewObject.hide()
-        self.pcb_ctx.output_file.recompute()
+        if simplify:
+            self.pcb_ctx.output_file.addObject(
+                'Part::Feature', name + '_fused'
+            ).Shape = fusion.Shape.removeSplitter()
+            if not self.pcb_ctx.nox:
+                fusion.ViewObject.hide()
+            self.pcb_ctx.output_file.recompute()
 
         if self.invert:
             cut_obj = self.pcb_ctx.output_file.addObject("Part::Cut", name + '_cut')
             cut_obj.Base = self._base_body
-            tool_obj = getattr(self.pcb_ctx.output_file, name + '_fused')
+            if simplify:
+                tool_obj = getattr(self.pcb_ctx.output_file, name + '_fused')
+            else:
+                tool_obj = fusion
             cut_obj.Tool = tool_obj
             self._base_body.ViewObject.hide()
             tool_obj.ViewObject.hide()
@@ -478,7 +533,7 @@ class PCBFreecadContext(PCBContext):
 
         self._mask_thickness = 0.005
         self._mask_color = (2.0/255, 55.0/255, 34.0/255)
-        self._mask_alpha = 80
+        self._mask_alpha = 50
 
         self._silk_thickness = 0.005
         self._silk_color = (1.0, 1.0, 1.0)
@@ -520,6 +575,13 @@ class PCBFreecadContext(PCBContext):
         self._output_file.recompute()
         return new_sketch
 
+    def _colorize_object(self, obj, color, alpha=0):
+        if not self._nox:
+            obj.ViewObject.ShapeColor = color
+            obj.ViewObject.LineColor = color
+            obj.ViewObject.PointColor = color
+            obj.ViewObject.Transparency = alpha
+
     def _create_body(self):
         print("Thin drawing outline from {0}".format(self.layers.outline))
         olsketch = self._output_file.addObject(
@@ -540,8 +602,9 @@ class PCBFreecadContext(PCBContext):
         self._output_file.PCB_Body.Length = self._pcb_thickness
         self._output_file.recompute()
 
-        if not self._nox:
-            self._output_file.PCB_Body.ViewObject.ShapeColor = self._pcb_color
+        self._colorize_object(self._output_file.PCB_Body, self._pcb_color)
+        # if not self._nox:
+        #     self._output_file.PCB_Body.ViewObject.ShapeColor = self._pcb_color
 
     def _create_top_surface(self):
         self._create_top_copper()
@@ -568,19 +631,12 @@ class PCBFreecadContext(PCBContext):
 
         if not self._quick:
             ctx.fuse('Top_Copper')
-            if not self._nox:
-                obj = getattr(self._output_file, 'Top_Copper_fused')
-                obj.ViewObject.ShapeColor = self._copper_color
-                obj.ViewObject.LineColor = self._copper_color
-                obj.ViewObject.PointColor = self._copper_color
+            obj = getattr(self._output_file, 'Top_Copper_fused')
         else:
-            if not self._nox:
-                for element in ctx.elements:
-                    obj = getattr(self._output_file, element)
-                    obj.ViewObject.ShapeColor = self._copper_color
-                    obj.ViewObject.LineColor = self._copper_color
-                    obj.ViewObject.PointColor = self._copper_color
+            ctx.fuse('Top_Copper', simplify=False)
+            obj = getattr(self._output_file, 'Top_Copper')
 
+        self._colorize_object(obj, self._copper_color)
         self._output_file.recompute()
 
     def _create_top_mask(self):
@@ -606,12 +662,6 @@ class PCBFreecadContext(PCBContext):
             self._mask_thickness + self._outer_copper_thickness
         self._output_file.recompute()
 
-        if not self._nox:
-            self._output_file.Top_Mask_Body.ViewObject.ShapeColor = \
-                self._mask_color
-            self._output_file.Top_Mask_Body.ViewObject.Transparency = \
-                self._mask_alpha
-
         ctx = GerberFreecadContext()
         ctx.sketch = top_mask_sketch
         ctx.thin_draw = False
@@ -626,13 +676,12 @@ class PCBFreecadContext(PCBContext):
         gerberfile.render(ctx, pbar=True)
 
         ctx.fuse('Top_Mask')
-        if not self._nox:
-            obj = getattr(self._output_file, 'Top_Mask_cut')
-            obj.ViewObject.ShapeColor = self._mask_color
-            obj.ViewObject.LineColor = self._mask_color
-            obj.ViewObject.PointColor = self._mask_color
-            obj.ViewObject.Transparency = self._mask_alpha
-
+        self._colorize_object(
+            self._output_file.Top_Mask_cut,
+            self._mask_color, self._mask_alpha
+        )
+        if not self.nox:
+            self._output_file.Top_Mask_cut.ViewObject.Selectable = False
         self._output_file.recompute()
 
     def _create_top_silk(self):
@@ -652,21 +701,14 @@ class PCBFreecadContext(PCBContext):
         gerberfile = read(self.layers.topsilk)
         gerberfile.render(ctx, pbar=True)
 
-        # if not self._quick:
-        if False:
-            ctx.fuse('Top_Silk')
-            if not self._nox:
-                obj = getattr(self._output_file, 'Top_Silk_fused')
-                obj.ViewObject.ShapeColor = self._silk_color
-                obj.ViewObject.LineColor = self._silk_color
-                obj.ViewObject.PointColor = self._silk_color
+        if self._quick:
+            for element in ctx.elements:
+                obj = getattr(self._output_file, element)
+                self._colorize_object(obj, self._silk_color)
         else:
-            if not self._nox:
-                for element in ctx.elements:
-                    obj = getattr(self._output_file, element)
-                    obj.ViewObject.ShapeColor = self._silk_color
-                    obj.ViewObject.LineColor = self._silk_color
-                    obj.ViewObject.PointColor = self._silk_color
+            ctx.fuse('Top_Silk')
+            obj = getattr(self._output_file, 'Top_Silk_fused')
+            self._colorize_object(obj, self._silk_color)
 
         self._output_file.recompute()
 
@@ -700,19 +742,12 @@ class PCBFreecadContext(PCBContext):
 
         if not self._quick:
             ctx.fuse('Bottom_Copper')
-            if not self._nox:
-                obj = getattr(self._output_file, 'Bottom_Copper_fused')
-                obj.ViewObject.ShapeColor = self._copper_color
-                obj.ViewObject.LineColor = self._copper_color
-                obj.ViewObject.PointColor = self._copper_color
+            obj = getattr(self._output_file, 'Bottom_Copper_fused')
         else:
-            if not self._nox:
-                for element in ctx.elements:
-                    obj = getattr(self._output_file, element)
-                    obj.ViewObject.ShapeColor = self._copper_color
-                    obj.ViewObject.LineColor = self._copper_color
-                    obj.ViewObject.PointColor = self._copper_color
+            ctx.fuse('Bottom_Copper', simplify=False)
+            obj = getattr(self._output_file, 'Bottom_Copper')
 
+        self._colorize_object(obj, self._copper_color)
         self._output_file.recompute()
 
     def _create_bottom_mask(self):
@@ -739,12 +774,6 @@ class PCBFreecadContext(PCBContext):
             self._mask_thickness + self._outer_copper_thickness
         self._output_file.recompute()
 
-        if not self._nox:
-            self._output_file.Bottom_Mask_Body.ViewObject.ShapeColor = \
-                self._mask_color
-            self._output_file.Bottom_Mask_Body.ViewObject.Transparency = \
-                self._mask_alpha
-
         ctx = GerberFreecadContext()
         ctx.sketch = bottom_mask_sketch
         ctx.thin_draw = False
@@ -759,14 +788,13 @@ class PCBFreecadContext(PCBContext):
         gerberfile = read(self.layers.bottommask)
         gerberfile.render(ctx, pbar=True)
 
-        ctx.fuse('Bottom_Mask')
-        if not self._nox:
-            obj = getattr(self._output_file, 'Bottom_Mask_cut')
-            obj.ViewObject.ShapeColor = self._mask_color
-            obj.ViewObject.LineColor = self._mask_color
-            obj.ViewObject.PointColor = self._mask_color
-            obj.ViewObject.Transparency = self._mask_alpha
-
+        ctx.fuse('Bottom_Mask', simplify=False)
+        self._colorize_object(
+            self._output_file.Bottom_Mask_cut,
+            self._mask_color, self._mask_alpha
+        )
+        if not self.nox:
+            self._output_file.Bottom_Mask_cut.ViewObject.Selectable = False
         self._output_file.recompute()
 
     def _create_bottom_silk(self):
@@ -777,26 +805,97 @@ class PCBFreecadContext(PCBContext):
 
     def _create_drills(self):
         print("Drawing drills from {0}".format(self.layers.drill))
-        print("Drilling on PCB Body")
-        drill_sketch_body = self._create_sketch_on_face(
-            'Drill_Sketch_Body',
+        print("Drilling on Top Copper")
+        drill_sketch_tc = self._create_sketch_on_face(
+            'Drill_Sketch_TC',
             self._output_file.PCB_Body, self._get_top_face()
+        )
+
+        ctx = GerberFreecadContext()
+        ctx.sketch = drill_sketch_tc
+        ctx.thin_draw = False
+        ctx.verbose = self.verbose
+        ctx.pcb_ctx = self
+
+        ctx.prefix = 'DRL_TC'
+        ctx.thickness = self._outer_copper_thickness
+        ctx.invert = True
+        if self._quick:
+            ctx.base_body = self._output_file.Top_Copper
+        else:
+            ctx.base_body = self._output_file.Top_Copper_fused
+
+        gerberfile = read(self.layers.drill)
+        gerberfile.render(ctx, pbar=True)
+
+        ctx.fuse('Top_Copper_DRL', simplify=False)
+        self._colorize_object(
+            self._output_file.Top_Copper_DRL, self._copper_color
+        )
+        self._colorize_object(
+            self._output_file.Top_Copper_DRL_cut, self._copper_color
+        )
+        self._output_file.recompute()
+
+        print("Drilling on Bottom Copper")
+        drill_sketch_bc = self._create_sketch_on_face(
+            'Drill_Sketch_BC',
+            self._output_file.PCB_Body, self._get_bottom_face()
+        )
+
+        ctx = GerberFreecadContext()
+        ctx.sketch = drill_sketch_bc
+        ctx.scale_y *= -1
+        ctx.thin_draw = False
+        ctx.verbose = self.verbose
+        ctx.pcb_ctx = self
+
+        ctx.prefix = 'DRL_BC'
+        ctx.thickness = self._outer_copper_thickness
+        ctx.invert = True
+        if self._quick:
+            ctx.base_body = self._output_file.Bottom_Copper
+        else:
+            ctx.base_body = self._output_file.Bottom_Copper_fused
+
+        gerberfile = read(self.layers.drill)
+        gerberfile.render(ctx, pbar=True)
+
+        ctx.fuse('Bottom_Copper_DRL', simplify=False)
+        self._colorize_object(
+            self._output_file.Bottom_Copper_DRL, self._copper_color
+        )
+        self._colorize_object(
+            self._output_file.Bottom_Copper_DRL_cut, self._copper_color
+        )
+        self._output_file.recompute()
+
+        print("Drilling on PCB Body")
+        drill_sketch_body = self._output_file.addObject(
+            'Sketcher::SketchObject', 'Drill_Sketch_PCB'
         )
 
         ctx = GerberFreecadContext()
         ctx.sketch = drill_sketch_body
         ctx.thin_draw = False
         ctx.verbose = self.verbose
-        ctx.prefix = 'DRL_'
-        ctx.thickness = -1 * (self._pcb_thickness + self._outer_copper_thickness)
         ctx.pcb_ctx = self
+
+        ctx.prefix = 'DRL_BODY'
+        ctx.thickness = self._pcb_thickness
         ctx.invert = True
         ctx.base_body = self._output_file.PCB_Body
 
         gerberfile = read(self.layers.drill)
         gerberfile.render(ctx, pbar=True)
 
-        ctx.fuse('PCB_Body_DRL')
+        ctx.fuse('PCB_Body_DRL', simplify=False)
+        self._colorize_object(
+            self._output_file.PCB_Body_DRL, self._pcb_color
+        )
+        self._colorize_object(
+            self._output_file.PCB_Body_DRL_cut, self._pcb_color
+        )
         self._output_file.recompute()
 
     def render(self, output_filename=None, quick=False, nox=False):
