@@ -38,7 +38,6 @@ available_renderers['cairo'] = Renderer(
 )
 
 
-
 try:
     from .freecad_backend import GerberFreecadContext
     from .freecad_backend import PCBFreecadContext

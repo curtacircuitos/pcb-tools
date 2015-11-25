@@ -50,19 +50,19 @@ except ImportError:
 
 
 class PathElement(object):
-    def __init__(self, lines=None):
-        if lines:
-            self._lines = lines
+    def __init__(self, segments=None):
+        if segments:
+            self._segments = segments
         else:
-            self._lines = []
+            self._segments = []
 
     @property
     def start(self):
-        return self._lines[0].start
+        return self._segments[0].start
 
     @property
     def end(self):
-        return self._lines[-1].end
+        return self._segments[-1].end
 
     @property
     def ends(self):
@@ -70,53 +70,68 @@ class PathElement(object):
 
     @property
     def nodes(self):
-        return [x.start for x in self._lines] + [self._lines[-1].end]
+        return [x.start for x in self._segments] + [self._segments[-1].end]
 
     @property
     def segments(self):
-        return self._lines
+        return self._segments
 
     @property
     def aperture(self):
-        return self._lines[0].aperture
+        return self._segments[0].aperture
 
-    def add_segment(self, line):
-        if line.aperture != self.aperture:
-            raise ValueError("Aperture does not match")
-        if line.start == self.end:
-            self._lines.append(line)
+    def add_segment(self, segment):
+        if isinstance(Circle, segment.aperture) and \
+                        segment.aperture.diameter != self.aperture.diameter:
+            raise ValueError("Aperture is not circular or does not match")
+        if segment.start in self.nodes and segment.end in self.nodes:
+            raise ValueError("Segment would create a closed loop")
+        if segment.start == self.end:
+            self._segments.append(segment)
             return
-        elif line.end == self.start:
-            self._lines = [line] + self._lines
+        elif segment.end == self.start:
+            self._segments = [segment] + self._segments
             return
-        rline = line.reversed
-        if rline.start == self.start:
-            self._lines = [rline] + self._lines
+        rsegment = segment.reversed
+        if rsegment.start == self.start:
+            self._segments = [rsegment] + self._segments
             return
-        elif rline.end == self.end:
-            self._lines.append(rline)
+        elif rsegment.end == self.end:
+            self._segments.append(rsegment)
             return
         raise ValueError("Ends do not match")
 
-    def render(self):
-        pass
 
-
-class LineOptimizer(object):
+class ElementOptimizer(object):
     def __init__(self):
         self._paths = []
+
+    def add_element(self, line):
+        existing_path = self.get_path_for_line(line)
+        if existing_path:
+            existing_path.add_segment(line)
+        else:
+            self.paths.append(PathElement([line]))
 
     @property
     def ends(self):
         return [x.start for x in self._paths] + [x.end for x in self._paths]
 
+    @property
+    def paths(self):
+        return self._paths
+
     def get_path_for_line(self, line):
         for path in self._paths:
             pends = path.ends
             if line.start in pends or line.end in pends:
-                if line.aperture == path:
+                if isinstance(Circle, line.aperture) and \
+                        line.aperture.diameter != path.aperture.diameter:
                     return path
         return None
+
+    def run(self):
+        pass
 
 
 class GerberFreecadContext(GerberContext):
@@ -261,16 +276,19 @@ class GerberFreecadContext(GerberContext):
         if self._thin_draw:
             self._thin_draw_line(self._sketch, Line(start, end, None))
         else:
-            element_name = self._prefix + str(len(self._elements) + 1)
-            sketch_name = element_name + '_sketch'
-            self.pcb_ctx.output_file.addObject(
-                'Sketcher::SketchObject', sketch_name
-            )
-            elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
-            elem_sketch.Support = self._sketch.Support
-
-            self.pcb_ctx.output_file.recompute()
             if isinstance(line.aperture, Circle):
+                if self._simplify_cad_elements:
+                    self._deferred.append(line)
+                    return
+                element_name = self._prefix + str(len(self._elements) + 1)
+                sketch_name = element_name + '_sketch'
+                self.pcb_ctx.output_file.addObject(
+                    'Sketcher::SketchObject', sketch_name
+                )
+                elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+                elem_sketch.Support = self._sketch.Support
+
+                self.pcb_ctx.output_file.recompute()
                 width = line.aperture.diameter * self.scale_scalar
                 lines, arcs = self._get_flanking_lines(start, end, width)
                 for line in lines:
@@ -279,6 +297,15 @@ class GerberFreecadContext(GerberContext):
                     self._thin_draw_arc(elem_sketch, arc)
 
             elif isinstance(line.aperture, Rectangle):
+                element_name = self._prefix + str(len(self._elements) + 1)
+                sketch_name = element_name + '_sketch'
+                self.pcb_ctx.output_file.addObject(
+                    'Sketcher::SketchObject', sketch_name
+                )
+                elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+                elem_sketch.Support = self._sketch.Support
+
+                self.pcb_ctx.output_file.recompute()
                 points = [tuple(map(mul, x, self.scale)) for x in line.vertices]
                 for i in range(len(points)-1):
                     self._thin_draw_line(
@@ -287,12 +314,17 @@ class GerberFreecadContext(GerberContext):
                 self._thin_draw_line(
                     elem_sketch, Line(points[-1], points[0], None)
                 )
+            else:
+                raise ValueError('Aperture type for line unrecognized : {0}'
+                                 ''.format(line.aperture))
 
             self.pcb_ctx.output_file.recompute()
             self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
             element = getattr(self.pcb_ctx.output_file, element_name)
             element.Sketch = elem_sketch
-            element.Length = self.thickness
+            if self.thickness < 0:
+                element.Reversed = True
+            element.Length = abs(self.thickness)
             self._elements.append(element_name)
             if not self.pcb_ctx.nox:
                 elem_sketch.ViewObject.hide()
@@ -319,6 +351,43 @@ class GerberFreecadContext(GerberContext):
                 )
             )
 
+    @staticmethod
+    def _get_flanking_arcs(start, end, center, direction, width, radius=None):
+        arcs = []
+
+        x1 = start[0]
+        y1 = start[1]
+        x2 = end[0]
+        y2 = end[1]
+        xc = center[0]
+        yc = center[1]
+
+        if not radius:
+            radius = sqrt((x1 - xc) ** 2 + (y1 - yc) ** 2)
+        t = (width / 2.0) / radius
+
+        x3 = x1 + (xc - x1) * t
+        x4 = x1 - (xc - x1) * t
+        y3 = y1 + (yc - y1) * t
+        y4 = y1 - (yc - y1) * t
+
+        x5 = x2 + (xc - x2) * t
+        x6 = x2 - (xc - x2) * t
+        y5 = y2 + (yc - y2) * t
+        y6 = y2 - (yc - y2) * t
+
+        if direction == 'clockwise':
+            rdirection = 'counterclockwise'
+        else:
+            rdirection = 'clockwise'
+
+        arcs.append(Arc((x3, y3), (x5, y5), center, direction, aperture=None))
+        arcs.append(Arc((x4, y4), (x6, y6), center, direction, aperture=None))
+        arcs.append(Arc((x3, y3), (x4, y4), start, direction, aperture=None))
+        arcs.append(Arc((x5, y5), (x6, y6), start, rdirection, aperture=None))
+
+        return arcs
+
     def _render_arc(self, arc, color):
         center = map(mul, arc.center, self.scale)
         start = map(mul, arc.start, self.scale)
@@ -327,8 +396,44 @@ class GerberFreecadContext(GerberContext):
             self._thin_draw_arc(self._sketch,
                                 Arc(start, end, center, arc.direction, None)
                                 )
+            return
         else:
-            print(' unimplemented render_arc'.format(arc))
+            if isinstance(arc.aperture, Circle):
+                if self._simplify_cad_elements:
+                    self._deferred.append(arc)
+                    return
+                element_name = self._prefix + str(len(self._elements) + 1)
+                sketch_name = element_name + '_sketch'
+                self.pcb_ctx.output_file.addObject(
+                    'Sketcher::SketchObject', sketch_name
+                )
+                elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+                elem_sketch.Support = self._sketch.Support
+
+                self.pcb_ctx.output_file.recompute()
+
+                width = arc.aperture.diameter * self.scale_scalar
+                arcs = self._get_flanking_arcs(
+                    start, end, center, arc.direction, width
+                )
+                for arc in arcs:
+                    self._thin_draw_arc(elem_sketch, arc)
+
+                self.pcb_ctx.output_file.recompute()
+                self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
+                element = getattr(self.pcb_ctx.output_file, element_name)
+                element.Sketch = elem_sketch
+                if self.thickness < 0:
+                    element.Reversed = True
+                element.Length = abs(self.thickness)
+                self._elements.append(element_name)
+                if not self.pcb_ctx.nox:
+                    elem_sketch.ViewObject.hide()
+                self.pcb_ctx.output_file.recompute()
+                return
+            else:
+                raise ValueError('Aperture type for arc unrecognized : {0}'
+                                 ''.format(arc.aperture))
 
     def _render_region(self, region, color):
         if self._thin_draw:
@@ -373,11 +478,17 @@ class GerberFreecadContext(GerberContext):
             self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
             element = getattr(self.pcb_ctx.output_file, element_name)
             element.Sketch = elem_sketch
-            element.Length = self.thickness
+            if self.thickness < 0:
+                element.Reversed = True
+            element.Length = abs(self.thickness)
             self._elements.append(element_name)
             if not self.pcb_ctx.nox:
                 elem_sketch.ViewObject.hide()
             self.pcb_ctx.output_file.recompute()
+
+    def _render_path(self, path):
+        print(' render path {0} with {1} nodes'
+              ''.format(path, len(path.segments)))
 
     def _render_circle(self, circle, color):
         center = map(mul, circle.position, self.scale)
@@ -410,7 +521,9 @@ class GerberFreecadContext(GerberContext):
             self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
             element = getattr(self.pcb_ctx.output_file, element_name)
             element.Sketch = elem_sketch
-            element.Length = self.thickness
+            if self.thickness < 0:
+                element.Reversed = True
+            element.Length = abs(self.thickness)
             self._elements.append(element_name)
             if not self.pcb_ctx.nox:
                 elem_sketch.ViewObject.hide()
@@ -477,14 +590,33 @@ class GerberFreecadContext(GerberContext):
         pass
 
     def _optimize_deferred(self):
-        return []
+        optimizer = ElementOptimizer()
+        for primitive in self._deferred:
+            optimizer.add_element(primitive)
+        optimizer.run()
+        return optimizer
 
     def render_deferred(self):
-        if len(self._deferred):
-            print("Simplifying deferred elements")
-        paths = self._optimize_deferred()
+
+        if not len(self._deferred):
+            return
+
+        print("Optimizing deferred elements")
+        paths = self._optimize_deferred().paths
+
+        print("Rendering Paths")
+        try:
+            from progress.bar import IncrementalBar
+            _pbar = IncrementalBar(max=len(paths))
+        except ImportError:
+            _pbar = None
+
         for path in paths:
-            path.render(self)
+            self._render_path(path)
+            if _pbar:
+                _pbar.next()
+        if _pbar:
+            _pbar.finish()
 
     def fuse(self, name, simplify=True):
         print("Fusing {0} elements. This will take a while. "
@@ -496,7 +628,7 @@ class GerberFreecadContext(GerberContext):
             ]
         fusion.Shapes = elements
         self.pcb_ctx.output_file.recompute()
-        if simplify:
+        if simplify or self.invert:
             self.pcb_ctx.output_file.addObject(
                 'Part::Feature', name + '_fused'
             ).Shape = fusion.Shape.removeSplitter()
@@ -538,6 +670,9 @@ class PCBFreecadContext(PCBContext):
         self._silk_thickness = 0.005
         self._silk_color = (1.0, 1.0, 1.0)
 
+        self._top_copper_obj = None
+        self._bottom_copper_obj = None
+
     @property
     def nox(self):
         return self._nox
@@ -556,17 +691,21 @@ class PCBFreecadContext(PCBContext):
     def _write_output_file(self):
         self._output_file.saveAs(self._output_name + '.fcstd')
 
-    def _get_top_face(self):
-        # TODO Figure out how to get this
-        return ['Face15']
+    @staticmethod
+    def _get_top_face(solid):
+        for idx, face in enumerate(solid.Shape.Faces):
+            v = face.normalAt(0, 0)
+            if (v.x, v.y, v.z) == (-0.0, -0.0, 1.0):
+                return ['Face' + str(idx + 1)]
+        raise Exception('Could not find top face!')
 
-    def _get_top_silk_face(self):
-        # TODO Figure out how to get this
-        return ['Face4']
-
-    def _get_bottom_face(self):
-        # TODO Figure out how to get this
-        return ['Face14']
+    @staticmethod
+    def _get_bottom_face(solid):
+        for idx, face in enumerate(solid.Shape.Faces):
+            v = face.normalAt(0, 0)
+            if (v.x, v.y, v.z) == (0.0, 0.0, -1.0):
+                return ['Face' + str(idx + 1)]
+        raise Exception('Could not find bottom face!')
 
     def _create_sketch_on_face(self, name, body, face):
         self._output_file.addObject('Sketcher::SketchObject', name)
@@ -603,8 +742,8 @@ class PCBFreecadContext(PCBContext):
         self._output_file.recompute()
 
         self._colorize_object(self._output_file.PCB_Body, self._pcb_color)
-        # if not self._nox:
-        #     self._output_file.PCB_Body.ViewObject.ShapeColor = self._pcb_color
+        if not self._nox:
+            olsketch.ViewObject.hide()
 
     def _create_top_surface(self):
         self._create_top_copper()
@@ -615,7 +754,9 @@ class PCBFreecadContext(PCBContext):
     def _create_top_copper(self):
         print("Drawing top copper from {0}".format(self.layers.top))
         top_copper_sketch = self._create_sketch_on_face(
-            'Top_Copper_Sketch', self._output_file.PCB_Body, self._get_top_face()
+            'Top_Copper_Sketch',
+            self._output_file.PCB_Body,
+            self._get_top_face(self._output_file.PCB_Body)
         )
         ctx = GerberFreecadContext()
         ctx.sketch = top_copper_sketch
@@ -624,26 +765,23 @@ class PCBFreecadContext(PCBContext):
         ctx.verbose = self.verbose
         ctx.pcb_ctx = self
         ctx.prefix = 'TCE_'
-        ctx.simplify_cad_elements = True
+        ctx.simplify_cad_elements = False
 
         gerberfile = read(self.layers.top)
         gerberfile.render(ctx, pbar=True)
 
-        if not self._quick:
-            ctx.fuse('Top_Copper')
-            obj = getattr(self._output_file, 'Top_Copper_fused')
-        else:
-            ctx.fuse('Top_Copper', simplify=False)
-            obj = getattr(self._output_file, 'Top_Copper')
+        ctx.fuse('Top_Copper')
+        self._top_copper_obj = getattr(self._output_file, 'Top_Copper_fused')
 
-        self._colorize_object(obj, self._copper_color)
+        self._colorize_object(self._top_copper_obj, self._copper_color)
         self._output_file.recompute()
 
     def _create_top_mask(self):
         print("Drawing top mask from {0}".format(self.layers.topmask))
         top_mask_sketch = self._create_sketch_on_face(
             'Top_Mask_Sketch',
-            self._output_file.PCB_Body, self._get_top_face()
+            self._output_file.PCB_Body,
+            self._get_top_face(self._output_file.PCB_Body)
         )
         ctx = GerberFreecadContext()
         ctx.sketch = top_mask_sketch
@@ -661,6 +799,9 @@ class PCBFreecadContext(PCBContext):
         self._output_file.Top_Mask_Body.Length = \
             self._mask_thickness + self._outer_copper_thickness
         self._output_file.recompute()
+
+        if not self._nox:
+            top_mask_sketch.ViewObject.hide()
 
         ctx = GerberFreecadContext()
         ctx.sketch = top_mask_sketch
@@ -687,12 +828,14 @@ class PCBFreecadContext(PCBContext):
     def _create_top_silk(self):
         print("Drawing top silk from {0}".format(self.layers.topsilk))
         top_silk_sketch = self._create_sketch_on_face(
-            'Top_Silk_Sketch', self._output_file.Top_Mask_cut, self._get_top_silk_face()
+            'Top_Silk_Sketch',
+            self._output_file.Top_Mask_cut,
+            self._get_top_face(self._output_file.Top_Mask_cut)
         )
         ctx = GerberFreecadContext()
         ctx.sketch = top_silk_sketch
         ctx.thin_draw = False
-        ctx.thickness = -1 * self._silk_thickness
+        ctx.thickness = 2 * self._silk_thickness
         ctx.verbose = self.verbose
         ctx.pcb_ctx = self
         ctx.prefix = 'TSE_'
@@ -725,7 +868,8 @@ class PCBFreecadContext(PCBContext):
         print("Drawing bottom copper from {0}".format(self.layers.bottom))
         bottom_copper_sketch = self._create_sketch_on_face(
             'Bottom_Copper_Sketch',
-            self._output_file.PCB_Body, self._get_bottom_face()
+            self._output_file.PCB_Body,
+            self._get_bottom_face(self._output_file.PCB_Body)
         )
         ctx = GerberFreecadContext()
         ctx.sketch = bottom_copper_sketch
@@ -735,26 +879,23 @@ class PCBFreecadContext(PCBContext):
         ctx.verbose = self.verbose
         ctx.pcb_ctx = self
         ctx.prefix = 'BCE_'
-        ctx.simplify_cad_elements = True
+        ctx.simplify_cad_elements = False
 
         gerberfile = read(self.layers.bottom)
         gerberfile.render(ctx, pbar=True)
 
-        if not self._quick:
-            ctx.fuse('Bottom_Copper')
-            obj = getattr(self._output_file, 'Bottom_Copper_fused')
-        else:
-            ctx.fuse('Bottom_Copper', simplify=False)
-            obj = getattr(self._output_file, 'Bottom_Copper')
+        ctx.fuse('Bottom_Copper')
+        self._bottom_copper_obj = getattr(self._output_file, 'Bottom_Copper_fused')
 
-        self._colorize_object(obj, self._copper_color)
+        self._colorize_object(self._bottom_copper_obj, self._copper_color)
         self._output_file.recompute()
 
     def _create_bottom_mask(self):
         print("Drawing bottom mask from {0}".format(self.layers.bottommask))
         bottom_mask_sketch = self._create_sketch_on_face(
             'Bottom_Mask_Sketch',
-            self._output_file.PCB_Body, self._get_bottom_face()
+            self._output_file.PCB_Body,
+            self._get_bottom_face(self._output_file.PCB_Body)
         )
         ctx = GerberFreecadContext()
         ctx.sketch = bottom_mask_sketch
@@ -773,6 +914,9 @@ class PCBFreecadContext(PCBContext):
         self._output_file.Bottom_Mask_Body.Length = \
             self._mask_thickness + self._outer_copper_thickness
         self._output_file.recompute()
+
+        if not self._nox:
+            bottom_mask_sketch.ViewObject.hide()
 
         ctx = GerberFreecadContext()
         ctx.sketch = bottom_mask_sketch
@@ -808,7 +952,8 @@ class PCBFreecadContext(PCBContext):
         print("Drilling on Top Copper")
         drill_sketch_tc = self._create_sketch_on_face(
             'Drill_Sketch_TC',
-            self._output_file.PCB_Body, self._get_top_face()
+            self._output_file.PCB_Body,
+            self._get_top_face(self._output_file.PCB_Body)
         )
 
         ctx = GerberFreecadContext()
@@ -820,10 +965,7 @@ class PCBFreecadContext(PCBContext):
         ctx.prefix = 'DRL_TC'
         ctx.thickness = self._outer_copper_thickness
         ctx.invert = True
-        if self._quick:
-            ctx.base_body = self._output_file.Top_Copper
-        else:
-            ctx.base_body = self._output_file.Top_Copper_fused
+        ctx.base_body = self._top_copper_obj
 
         gerberfile = read(self.layers.drill)
         gerberfile.render(ctx, pbar=True)
@@ -840,7 +982,8 @@ class PCBFreecadContext(PCBContext):
         print("Drilling on Bottom Copper")
         drill_sketch_bc = self._create_sketch_on_face(
             'Drill_Sketch_BC',
-            self._output_file.PCB_Body, self._get_bottom_face()
+            self._output_file.PCB_Body,
+            self._get_bottom_face(self._output_file.PCB_Body)
         )
 
         ctx = GerberFreecadContext()
@@ -853,10 +996,7 @@ class PCBFreecadContext(PCBContext):
         ctx.prefix = 'DRL_BC'
         ctx.thickness = self._outer_copper_thickness
         ctx.invert = True
-        if self._quick:
-            ctx.base_body = self._output_file.Bottom_Copper
-        else:
-            ctx.base_body = self._output_file.Bottom_Copper_fused
+        ctx.base_body = self._bottom_copper_obj
 
         gerberfile = read(self.layers.drill)
         gerberfile.render(ctx, pbar=True)
@@ -928,3 +1068,6 @@ class PCBFreecadContext(PCBContext):
         self._create_drills()
 
         self._write_output_file()
+
+        if not self._nox:
+            FreeCADGui.getMainWindow().close()

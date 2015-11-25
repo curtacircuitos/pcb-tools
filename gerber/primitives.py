@@ -114,13 +114,6 @@ class Line(Primitive):
         self._to_convert = ['start', 'end', 'aperture']
 
     @property
-    def reversed(self):
-        rline = deepcopy(self)
-        rline.start = self.end
-        rline.end = self.start
-        return rline
-
-    @property
     def angle(self):
         delta_x, delta_y = tuple(map(sub, self.end, self.start))
         angle = math.atan2(delta_y, delta_x)
@@ -191,6 +184,13 @@ class Line(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.start = tuple(map(add, self.start, (x_offset, y_offset)))
         self.end = tuple(map(add, self.end, (x_offset, y_offset)))
+
+    @property
+    def reversed(self):
+        rline = deepcopy(self)
+        rline.start = self.end
+        rline.end = self.start
+        return rline
 
 
 class Arc(Primitive):
@@ -274,6 +274,17 @@ class Arc(Primitive):
         self.start = tuple(map(add, self.start, (x_offset, y_offset)))
         self.end = tuple(map(add, self.end, (x_offset, y_offset)))
         self.center = tuple(map(add, self.center, (x_offset, y_offset)))
+
+    @property
+    def reversed(self):
+        rarc = deepcopy(self)
+        rarc.start = self.end
+        rarc.end = self.start
+        if self.direction == 'clockwise':
+            rarc.direction = 'counterclockwise'
+        else:
+            rarc.direction = 'clockwise'
+        return rarc
 
 
 class Circle(Primitive):
@@ -461,10 +472,12 @@ class ChamferRectangle(Primitive):
     def _abs_width(self):
         return (math.cos(math.radians(self.rotation)) * self.width +
                 math.sin(math.radians(self.rotation)) * self.height)
+
     @property
     def _abs_height(self):
         return (math.cos(math.radians(self.rotation)) * self.height +
                 math.sin(math.radians(self.rotation)) * self.width)
+
 
 class RoundRectangle(Primitive):
     """
