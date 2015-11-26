@@ -50,7 +50,8 @@ except ImportError:
 
 
 class PathElement(object):
-    def __init__(self, segments=None):
+    def __init__(self, segments=None, frozen=False):
+        self._frozen = frozen
         if segments:
             self._segments = segments
         else:
@@ -84,9 +85,19 @@ class PathElement(object):
     def reversed(self):
         return PathElement(list(reversed(self._segments)))
 
+    @property
+    def frozen(self):
+        return self._frozen
+
     def add_segment(self, segment):
-        if isinstance(segment.aperture, Circle) and \
-                        segment.aperture.diameter != self.aperture.diameter:
+        if self.frozen:
+            raise ValueError("Path is frozen. Can't add segments to it")
+        # TODO Find a better way to handle short lines
+        if isinstance(segment, Line) and \
+                segment.length < segment.aperture.radius:
+            raise ValueError('Segment too short')
+        if not isinstance(segment.aperture, Circle) or \
+                segment.aperture.diameter != self.aperture.diameter:
             raise ValueError("Aperture is not circular or does not match")
         # if segment.start in self.nodes and segment.end in self.nodes:
         #     raise ValueError("Segment would create a closed loop")
@@ -106,8 +117,12 @@ class PathElement(object):
         raise ValueError("Ends do not match")
 
     def add_path(self, path):
-        if isinstance(path.aperture, Circle) and \
-                        path.aperture.diameter != self.aperture.diameter:
+        if self.frozen:
+            raise ValueError("Path is frozen. Can't add paths to it")
+        if path.frozen:
+            raise ValueError("Path is frozen. Can't add to another path")
+        if not isinstance(path.aperture, Circle) or \
+                path.aperture.diameter != self.aperture.diameter:
             raise ValueError("Aperture is not circular or does not match")
         # if path.start in self.nodes and path.end in self.nodes:
         #     raise ValueError("Segment would create a closed loop")
@@ -118,10 +133,10 @@ class PathElement(object):
             self._segments = path.segments + self._segments
             return True
         rpath = path.reversed
-        if rpath.start == self.start:
+        if rpath.end == self.start:
             self._segments = rpath.segments + self._segments
             return True
-        elif rpath.end == self.end:
+        elif rpath.start == self.end:
             self._segments = self._segments + rpath.segments
             return True
         raise ValueError("Ends do not match")
@@ -132,11 +147,16 @@ class ElementOptimizer(object):
         self._paths = []
 
     def add_element(self, line):
+        if isinstance(line, Line) and \
+                        line.length < line.aperture.radius:
+            self.paths.append(PathElement([line], frozen=True))
+            return
         existing_path = self.get_path_for_line(line)
         if existing_path:
-            existing_path.add_segment(line)
+            return existing_path.add_segment(line)
         else:
             self.paths.append(PathElement([line]))
+            return True
 
     @property
     def ends(self):
@@ -148,6 +168,8 @@ class ElementOptimizer(object):
 
     def get_path_for_line(self, line):
         for path in self._paths:
+            if path.frozen is True:
+                continue
             pends = path.ends
             if line.start in pends or line.end in pends:
                 if isinstance(line.aperture, Circle) and \
@@ -250,11 +272,12 @@ class GerberFreecadContext(GerberContext):
         def det(a, b):
             return a[0] * b[1] - a[1] * b[0]
 
-        def within((x, y), line):
+        def within(point, line):
+            px, py = point
             if line[0][0] != line[1][0]:
-                return line[1][0] <= x <= line[0][0] or line[1][0] >= x >= line[0][0]
+                return line[1][0] <= px <= line[0][0] or line[1][0] >= px >= line[0][0]
             else:
-                return line[1][1] <= y <= line[0][1] or line[1][1] >= y >= line[0][1]
+                return line[1][1] <= py <= line[0][1] or line[1][1] >= py >= line[0][1]
 
         div = det(xdiff, ydiff)
         if div == 0:
@@ -504,12 +527,17 @@ class GerberFreecadContext(GerberContext):
 
     @staticmethod
     def _thin_draw_arc(sketch, arc):
+
         if arc.direction == 'clockwise':
             start_angle = arc.end_angle
             end_angle = arc.start_angle
         else:
             start_angle = arc.start_angle
             end_angle = arc.end_angle
+
+        if start_angle == end_angle:
+            return
+
         center = arc.center
         radius = arc.radius
         sketch.addGeometry(
@@ -557,7 +585,7 @@ class GerberFreecadContext(GerberContext):
         arcs.append(Arc((x3, y3), (x5, y5), center, direction, aperture=None))
         arcs.append(Arc((x4, y4), (x6, y6), center, direction, aperture=None))
         caps.append(Arc((x3, y3), (x4, y4), start, direction, aperture=None))
-        caps.append(Arc((x5, y5), (x6, y6), start, rdirection, aperture=None))
+        caps.append(Arc((x5, y5), (x6, y6), end, rdirection, aperture=None))
 
         return arcs, caps
 
@@ -565,6 +593,8 @@ class GerberFreecadContext(GerberContext):
         center = map(mul, arc.center, self.scale)
         start = map(mul, arc.start, self.scale)
         end = map(mul, arc.end, self.scale)
+        if arc.start == arc.end:
+            return
         if self._thin_draw:
             self._thin_draw_arc(self._sketch,
                                 Arc(start, end, center, arc.direction, None)
@@ -675,10 +705,17 @@ class GerberFreecadContext(GerberContext):
         )
         elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
         elem_sketch.Support = self._sketch.Support
-
+        if path.start == path.end:
+            circular = True
+        else:
+            circular = False
         for idx, segment in enumerate(path.segments):
             pline = None
             nline = None
+            if circular and idx == 0:
+                pline = path.segments[-1]
+            if circular and idx == len(path.segments)-1:
+                nline = path.segments[0]
             if idx > 0:
                 pline = path.segments[idx-1]
             if idx < len(path.segments) - 1:
@@ -832,7 +869,6 @@ class GerberFreecadContext(GerberContext):
     def fuse(self, name, simplify=True):
         print("Fusing {0} elements. This will take a while. "
               "Please be patient. ".format(name))
-        simplify = False
         elements = [
             getattr(self.pcb_ctx.output_file, x) for x in self._elements
             ]
@@ -1069,7 +1105,7 @@ class PCBFreecadContext(PCBContext):
 
         ctx.render_deferred()
 
-        if self._quick:
+        if self._quick is True:
             for element in ctx.elements:
                 obj = getattr(self._output_file, element)
                 self._colorize_object(obj, self._silk_color)

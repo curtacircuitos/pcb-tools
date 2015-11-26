@@ -114,6 +114,10 @@ class Line(Primitive):
         self._to_convert = ['start', 'end', 'aperture']
 
     @property
+    def length(self):
+        return math.sqrt((self.start[0] - self.end[0]) ** 2 + (self.start[1] - self.end[1]) ** 2)
+
+    @property
     def angle(self):
         delta_x, delta_y = tuple(map(sub, self.end, self.start))
         angle = math.atan2(delta_y, delta_x)
