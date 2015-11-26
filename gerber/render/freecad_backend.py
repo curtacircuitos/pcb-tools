@@ -80,25 +80,50 @@ class PathElement(object):
     def aperture(self):
         return self._segments[0].aperture
 
+    @property
+    def reversed(self):
+        return PathElement(list(reversed(self._segments)))
+
     def add_segment(self, segment):
-        if isinstance(Circle, segment.aperture) and \
+        if isinstance(segment.aperture, Circle) and \
                         segment.aperture.diameter != self.aperture.diameter:
             raise ValueError("Aperture is not circular or does not match")
-        if segment.start in self.nodes and segment.end in self.nodes:
-            raise ValueError("Segment would create a closed loop")
+        # if segment.start in self.nodes and segment.end in self.nodes:
+        #     raise ValueError("Segment would create a closed loop")
         if segment.start == self.end:
             self._segments.append(segment)
-            return
+            return True
         elif segment.end == self.start:
             self._segments = [segment] + self._segments
-            return
+            return True
         rsegment = segment.reversed
-        if rsegment.start == self.start:
+        if rsegment.end == self.start:
             self._segments = [rsegment] + self._segments
-            return
-        elif rsegment.end == self.end:
+            return True
+        elif rsegment.start == self.end:
             self._segments.append(rsegment)
-            return
+            return True
+        raise ValueError("Ends do not match")
+
+    def add_path(self, path):
+        if isinstance(path.aperture, Circle) and \
+                        path.aperture.diameter != self.aperture.diameter:
+            raise ValueError("Aperture is not circular or does not match")
+        # if path.start in self.nodes and path.end in self.nodes:
+        #     raise ValueError("Segment would create a closed loop")
+        if path.start == self.end:
+            self._segments = self._segments + path.segments
+            return True
+        elif path.end == self.start:
+            self._segments = path.segments + self._segments
+            return True
+        rpath = path.reversed
+        if rpath.start == self.start:
+            self._segments = rpath.segments + self._segments
+            return True
+        elif rpath.end == self.end:
+            self._segments = self._segments + rpath.segments
+            return True
         raise ValueError("Ends do not match")
 
 
@@ -125,10 +150,9 @@ class ElementOptimizer(object):
         for path in self._paths:
             pends = path.ends
             if line.start in pends or line.end in pends:
-                if isinstance(Circle, line.aperture) and \
-                        line.aperture.diameter != path.aperture.diameter:
+                if isinstance(line.aperture, Circle) and \
+                        line.aperture.diameter == path.aperture.diameter:
                     return path
-        return None
 
     def run(self):
         pass
@@ -219,9 +243,37 @@ class GerberFreecadContext(GerberContext):
         self._verbose = value
 
     @staticmethod
-    def _get_flanking_lines(start, end, width):
+    def get_intersect(line1, line2):
+        xdiff = (line1[0][0] - line1[1][0], line2[0][0] - line2[1][0])
+        ydiff = (line1[0][1] - line1[1][1], line2[0][1] - line2[1][1])
+
+        def det(a, b):
+            return a[0] * b[1] - a[1] * b[0]
+
+        def within((x, y), line):
+            if line[0][0] != line[1][0]:
+                return line[1][0] <= x <= line[0][0] or line[1][0] >= x >= line[0][0]
+            else:
+                return line[1][1] <= y <= line[0][1] or line[1][1] >= y >= line[0][1]
+
+        div = det(xdiff, ydiff)
+        if div == 0:
+            return None
+
+        d = (det(*line1), det(*line2))
+        x = det(d, xdiff) / div
+        y = det(d, ydiff) / div
+
+        ipoint = (x, y)
+
+        if within(ipoint, line1) and within(ipoint, line2):
+            return ipoint
+        else:
+            return None
+
+    def _get_flanking_lines(self, start, end, width, pline=None, nline=None):
         lines = []
-        arcs = []
+        caps = []
 
         x1 = start[0]
         y1 = start[1]
@@ -244,13 +296,125 @@ class GerberFreecadContext(GerberContext):
         x6 = x2 + (width/2) * dy
         y6 = y2 - (width/2) * dx
 
-        lines.append(Line((x3, y3), (x6, y6), None))
-        lines.append(Line((x5, y5), (x4, y4), None))
+        if pline is None:
+            caps.append(Arc((x3, y3), (x5, y5), (x1, y1),
+                            'counterclockwise', None))
+        if nline is None:
+            caps.append(Arc((x4, y4), (x6, y6), (x2, y2),
+                            'counterclockwise', None))
 
-        arcs.append(Arc((x3, y3), (x5, y5), (x1, y1), 'counterclockwise', None))
-        arcs.append(Arc((x4, y4), (x6, y6), (x2, y2), 'counterclockwise', None))
+        l1start = (x3, y3)
+        l2start = (x5, y5)
+        l1end = (x6, y6)
+        l2end = (x4, y4)
 
-        return lines, arcs
+        if pline is not None:
+
+            pstart = map(mul, pline.start, self.scale)
+            pend = map(mul, pline.end, self.scale)
+
+            px1 = pstart[0]
+            py1 = pstart[1]
+            px2 = pend[0]
+            py2 = pend[1]
+
+            pdx = px1 - px2
+            pdy = py1 - py2
+            pdist = sqrt(pdx * pdx + pdy * pdy)
+            pdx /= pdist
+            pdy /= pdist
+
+            px3 = px1 + (width/2) * pdy
+            py3 = py1 - (width/2) * pdx
+            px4 = px2 - (width/2) * pdy
+            py4 = py2 + (width/2) * pdx
+
+            px5 = px1 - (width/2) * pdy
+            py5 = py1 + (width/2) * pdx
+            px6 = px2 + (width/2) * pdy
+            py6 = py2 - (width/2) * pdx
+
+            i1a = self.get_intersect(((x3, y3), (x6, y6)),
+                                     ((px3, py3), (px6, py6)))
+            i1b = self.get_intersect(((x3, y3), (x6, y6)),
+                                     ((px5, py5), (px4, py4)))
+            i2a = self.get_intersect(((x5, y5), (x4, y4)),
+                                     ((px3, py3), (px6, py6)))
+            i2b = self.get_intersect(((x5, y5), (x4, y4)),
+                                     ((px5, py5), (px4, py4)))
+
+            if i1a is not None:
+                l1start = i1a
+                l2start = (x5, y5)
+                caps.append(Arc((px4, py4), (x5, y5), (x1, y1),
+                                'counterclockwise', None))
+            elif i1b is not None:
+                l1start = i1b
+                l2start = (x5, y5)
+                caps.append(Arc((px6, py6), (x5, y5), (x1, y1),
+                                'counterclockwise', None))
+            elif i2a is not None:
+                l1start = (x3, y3)
+                l2start = i2a
+                caps.append(Arc((x3, y3), (px4, py4), (x1, y1),
+                                'counterclockwise', None))
+            elif i2b is not None:
+                l1start = (x3, y3)
+                l2start = i2b
+                caps.append(Arc((x3, y3), (px6, py6), (x1, y1),
+                                'counterclockwise', None))
+
+        if nline is not None:
+
+            nstart = map(mul, nline.start, self.scale)
+            nend = map(mul, nline.end, self.scale)
+
+            nx1 = nstart[0]
+            ny1 = nstart[1]
+            nx2 = nend[0]
+            ny2 = nend[1]
+
+            ndx = nx1 - nx2
+            ndy = ny1 - ny2
+            ndist = sqrt(ndx * ndx + ndy * ndy)
+            ndx /= ndist
+            ndy /= ndist
+
+            nx3 = nx1 + (width/2) * ndy
+            ny3 = ny1 - (width/2) * ndx
+            nx4 = nx2 - (width/2) * ndy
+            ny4 = ny2 + (width/2) * ndx
+
+            nx5 = nx1 - (width/2) * ndy
+            ny5 = ny1 + (width/2) * ndx
+            nx6 = nx2 + (width/2) * ndy
+            ny6 = ny2 - (width/2) * ndx
+
+            i1a = self.get_intersect(((x3, y3), (x6, y6)),
+                                     ((nx3, ny3), (nx6, ny6)))
+            i1b = self.get_intersect(((x3, y3), (x6, y6)),
+                                     ((nx5, ny5), (nx4, ny4)))
+            i2a = self.get_intersect(((x5, y5), (x4, y4)),
+                                     ((nx3, ny3), (nx6, ny6)))
+            i2b = self.get_intersect(((x5, y5), (x4, y4)),
+                                     ((nx5, ny5), (nx4, ny4)))
+
+            if i1a is not None:
+                l1end = i1a
+                l2end = (x4, y4)
+            elif i1b is not None:
+                l1end = i1b
+                l2end = (x4, y4)
+            elif i2a is not None:
+                l1end = (x6, y6)
+                l2end = i2a
+            elif i2b is not None:
+                l1end = (x6, y6)
+                l2end = i2b
+
+        lines.append(Line(l1start, l1end, None))
+        lines.append(Line(l2start, l2end, None))
+        return lines, caps
 
     @staticmethod
     def _thin_draw_line(sketch, line):
@@ -263,7 +427,8 @@ class GerberFreecadContext(GerberContext):
             )
         )
 
-    def _render_line(self, line, color):
+    def _render_line(self, line, color,
+                     alt_sketch=None, pline=None, nline=None):
         start = map(mul, line.start, self.scale)
         end = map(mul, line.end, self.scale)
         if start == end:
@@ -278,22 +443,28 @@ class GerberFreecadContext(GerberContext):
         else:
             if isinstance(line.aperture, Circle):
                 if self._simplify_cad_elements:
-                    self._deferred.append(line)
-                    return
-                element_name = self._prefix + str(len(self._elements) + 1)
-                sketch_name = element_name + '_sketch'
-                self.pcb_ctx.output_file.addObject(
-                    'Sketcher::SketchObject', sketch_name
-                )
-                elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
-                elem_sketch.Support = self._sketch.Support
+                    if not alt_sketch:
+                        self._deferred.append(line)
+                        return
+                if alt_sketch is None:
+                    element_name = self._prefix + str(len(self._elements) + 1)
+                    sketch_name = element_name + '_sketch'
+                    self.pcb_ctx.output_file.addObject(
+                        'Sketcher::SketchObject', sketch_name
+                    )
+                    elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+                    elem_sketch.Support = self._sketch.Support
+                else:
+                    elem_sketch = alt_sketch
 
                 self.pcb_ctx.output_file.recompute()
                 width = line.aperture.diameter * self.scale_scalar
-                lines, arcs = self._get_flanking_lines(start, end, width)
+                lines, caps = self._get_flanking_lines(start, end, width,
+                                                       pline=pline,
+                                                       nline=nline)
                 for line in lines:
                     self._thin_draw_line(elem_sketch, line)
-                for arc in arcs:
+                for arc in caps:
                     self._thin_draw_arc(elem_sketch, arc)
 
             elif isinstance(line.aperture, Rectangle):
@@ -318,17 +489,18 @@ class GerberFreecadContext(GerberContext):
                 raise ValueError('Aperture type for line unrecognized : {0}'
                                  ''.format(line.aperture))
 
-            self.pcb_ctx.output_file.recompute()
-            self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
-            element = getattr(self.pcb_ctx.output_file, element_name)
-            element.Sketch = elem_sketch
-            if self.thickness < 0:
-                element.Reversed = True
-            element.Length = abs(self.thickness)
-            self._elements.append(element_name)
-            if not self.pcb_ctx.nox:
-                elem_sketch.ViewObject.hide()
-            self.pcb_ctx.output_file.recompute()
+            if not alt_sketch:
+                self.pcb_ctx.output_file.recompute()
+                self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
+                element = getattr(self.pcb_ctx.output_file, element_name)
+                element.Sketch = elem_sketch
+                if self.thickness < 0:
+                    element.Reversed = True
+                element.Length = abs(self.thickness)
+                self._elements.append(element_name)
+                if not self.pcb_ctx.nox:
+                    elem_sketch.ViewObject.hide()
+                self.pcb_ctx.output_file.recompute()
 
     @staticmethod
     def _thin_draw_arc(sketch, arc):
@@ -354,6 +526,7 @@ class GerberFreecadContext(GerberContext):
     @staticmethod
     def _get_flanking_arcs(start, end, center, direction, width, radius=None):
         arcs = []
+        caps = []
 
         x1 = start[0]
         y1 = start[1]
@@ -383,12 +556,12 @@ class GerberFreecadContext(GerberContext):
 
         arcs.append(Arc((x3, y3), (x5, y5), center, direction, aperture=None))
         arcs.append(Arc((x4, y4), (x6, y6), center, direction, aperture=None))
-        arcs.append(Arc((x3, y3), (x4, y4), start, direction, aperture=None))
-        arcs.append(Arc((x5, y5), (x6, y6), start, rdirection, aperture=None))
+        caps.append(Arc((x3, y3), (x4, y4), start, direction, aperture=None))
+        caps.append(Arc((x5, y5), (x6, y6), start, rdirection, aperture=None))
 
-        return arcs
+        return arcs, caps
 
-    def _render_arc(self, arc, color):
+    def _render_arc(self, arc, color, cap_start=True, cap_end=True, alt_sketch=None):
         center = map(mul, arc.center, self.scale)
         start = map(mul, arc.start, self.scale)
         end = map(mul, arc.end, self.scale)
@@ -399,38 +572,46 @@ class GerberFreecadContext(GerberContext):
             return
         else:
             if isinstance(arc.aperture, Circle):
-                if self._simplify_cad_elements:
-                    self._deferred.append(arc)
-                    return
-                element_name = self._prefix + str(len(self._elements) + 1)
-                sketch_name = element_name + '_sketch'
-                self.pcb_ctx.output_file.addObject(
-                    'Sketcher::SketchObject', sketch_name
-                )
-                elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
-                elem_sketch.Support = self._sketch.Support
+                # if self._simplify_cad_elements and not alt_sketch:
+                #     self._deferred.append(arc)
+                #     return
+                if not alt_sketch:
+                    element_name = self._prefix + str(len(self._elements) + 1)
+                    sketch_name = element_name + '_sketch'
+                    self.pcb_ctx.output_file.addObject(
+                        'Sketcher::SketchObject', sketch_name
+                    )
+                    elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+                    elem_sketch.Support = self._sketch.Support
+                else:
+                    elem_sketch = alt_sketch
 
                 self.pcb_ctx.output_file.recompute()
 
                 width = arc.aperture.diameter * self.scale_scalar
-                arcs = self._get_flanking_arcs(
+                arcs, caps = self._get_flanking_arcs(
                     start, end, center, arc.direction, width
                 )
                 for arc in arcs:
                     self._thin_draw_arc(elem_sketch, arc)
+                if cap_start:
+                    self._thin_draw_arc(elem_sketch, caps[0])
+                if cap_end:
+                    self._thin_draw_arc(elem_sketch, caps[1])
 
-                self.pcb_ctx.output_file.recompute()
-                self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
-                element = getattr(self.pcb_ctx.output_file, element_name)
-                element.Sketch = elem_sketch
-                if self.thickness < 0:
-                    element.Reversed = True
-                element.Length = abs(self.thickness)
-                self._elements.append(element_name)
-                if not self.pcb_ctx.nox:
-                    elem_sketch.ViewObject.hide()
-                self.pcb_ctx.output_file.recompute()
-                return
+                if not alt_sketch:
+                    self.pcb_ctx.output_file.recompute()
+                    self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
+                    element = getattr(self.pcb_ctx.output_file, element_name)
+                    element.Sketch = elem_sketch
+                    if self.thickness < 0:
+                        element.Reversed = True
+                    element.Length = abs(self.thickness)
+                    self._elements.append(element_name)
+                    if not self.pcb_ctx.nox:
+                        elem_sketch.ViewObject.hide()
+                    self.pcb_ctx.output_file.recompute()
+                    return
             else:
                 raise ValueError('Aperture type for arc unrecognized : {0}'
                                  ''.format(arc.aperture))
@@ -487,8 +668,38 @@ class GerberFreecadContext(GerberContext):
             self.pcb_ctx.output_file.recompute()
 
     def _render_path(self, path):
-        print(' render path {0} with {1} nodes'
-              ''.format(path, len(path.segments)))
+        element_name = self._prefix + str(len(self._elements) + 1)
+        sketch_name = element_name + '_sketch'
+        self.pcb_ctx.output_file.addObject(
+            'Sketcher::SketchObject', sketch_name
+        )
+        elem_sketch = getattr(self.pcb_ctx.output_file, sketch_name)
+        elem_sketch.Support = self._sketch.Support
+
+        for idx, segment in enumerate(path.segments):
+            pline = None
+            nline = None
+            if idx > 0:
+                pline = path.segments[idx-1]
+            if idx < len(path.segments) - 1:
+                nline = path.segments[idx+1]
+            if isinstance(segment, Line):
+                self._render_line(segment, color=None,
+                                  alt_sketch=elem_sketch,
+                                  pline=pline, nline=nline)
+            else:
+                raise NotImplementedError
+        self.pcb_ctx.output_file.recompute()
+        self.pcb_ctx.output_file.addObject("PartDesign::Pad", element_name)
+        element = getattr(self.pcb_ctx.output_file, element_name)
+        element.Sketch = elem_sketch
+        if self.thickness < 0:
+            element.Reversed = True
+        element.Length = abs(self.thickness)
+        self._elements.append(element_name)
+        if not self.pcb_ctx.nox:
+            elem_sketch.ViewObject.hide()
+        self.pcb_ctx.output_file.recompute()
 
     def _render_circle(self, circle, color):
         center = map(mul, circle.position, self.scale)
@@ -621,31 +832,41 @@ class GerberFreecadContext(GerberContext):
     def fuse(self, name, simplify=True):
         print("Fusing {0} elements. This will take a while. "
               "Please be patient. ".format(name))
-        self.pcb_ctx.output_file.addObject("Part::MultiFuse", name)
-        fusion = getattr(self.pcb_ctx.output_file, name)
+        simplify = False
         elements = [
             getattr(self.pcb_ctx.output_file, x) for x in self._elements
             ]
-        fusion.Shapes = elements
-        self.pcb_ctx.output_file.recompute()
-        if simplify or self.invert:
-            self.pcb_ctx.output_file.addObject(
-                'Part::Feature', name + '_fused'
-            ).Shape = fusion.Shape.removeSplitter()
-            if not self.pcb_ctx.nox:
-                fusion.ViewObject.hide()
+        fusion = self.pcb_ctx.output_file.addObject("Part::MultiFuse", name)
+        fused = self.pcb_ctx.output_file.addObject("Part::Feature",
+                                                   name + '_fused')
+        if not self.pcb_ctx.nox:
+            fusion.ViewObject.hide()
+            fused.ViewObject.hide()
+
+        if len(elements):
+            fusion.Shapes = elements
             self.pcb_ctx.output_file.recompute()
+            if simplify or self.invert:
+                fused.Shape = fusion.Shape.removeSplitter()
+                if not self.pcb_ctx.nox:
+                    fused.ViewObject.show()
+                self.pcb_ctx.output_file.recompute()
+            else:
+                if not self.pcb_ctx.nox:
+                    fusion.ViewObject.show()
 
         if self.invert:
             cut_obj = self.pcb_ctx.output_file.addObject("Part::Cut", name + '_cut')
             cut_obj.Base = self._base_body
             if simplify:
-                tool_obj = getattr(self.pcb_ctx.output_file, name + '_fused')
+                tool_obj = fused
             else:
                 tool_obj = fusion
             cut_obj.Tool = tool_obj
-            self._base_body.ViewObject.hide()
-            tool_obj.ViewObject.hide()
+            if not self.pcb_ctx.nox:
+                fusion.ViewObject.hide()
+                fused.ViewObject.hide()
+                self._base_body.ViewObject.hide()
             self.pcb_ctx.output_file.recompute()
 
 
@@ -748,7 +969,7 @@ class PCBFreecadContext(PCBContext):
     def _create_top_surface(self):
         self._create_top_copper()
         self._create_top_mask()
-        # self._create_top_silk()
+        self._create_top_silk()
         self._create_top_paste()
 
     def _create_top_copper(self):
@@ -765,10 +986,12 @@ class PCBFreecadContext(PCBContext):
         ctx.verbose = self.verbose
         ctx.pcb_ctx = self
         ctx.prefix = 'TCE_'
-        ctx.simplify_cad_elements = False
+        ctx.simplify_cad_elements = True
 
         gerberfile = read(self.layers.top)
         gerberfile.render(ctx, pbar=True)
+
+        ctx.render_deferred()
 
         ctx.fuse('Top_Copper')
         self._top_copper_obj = getattr(self._output_file, 'Top_Copper_fused')
@@ -844,6 +1067,8 @@ class PCBFreecadContext(PCBContext):
         gerberfile = read(self.layers.topsilk)
         gerberfile.render(ctx, pbar=True)
 
+        ctx.render_deferred()
+
         if self._quick:
             for element in ctx.elements:
                 obj = getattr(self._output_file, element)
@@ -861,7 +1086,7 @@ class PCBFreecadContext(PCBContext):
     def _create_bottom_surface(self):
         self._create_bottom_copper()
         self._create_bottom_mask()
-        # self._create_bottom_silk()
+        self._create_bottom_silk()
         self._create_bottom_paste()
 
     def _create_bottom_copper(self):
@@ -879,10 +1104,12 @@ class PCBFreecadContext(PCBContext):
         ctx.verbose = self.verbose
         ctx.pcb_ctx = self
         ctx.prefix = 'BCE_'
-        ctx.simplify_cad_elements = False
+        ctx.simplify_cad_elements = True
 
         gerberfile = read(self.layers.bottom)
         gerberfile.render(ctx, pbar=True)
+
+        ctx.render_deferred()
 
         ctx.fuse('Bottom_Copper')
         self._bottom_copper_obj = getattr(self._output_file, 'Bottom_Copper_fused')
