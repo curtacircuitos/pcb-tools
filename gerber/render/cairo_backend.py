@@ -124,7 +124,7 @@ class GerberCairoContext(GerberContext):
         self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
         self.ctx.set_operator(cairo.OPERATOR_OVER if (rectangle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)        
         self.ctx.set_line_width(0)
-        self.ctx.rectangle(*ll,width=width, height=height)
+        self.ctx.rectangle(ll[0], ll[1], width, height)
         self.ctx.fill()
 
     def _render_obround(self, obround, color):

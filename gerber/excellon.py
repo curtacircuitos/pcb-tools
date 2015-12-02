@@ -126,7 +126,7 @@ class ExcellonFile(CamFile):
 
     @property
     def primitives(self):
-        return [Drill(hit.position, hit.tool.diameter,units=self.settings.units) for hit in self.hits]
+        return [Drill(hit.position, hit.tool.diameter, hit, units=self.settings.units) for hit in self.hits]
 
 
     @property

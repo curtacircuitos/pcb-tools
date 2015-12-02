@@ -741,11 +741,12 @@ class SquareRoundDonut(Primitive):
 class Drill(Primitive):
     """ A drill hole
     """
-    def __init__(self, position, diameter, **kwargs):
+    def __init__(self, position, diameter, hit, **kwargs):
         super(Drill, self).__init__('dark', **kwargs)
         validate_coordinates(position)
         self.position = position
         self.diameter = diameter
+	self.hit = hit
         self._to_convert = ['position', 'diameter']
 
     @property
