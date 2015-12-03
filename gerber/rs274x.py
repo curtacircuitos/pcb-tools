@@ -258,6 +258,14 @@ class GerberParser(object):
             did_something = True  # make sure we do at least one loop
             while did_something and len(line) > 0:
                 did_something = False
+                
+                # coord
+                (coord, r) = _match_one(self.COORD_STMT, line)
+                if coord:
+                    yield CoordStmt.from_dict(coord, self.settings)
+                    line = r
+                    did_something = True
+                    continue
 
                 # Region Mode
                 (mode, r) = _match_one(self.REGION_MODE_STMT, line)
@@ -275,19 +283,10 @@ class GerberParser(object):
                     did_something = True
                     continue
 
-                # coord
-                (coord, r) = _match_one(self.COORD_STMT, line)
-                if coord:
-                    yield CoordStmt.from_dict(coord, self.settings)
-                    line = r
-                    did_something = True
-                    continue
-
                 # aperture selection
                 (aperture, r) = _match_one(self.APERTURE_STMT, line)
                 if aperture:
                     yield ApertureStmt(**aperture)
-
                     did_something = True
                     line = r
                     continue
