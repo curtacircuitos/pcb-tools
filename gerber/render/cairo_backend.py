@@ -87,6 +87,7 @@ class GerberCairoContext(GerberContext):
         else:
             self.ctx.arc_negative(center[0], center[1], radius, angle1, angle2)
         self.ctx.move_to(*end)  # ...lame
+        self.ctx.stroke()
 
     def _render_region(self, region, color):
         self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)

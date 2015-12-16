@@ -256,10 +256,19 @@ class Arc(Primitive):
             if theta1 <= math.pi * 1.5 and (theta0 >= math.pi * 1.5 or theta0 < theta1):
                 points.append((self.center[0], self.center[1] - self.radius ))
         x, y = zip(*points)
-        min_x = min(x) - self.aperture.radius
-        max_x = max(x) + self.aperture.radius
-        min_y = min(y) - self.aperture.radius
-        max_y = max(y) + self.aperture.radius
+        
+        if isinstance(self.aperture, Circle):
+            radius = self.aperture.radius
+        else:
+            # TODO this is actually not valid, but files contain it
+            width = self.aperture.width
+            height = self.aperture.height
+            radius = max(width, height)
+            
+        min_x = min(x) - radius
+        max_x = max(x) + radius
+        min_y = min(y) - radius
+        max_y = max(y) + radius
         return ((min_x, max_x), (min_y, max_y))
 
     def offset(self, x_offset=0, y_offset=0):

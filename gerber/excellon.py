@@ -634,7 +634,11 @@ def _layer_size_score(size, hole_count, hole_area):
     Lower is better.
     """
     board_area = size[0] * size[1]
+    if board_area == 0:
+        return 0
+    
     hole_percentage = hole_area / board_area
     hole_score = (hole_percentage - 0.25) ** 2
     size_score = (board_area - 8) **2
     return hole_score * size_score
+        
