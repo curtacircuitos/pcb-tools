@@ -32,6 +32,7 @@ except(ImportError):
     from io import StringIO
 
 from .excellon_statements import *
+from .excellon_tool import ExcellonToolDefinitionParser
 from .cam import CamFile, FileSettings
 from .primitives import Drill
 from .utils import inch, metric
@@ -56,12 +57,15 @@ def read(filename):
     settings = FileSettings(**detect_excellon_format(data))
     return ExcellonParser(settings).parse(filename)
 
-def loads(data):
+def loads(data, settings = None, tools = None):
     """ Read data from string and return an ExcellonFile
     Parameters
     ----------
     data : string
         string containing Excellon file contents
+        
+    tools: dict (optional)
+        externally defined tools
 
     Returns
     -------
@@ -70,8 +74,9 @@ def loads(data):
 
     """
     # File object should use settings from source file by default.
-    settings = FileSettings(**detect_excellon_format(data))
-    return ExcellonParser(settings).parse_raw(data)
+    if not settings:
+        settings = FileSettings(**detect_excellon_format(data))
+    return ExcellonParser(settings, tools).parse_raw(data)
 
 
 class DrillHit(object):
@@ -199,7 +204,7 @@ class ExcellonFile(CamFile):
             for primitive in self.primitives:
                 primitive.to_inch()
             for hit in self.hits:
-                hit.position = tuple(map(inch, hit,position))
+                hit.position = tuple(map(inch, hit.position))
 
 
     def to_metric(self):
@@ -282,7 +287,7 @@ class ExcellonParser(object):
     settings : FileSettings or dict-like
         Excellon file settings to use when interpreting the excellon file.
     """
-    def __init__(self, settings=None):
+    def __init__(self, settings=None, ext_tools=None):
         self.notation = 'absolute'
         self.units = 'inch'
         self.zeros = 'leading'
@@ -290,6 +295,8 @@ class ExcellonParser(object):
         self.state = 'INIT'
         self.statements = []
         self.tools = {}
+        self.ext_tools = ext_tools or {}
+        self.comment_tools = {}
         self.hits = []
         self.active_tool = None
         self.pos = [0., 0.]
@@ -352,6 +359,18 @@ class ExcellonParser(object):
                 detected_format = tuple([int(x) for x in comment_stmt.comment.split('=')[1].split(":")])
                 if detected_format:
                     self.format = detected_format
+                    
+            if "HEADER:" in comment_stmt.comment:
+                self.state = "HEADER"
+                
+            if " Holesize " in comment_stmt.comment:
+                self.state = "HEADER"
+                
+                # Parse this as a hole definition
+                tools = ExcellonToolDefinitionParser(self._settings()).parse_raw(comment_stmt.comment)
+                if len(tools) == 1:
+                    tool = tools[tools.keys()[0]]
+                    self.comment_tools[tool.number] = tool
 
         elif line[:3] == 'M48':
             self.statements.append(HeaderBeginStmt())
@@ -363,6 +382,16 @@ class ExcellonParser(object):
                 self.state = 'DRILL'
             elif self.state == 'INIT':
                 self.state = 'HEADER'
+                
+        elif line[:3] == 'M00' and self.state == 'DRILL':
+            if self.active_tool:
+                cur_tool_number = self.active_tool.number
+                next_tool = self._get_tool(cur_tool_number + 1)
+                
+                self.statements.append(NextToolSelectionStmt(self.active_tool, next_tool))
+                self.active_tool = next_tool
+            else:
+                raise Exception('Invalid state exception')
 
         elif line[:3] == 'M95':
             self.statements.append(HeaderEndStmt())
@@ -480,8 +509,10 @@ class ExcellonParser(object):
             
             # T0 is used as END marker, just ignore
             if stmt.tool != 0:
-                # FIXME: for weird files with no tools defined, original calc from gerbv
-                if stmt.tool not in self.tools:
+                tool = self._get_tool(stmt.tool)
+                        
+                if not tool:
+                    # FIXME: for weird files with no tools defined, original calc from gerbv
                     if self._settings().units == "inch":
                         diameter = (16 + 8 * stmt.tool) / 1000.0;
                     else:
@@ -496,7 +527,7 @@ class ExcellonParser(object):
                             self.statements.insert(i, tool)
                             break
 
-                self.active_tool = self.tools[stmt.tool]
+                self.active_tool = tool
 
         elif line[0] == 'R' and self.state != 'HEADER':
             stmt = RepeatHoleStmt.from_excellon(line, self._settings())
@@ -523,6 +554,9 @@ class ExcellonParser(object):
                 if y is not None:
                     self.pos[1] += y
             if self.state == 'DRILL':
+                if not self.active_tool:
+                    self.active_tool = self._get_tool(1)
+                
                 self.hits.append(DrillHit(self.active_tool, tuple(self.pos)))
                 self.active_tool._hit()
         else:
@@ -531,7 +565,23 @@ class ExcellonParser(object):
     def _settings(self):
         return FileSettings(units=self.units, format=self.format,
                             zeros=self.zeros, notation=self.notation)
-
+        
+    def _get_tool(self, toolid):
+        
+        tool = self.tools.get(toolid)
+        if not tool:
+            tool = self.comment_tools.get(toolid)
+            if tool:
+                tool.settings = self._settings()
+                self.tools[toolid] = tool
+                
+        if not tool:
+            tool = self.ext_tools.get(toolid)
+            if tool:
+                tool.settings = self._settings()
+                self.tools[toolid] = tool
+                
+        return tool
 
 def detect_excellon_format(data=None, filename=None):
     """ Detect excellon file decimal format and zero-suppression settings.

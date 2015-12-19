@@ -36,7 +36,8 @@ __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'ExcellonStatement', 'ZAxisRoutPositionStmt',
            'RetractWithClampingStmt', 'RetractWithoutClampingStmt',
            'CutterCompensationOffStmt', 'CutterCompensationLeftStmt',
-           'CutterCompensationRightStmt', 'ZAxisInfeedRateStmt']
+           'CutterCompensationRightStmt', 'ZAxisInfeedRateStmt',
+           'NextToolSelectionStmt']
 
 
 class ExcellonStatement(object):
@@ -267,7 +268,28 @@ class ToolSelectionStmt(ExcellonStatement):
         if self.compensation_index is not None:
             stmt += '%02d' % self.compensation_index
         return stmt
-
+    
+class NextToolSelectionStmt(ExcellonStatement):
+    
+    # TODO the statement exists outside of the context of the file,
+    # so it is imposible to know that it is really the next tool
+    
+    def __init__(self, cur_tool, next_tool, **kwargs):
+        """
+        Select the next tool in the wheel.
+        Parameters
+        ----------
+        cur_tool : the tool that is currently selected
+        next_tool : the that that is now selected
+        """
+        super(NextToolSelectionStmt, self).__init__(**kwargs)
+        
+        self.cur_tool = cur_tool
+        self.next_tool = next_tool
+        
+    def to_excellon(self, settings=None):
+        stmt = 'M00'
+        return stmt
 
 class ZAxisInfeedRateStmt(ExcellonStatement):
 

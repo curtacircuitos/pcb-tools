@@ -755,7 +755,7 @@ class Drill(Primitive):
         validate_coordinates(position)
         self.position = position
         self.diameter = diameter
-	self.hit = hit
+        self.hit = hit
         self._to_convert = ['position', 'diameter']
 
     @property
