@@ -44,18 +44,14 @@ class GerberCairoContext(GerberContext):
         size_in_pixels = map(mul, size_in_inch, self.scale)
         self.origin_in_pixels = tuple(map(mul, origin_in_inch, self.scale)) if self.origin_in_pixels is None else self.origin_in_pixels
         self.size_in_pixels = size_in_pixels if self.size_in_pixels is None else self.size_in_pixels
-
         if self.surface is None:
-
             self.surface_buffer = tempfile.NamedTemporaryFile()
             self.surface = cairo.SVGSurface(self.surface_buffer, size_in_pixels[0], size_in_pixels[1])
             self.ctx = cairo.Context(self.surface)
             self.ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
             self.ctx.scale(1, -1)
             self.ctx.translate(-(origin_in_inch[0] * self.scale[0]), (-origin_in_inch[1]*self.scale[0]) - size_in_pixels[1])
-
-            self.mask_buffer = tempfile.NamedTemporaryFile()
-            self.mask = cairo.SVGSurface(self.mask_buffer, size_in_pixels[0], size_in_pixels[1])
+            self.mask = cairo.SVGSurface(None, size_in_pixels[0], size_in_pixels[1])
             self.mask_ctx = cairo.Context(self.mask)
             self.mask_ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
             self.mask_ctx.scale(1, -1)
@@ -65,40 +61,27 @@ class GerberCairoContext(GerberContext):
         start = map(mul, line.start, self.scale)
         end = map(mul, line.end, self.scale)
         if not self.invert:
-            self.ctx.set_source_rgba(*color, alpha=self.alpha)
-            self.ctx.set_operator(cairo.OPERATOR_OVER if (line.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
-            if isinstance(line.aperture, Circle):
-                width = line.aperture.diameter
-                self.ctx.set_line_width(width * self.scale[0])
-                self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-                self.ctx.move_to(*start)
-                self.ctx.line_to(*end)
-                self.ctx.stroke()
-            elif isinstance(line.aperture, Rectangle):
-                points = [tuple(map(mul, x, self.scale)) for x in line.vertices]
-                self.ctx.set_line_width(0)
-                self.ctx.move_to(*points[0])
-                for point in points[1:]:
-                    self.ctx.line_to(*point)
-                self.ctx.fill()
+            ctx = self.ctx
+            ctx.set_source_rgba(*color, alpha=self.alpha)
+            ctx.set_operator(cairo.OPERATOR_OVER if line.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
         else:
-            self.mask_ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
-            self.mask_ctx.set_operator(cairo.OPERATOR_CLEAR)
-            if isinstance(line.aperture, Circle):
-                width = line.aperture.diameter
-                self.mask_ctx.set_line_width(0)
-                self.mask_ctx.set_line_width(width * self.scale[0])
-                self.mask_ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-                self.mask_ctx.move_to(*start)
-                self.mask_ctx.line_to(*end)
-                self.mask_ctx.stroke()
-            elif isinstance(line.aperture, Rectangle):
-                points = [tuple(map(mul, x, self.scale)) for x in line.vertices]
-                self.mask_ctx.set_line_width(0)
-                self.mask_ctx.move_to(*points[0])
-                for point in points[1:]:
-                    self.mask_ctx.line_to(*point)
-                self.mask_ctx.fill()
+            ctx = self.mask_ctx
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+        if isinstance(line.aperture, Circle):
+            width = line.aperture.diameter
+            ctx.set_line_width(width * self.scale[0])
+            ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+            ctx.move_to(*start)
+            ctx.line_to(*end)
+            ctx.stroke()
+        elif isinstance(line.aperture, Rectangle):
+            points = [tuple(map(mul, x, self.scale)) for x in line.vertices]
+            ctx.set_line_width(0)
+            ctx.move_to(*points[0])
+            for point in points[1:]:
+                ctx.line_to(*point)
+            ctx.fill()
 
     def _render_arc(self, arc, color):
         center = map(mul, arc.center, self.scale)
@@ -108,26 +91,38 @@ class GerberCairoContext(GerberContext):
         angle1 = arc.start_angle
         angle2 = arc.end_angle
         width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
-        self.ctx.set_source_rgba(*color, alpha=self.alpha)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (arc.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
-        self.ctx.set_line_width(width * self.scale[0])
-        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-        self.ctx.move_to(*start)  # You actually have to do this...
-        if arc.direction == 'counterclockwise':
-            self.ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
+        if not self.invert:
+            ctx = self.ctx
+            ctx.set_source_rgba(*color, alpha=self.alpha)
+            ctx.set_operator(cairo.OPERATOR_OVER if arc.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
         else:
-            self.ctx.arc_negative(*center, radius=radius, angle1=angle1, angle2=angle2)
-        self.ctx.move_to(*end)  # ...lame
+            ctx = self.mask_ctx
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+        ctx.set_line_width(width * self.scale[0])
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        ctx.move_to(*start)  # You actually have to do this...
+        if arc.direction == 'counterclockwise':
+            ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
+        else:
+            ctx.arc_negative(*center, radius=radius, angle1=angle1, angle2=angle2)
+        ctx.move_to(*end)  # ...lame
 
     def _render_region(self, region, color):
-        self.ctx.set_source_rgba(*color, alpha=self.alpha)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (region.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
-        self.ctx.set_line_width(0)
-        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-        self.ctx.move_to(*tuple(map(mul, region.primitives[0].start, self.scale)))
+        if not self.invert:
+            ctx = self.ctx
+            ctx.set_source_rgba(*color, alpha=self.alpha)
+            ctx.set_operator(cairo.OPERATOR_OVER if region.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
+        else:
+            ctx = self.mask_ctx
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+        ctx.set_line_width(0)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        ctx.move_to(*tuple(map(mul, region.primitives[0].start, self.scale)))
         for p in region.primitives:
             if isinstance(p, Line):
-                self.ctx.line_to(*tuple(map(mul, p.end, self.scale)))
+                ctx.line_to(*tuple(map(mul, p.end, self.scale)))
             else:
                 center = map(mul, p.center, self.scale)
                 start = map(mul, p.start, self.scale)
@@ -136,41 +131,39 @@ class GerberCairoContext(GerberContext):
                 angle1 = p.start_angle
                 angle2 = p.end_angle
                 if p.direction == 'counterclockwise':
-                    self.ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
+                    ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
                 else:
-                    self.ctx.arc_negative(*center, radius=radius, angle1=angle1, angle2=angle2)
-        self.ctx.fill()
+                    ctx.arc_negative(*center, radius=radius, angle1=angle1, angle2=angle2)
+        ctx.fill()
 
     def _render_circle(self, circle, color):
         center = tuple(map(mul, circle.position, self.scale))
         if not self.invert:
-            self.ctx.set_source_rgba(*color, alpha=self.alpha)
-            self.ctx.set_operator(cairo.OPERATOR_OVER if (circle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
-            self.ctx.set_line_width(0)
-            self.ctx.arc(*center, radius=circle.radius * self.scale[0], angle1=0, angle2=2 * math.pi)
-            self.ctx.fill()
+            ctx = self.ctx
+            ctx.set_source_rgba(*color, alpha=self.alpha)
+            ctx.set_operator(cairo.OPERATOR_OVER if circle.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
         else:
-            self.mask_ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
-            self.mask_ctx.set_operator(cairo.OPERATOR_CLEAR)
-            self.mask_ctx.set_line_width(0)
-            self.mask_ctx.arc(*center, radius=circle.radius * self.scale[0], angle1=0, angle2=2 * math.pi)
-            self.mask_ctx.fill()
+            ctx = self.mask_ctx
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+        ctx.set_line_width(0)
+        ctx.arc(*center, radius=circle.radius * self.scale[0], angle1=0, angle2=2 * math.pi)
+        ctx.fill()
 
     def _render_rectangle(self, rectangle, color):
         ll = map(mul, rectangle.lower_left, self.scale)
         width, height = tuple(map(mul, (rectangle.width, rectangle.height), map(abs, self.scale)))
         if not self.invert:
-            self.ctx.set_source_rgba(*color, alpha=self.alpha)
-            self.ctx.set_operator(cairo.OPERATOR_OVER if (rectangle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
-            self.ctx.set_line_width(0)
-            self.ctx.rectangle(*ll, width=width, height=height)
-            self.ctx.fill()
+            ctx = self.ctx
+            ctx.set_source_rgba(*color, alpha=self.alpha)
+            ctx.set_operator(cairo.OPERATOR_OVER if rectangle.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
         else:
-            self.mask_ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
-            self.mask_ctx.set_operator(cairo.OPERATOR_CLEAR)
-            self.mask_ctx.set_line_width(0)
-            self.mask_ctx.rectangle(*ll, width=width, height=height)
-            self.mask_ctx.fill()
+            ctx = self.mask_ctx
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+        ctx.set_line_width(0)
+        ctx.rectangle(*ll, width=width, height=height)
+        ctx.fill()
 
     def _render_obround(self, obround, color):
         self._render_circle(obround.subshapes['circle1'], color)
@@ -185,7 +178,7 @@ class GerberCairoContext(GerberContext):
         self.ctx.set_font_size(200)
         self._render_circle(Circle(primitive.position, 0.01), color)
         self.ctx.set_source_rgb(*color)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (primitive.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
+        self.ctx.set_operator(cairo.OPERATOR_OVER if primitive.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
         self.ctx.move_to(*[self.scale[0] * (coord + 0.01) for coord in primitive.position])
         self.ctx.scale(1, -1)
         self.ctx.show_text(primitive.net_name)
