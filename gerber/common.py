@@ -17,7 +17,9 @@
 
 from . import rs274x
 from . import excellon
+from .exceptions import ParseError
 from .utils import detect_file_format
+
 
 
 def read(filename):
@@ -35,14 +37,15 @@ def read(filename):
         ExcellonFile. Returns None if file is not an Excellon or Gerber file.
     """
     with open(filename, 'rU') as f:
-        data = f.read()    
+        data = f.read()
     fmt = detect_file_format(data)
     if fmt == 'rs274x':
         return rs274x.read(filename)
     elif fmt == 'excellon':
         return excellon.read(filename)
     else:
-        raise TypeError('Unable to detect file format')
+        raise ParseError('Unable to detect file format')
+
 
 def loads(data):
     """ Read gerber or excellon file contents from a string and return a
@@ -59,7 +62,7 @@ def loads(data):
         CncFile object representing the file, either GerberFile or
         ExcellonFile. Returns None if file is not an Excellon or Gerber file.
     """
-    
+
     fmt = detect_file_format(data)
     if fmt == 'rs274x':
         return rs274x.loads(data)
