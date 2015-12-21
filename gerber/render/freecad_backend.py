@@ -142,29 +142,101 @@ class PathElement(object):
         raise ValueError("Ends do not match")
 
 
+class ComplexRegionElement(object):
+    def __init__(self, edges=None, holes=None):
+        if edges:
+            self._edges = edges
+        else:
+            self._edges = []
+        if holes:
+            self._holes = holes
+        else:
+            self._holes = []
+
+    @property
+    def edges(self):
+        return self._edges
+
+    @property
+    def holes(self):
+        return self._holes
+
+    def add_region(self, element):
+        pass
+
+
+class PadElement(object):
+    def __init__(self, base_body=None, segments=None):
+        self._base_body = base_body
+        if segments:
+            self._segments = segments
+        else:
+            self._segments = []
+
+    @property
+    def ends(self):
+        return []
+
+    def add_segment(self, line):
+        pass
+
+    def add_path(self, path):
+        pass
+
+
 class ElementOptimizer(object):
     def __init__(self):
         self._paths = []
+        self._pads = []
+        self._regions = []
 
-    def add_element(self, line):
-        if isinstance(line, Line) and \
-                        line.length < line.aperture.radius:
+    def add_element(self, element):
+        if isinstance(element, Line) and isinstance(element.aperture, Circle):
+            self._add_line(element)
+        if isinstance(element, Region):
+            self._add_region(element)
+
+    def _add_line(self, line):
+        if line.length < line.aperture.radius:
             self.paths.append(PathElement([line], frozen=True))
             return
         existing_path = self.get_path_for_line(line)
         if existing_path:
             return existing_path.add_segment(line)
         else:
-            self.paths.append(PathElement([line]))
+            self._paths.append(PathElement([line]))
+            return True
+
+    def _add_region(self, region):
+        existing_region = self.get_region_for_region(region)
+        if existing_region:
+            return existing_region.add_region(region)
+        else:
+            self._regions.append(
+                ComplexRegionElement(edges=region.primitives)
+            )
             return True
 
     @property
     def ends(self):
-        return [x.start for x in self._paths] + [x.end for x in self._paths]
+        rval = []
+        for pad in self._pads:
+            rval.append(pad.ends)
+        for path in self._paths:
+            rval.append(path.ends)
+        return rval
 
     @property
     def paths(self):
         return self._paths
+
+    @property
+    def regions(self):
+        return self._regions
+
+    @property
+    def pads(self):
+        return self._pads
 
     def get_path_for_line(self, line):
         for path in self._paths:
@@ -175,6 +247,9 @@ class ElementOptimizer(object):
                 if isinstance(line.aperture, Circle) and \
                         line.aperture.diameter == path.aperture.diameter:
                     return path
+
+    def get_region_for_region(self, region):
+        pass
 
     def run(self):
         pass
