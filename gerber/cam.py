@@ -256,9 +256,10 @@ class CamFile(object):
         """
         ctx.set_bounds(self.bounds)
         ctx._paint_background()
+
         if invert:
             ctx.invert = True
-            ctx._paint_inverted_layer()
+            ctx._clear_mask()
         for p in self.primitives:
             ctx.render(p)
         if invert:

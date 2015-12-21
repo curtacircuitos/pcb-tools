@@ -15,15 +15,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .render import GerberContext
 
 import cairocffi as cairo
-
 from operator import mul
 import math
 import tempfile
 
+from .render import GerberContext
 from ..primitives import *
+
+try:
+    from cStringIO import StringIO
+except(ImportError):
+    from io import StringIO
 
 
 class GerberCairoContext(GerberContext):
@@ -184,7 +188,7 @@ class GerberCairoContext(GerberContext):
         self.ctx.show_text(primitive.net_name)
         self.ctx.scale(1, -1)
 
-    def _paint_inverted_layer(self):
+    def _clear_mask(self):
         self.mask_ctx.set_operator(cairo.OPERATOR_OVER)
         self.mask_ctx.set_source_rgba(*self.color, alpha=self.alpha)
         self.mask_ctx.paint()
@@ -214,7 +218,16 @@ class GerberCairoContext(GerberContext):
         else:
             self.surface.write_to_png(filename)
 
+    def dump_str(self):
+        """ Return a string containing the rendered image.
+        """
+        fobj = StringIO()
+        self.surface.write_to_png(fobj)
+        return fobj.getvalue()
+
     def dump_svg_str(self):
+        """ Return a string containg the rendered SVG.
+        """
         self.surface.finish()
         self.surface_buffer.flush()
         return self.surface_buffer.read()
