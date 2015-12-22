@@ -56,6 +56,7 @@ def read(filename):
     settings = FileSettings(**detect_excellon_format(data))
     return ExcellonParser(settings).parse(filename)
 
+
 def loads(data):
     """ Read data from string and return an ExcellonFile
     Parameters
@@ -332,13 +333,13 @@ class ExcellonParser(object):
 
     def parse_raw(self, data, filename=None):
         for line in StringIO(data):
-            self._parse(line.strip())
+            self._parse_line(line.strip())
         for stmt in self.statements:
             stmt.units = self.units
         return ExcellonFile(self.statements, self.tools, self.hits,
                             self._settings(), filename)
 
-    def _parse(self, line):
+    def _parse_line(self, line):
         # skip empty lines
         if not line.strip():
             return
@@ -477,7 +478,7 @@ class ExcellonParser(object):
         elif line[0] == 'T' and self.state != 'HEADER':
             stmt = ToolSelectionStmt.from_excellon(line)
             self.statements.append(stmt)
-            
+
             # T0 is used as END marker, just ignore
             if stmt.tool != 0:
                 # FIXME: for weird files with no tools defined, original calc from gerbv

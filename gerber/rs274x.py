@@ -26,7 +26,7 @@ try:
     from cStringIO import StringIO
 except(ImportError):
     from io import StringIO
-    
+
 from .gerber_statements import *
 from .primitives import *
 from .cam import CamFile, FileSettings
@@ -49,7 +49,20 @@ def read(filename):
 
 
 def loads(data):
+    """ Generate a GerberFile object from rs274x data in memory
+
+    Parameters
+    ----------
+    data : string
+        string containing gerber file contents
+
+    Returns
+    -------
+    file : :class:`gerber.rs274x.GerberFile`
+        A GerberFile created from the specified file.
+    """
     return GerberParser().parse_raw(data)
+
 
 class GerberFile(CamFile):
     """ A class representing a single gerber file
@@ -97,16 +110,13 @@ class GerberFile(CamFile):
     def bounds(self):
         min_x = min_y = 1000000
         max_x = max_y = -1000000
-
         for stmt in [stmt for stmt in self.statements if isinstance(stmt, CoordStmt)]:
             if stmt.x is not None:
                 min_x = min(stmt.x, min_x)
                 max_x = max(stmt.x, max_x)
-
             if stmt.y is not None:
                 min_y = min(stmt.y, min_y)
                 max_y = max(stmt.y, max_y)
-
         return ((min_x, max_x), (min_y, max_y))
 
     def write(self, filename, settings=None):
@@ -215,7 +225,7 @@ class GerberParser(object):
     def parse(self, filename):
         with open(filename, "rU") as fp:
             data = fp.read()
-        return self.parse_raw(data, filename=None)
+        return self.parse_raw(data, filename)
 
     def parse_raw(self, data, filename=None):
         lines = [line for line in StringIO(data)]
@@ -254,26 +264,9 @@ class GerberParser(object):
                 oldline = line
                 continue
 
-
             did_something = True  # make sure we do at least one loop
             while did_something and len(line) > 0:
                 did_something = False
-
-                # Region Mode
-                (mode, r) = _match_one(self.REGION_MODE_STMT, line)
-                if mode:
-                    yield RegionModeStmt.from_gerber(line)
-                    line = r
-                    did_something = True
-                    continue
-
-                # Quadrant Mode
-                (mode, r) = _match_one(self.QUAD_MODE_STMT, line)
-                if mode:
-                    yield QuadrantModeStmt.from_gerber(line)
-                    line = r
-                    did_something = True
-                    continue
 
                 # coord
                 (coord, r) = _match_one(self.COORD_STMT, line)
@@ -288,14 +281,6 @@ class GerberParser(object):
                 if aperture:
                     yield ApertureStmt(**aperture)
 
-                    did_something = True
-                    line = r
-                    continue
-
-                # comment
-                (comment, r) = _match_one(self.COMMENT_STMT, line)
-                if comment:
-                    yield CommentStmt(comment["comment"])
                     did_something = True
                     line = r
                     continue
@@ -346,6 +331,30 @@ class GerberParser(object):
                     else:
                         yield UnknownStmt(line)
 
+                    did_something = True
+                    line = r
+                    continue
+
+                # Region Mode
+                (mode, r) = _match_one(self.REGION_MODE_STMT, line)
+                if mode:
+                    yield RegionModeStmt.from_gerber(line)
+                    line = r
+                    did_something = True
+                    continue
+
+                # Quadrant Mode
+                (mode, r) = _match_one(self.QUAD_MODE_STMT, line)
+                if mode:
+                    yield QuadrantModeStmt.from_gerber(line)
+                    line = r
+                    did_something = True
+                    continue
+
+                # comment
+                (comment, r) = _match_one(self.COMMENT_STMT, line)
+                if comment:
+                    yield CommentStmt(comment["comment"])
                     did_something = True
                     line = r
                     continue

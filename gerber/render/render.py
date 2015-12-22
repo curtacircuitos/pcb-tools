@@ -23,12 +23,13 @@ Rendering
 Render Gerber and Excellon files to a variety of formats. The render module
 currently supports SVG rendering using the `svgwrite` library.
 """
-from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
-                                 CoordStmt, ApertureStmt, RegionModeStmt,
-                                 QuadrantModeStmt,
-)
+
 
 from ..primitives import *
+from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
+                                 CoordStmt, ApertureStmt, RegionModeStmt,
+                                 QuadrantModeStmt,)
+
 
 
 class GerberContext(object):
@@ -222,6 +223,21 @@ class GerberContext(object):
 
     def _render_test_record(self, primitive, color):
         pass
+
+
+class Renderable(object):
+    def __init__(self, color=None, alpha=None, invert=False):
+        self.color = color
+        self.alpha = alpha
+        self.invert = invert
+
+    def to_render(self):
+        """ Override this in subclass. Should return a list of Primitives or Renderables
+        """
+        raise NotImplementedError('to_render() must be implemented in subclass')
+
+    def apply_theme(self, theme):
+        raise NotImplementedError('apply_theme() must be implemented in subclass')
 
     def set_bounds(self, bounds):
         raise NotImplementedError
