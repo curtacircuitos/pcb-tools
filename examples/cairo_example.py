@@ -25,7 +25,7 @@ a .png file.
 
 import os
 from gerber import read
-from gerber.render import GerberCairoContext
+from gerber.render import GerberCairoContext, theme
 
 GERBER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'gerbers'))
 
@@ -40,25 +40,30 @@ drill = read(os.path.join(GERBER_FOLDER, 'ncdrill.DRD'))
 # Create a new drawing context
 ctx = GerberCairoContext()
 
+# Set opacity and color for copper layer
+ctx.alpha = 1.0
+ctx.color = theme.COLORS['hasl copper']
+
 # Draw the copper layer
 copper.render(ctx)
 
 # Set opacity and color for soldermask layer
-ctx.alpha = 0.6
-ctx.color = (0.2, 0.2, 0.75)
+ctx.alpha = 0.75
+ctx.color = theme.COLORS['green soldermask']
 
 # Draw the soldermask layer
-mask.render(ctx)
+mask.render(ctx, invert=True)
 
 # Set opacity and color for silkscreen layer
-ctx.alpha = 0.85
-ctx.color = (1, 1, 1)
+ctx.alpha = 1.0
+ctx.color = theme.COLORS['white']
 
 # Draw the silkscreen layer
 silk.render(ctx)
 
 # Set opacity for drill layer
-ctx.alpha = 1.
+ctx.alpha = 1.0
+ctx.color = theme.COLORS['black']
 drill.render(ctx)
 
 # Write output to png file

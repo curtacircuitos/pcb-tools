@@ -243,7 +243,7 @@ class CamFile(object):
         """
         pass
 
-    def render(self, ctx, filename=None):
+    def render(self, ctx, invert=False, filename=None):
         """ Generate image of layer.
 
         Parameters
@@ -256,10 +256,15 @@ class CamFile(object):
         """
         ctx.set_bounds(self.bounds)
         ctx._paint_background()
-        if ctx.invert:
-            ctx._paint_inverted_layer()
 
+        if invert:
+            ctx.invert = True
+            ctx._clear_mask()
         for p in self.primitives:
             ctx.render(p)
+        if invert:
+            ctx.invert = False
+            ctx._render_mask()
+
         if filename is not None:
             ctx.dump(filename)
