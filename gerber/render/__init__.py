@@ -23,5 +23,26 @@ This module provides contexts for rendering images of gerber layers. Currently
 SVG is the only supported format.
 """
 
+from collections import namedtuple
+
+Renderer = namedtuple('Renderer', 'gerber_context pcb_context')
+
+available_renderers = {}
+
 
 from .cairo_backend import GerberCairoContext
+from .cairo_backend import PCBCairoContext
+
+available_renderers['cairo'] = Renderer(
+    gerber_context=GerberCairoContext, pcb_context=PCBCairoContext
+)
+
+
+try:
+    from .freecad_backend import GerberFreecadContext
+    from .freecad_backend import PCBFreecadContext
+    available_renderers['freecad'] = Renderer(
+        gerber_context=GerberFreecadContext, pcb_context=PCBFreecadContext
+    )
+except ImportError:
+    pass

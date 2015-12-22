@@ -243,7 +243,7 @@ class CamFile(object):
         """
         pass
 
-    def render(self, ctx, invert=False, filename=None):
+    def render(self, ctx, invert=False, filename=None, pbar=False):
         """ Generate image of layer.
 
         Parameters
@@ -253,6 +253,9 @@ class CamFile(object):
 
         filename : string <optional>
             If provided, save the rendered image to `filename`
+
+        pbar : bool <optional>
+            If true, render a progress bar
         """
         ctx.set_bounds(self.bounds)
         ctx._paint_background()
@@ -265,6 +268,23 @@ class CamFile(object):
         if invert:
             ctx.invert = False
             ctx._render_mask()
+
+        _pbar = None
+        if pbar:
+            try:
+                from progress.bar import IncrementalBar
+                _pbar = IncrementalBar(
+                    self.filename, max=len(self.primitives)
+                )
+            except ImportError:
+                pbar = False
+
+        for p in self.primitives:
+            ctx.render(p)
+            if pbar:
+                _pbar.next()
+        if pbar:
+            _pbar.finish()
 
         if filename is not None:
             ctx.dump(filename)

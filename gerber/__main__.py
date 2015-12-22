@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Copyright 2013-2014 Paulo Henrique Silva <ph.silva@gmail.com>
+# Copyright 2015 Chintalagiri Shashank <shashank@chintal.in>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,27 +16,71 @@
 # License for the specific language governing permissions and limitations under
 # the License.
 
+import argparse
+from .layers import available_dialects
+from gerber.render import available_renderers
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description='Render gerber files to image',
+        prog='python -m gerber'
+    )
+    parser.add_argument(
+        'filenames', metavar='FILENAME', type=str, nargs='+',
+        help='Gerber files'
+    )
+    parser.add_argument(
+        '--outfile', '-o', metavar='OUTFILE', type=str, nargs='?',
+        default=None,
+        help="Output Filename "
+             "(extension will be added on automatically)"
+    )
+    parser.add_argument(
+        '--backend', '-b', choices=available_renderers.keys(), default='cairo',
+        help='Choose the backend to use to generate the output.'
+    )
+    parser.add_argument(
+        '--dialect', '-d', choices=available_dialects.keys(), default=None,
+        help='Specify the dialect to use to guess layers from the filename.'
+    )
+    parser.add_argument(
+        '--verbose', '-v', action='store_true', default=False,
+        help='Increase verbosity of the output.'
+    )
+    parser.add_argument(
+        '--quick', '-q', action='store_true', default=False,
+        help='Skip longer running rendering steps to produce lower quality'
+             ' output faster.'
+    )
+    parser.add_argument(
+        '--nox', action='store_true', default=False,
+        help='Run without using any GUI elements. This may produce suboptimal'
+             'output. For the freecad backend, colors, transparancy, and '
+             'visibility cannot be set without a GUI instance.'
+    )
+
+    args = parser.parse_args()
+    if args.dialect:
+        if args.dialect in available_dialects.keys():
+            dialect = available_dialects[args.dialect]
+        else:
+            raise ValueError('Unrecognized filename dialect ' + args.dialect)
+    else:
+        from layers import guess_dialect
+        dialect = guess_dialect(args.filenames, verbose=args.verbose)
+
+    if args.backend in available_renderers.keys():
+        renderer = available_renderers[args.backend]
+        pcb_context = renderer.pcb_context(args.filenames, dialect,
+                                           verbose=args.verbose)
+    else:
+        raise ValueError('Unrecognized backend ' + args.backend)
+
+    pcb_context.render(output_filename=args.outfile,
+                       quick=args.quick,
+                       nox=args.nox)
+
+
 if __name__ == '__main__':
-    from gerber.common import read
-    from gerber.render import GerberCairoContext
-    import sys
-
-    if len(sys.argv) < 2:
-        sys.stderr.write("Usage: python -m gerber <filename> <filename>...\n")
-        sys.exit(1)
-
-    ctx = GerberCairoContext()
-    ctx.alpha = 0.95
-    for filename in sys.argv[1:]:
-        print("parsing %s" % filename)
-        if 'GTO' in filename or 'GBO' in filename:
-            ctx.color = (1, 1, 1)
-            ctx.alpha = 0.8
-        elif 'GTS' in filename or 'GBS' in filename:
-            ctx.color = (0.2, 0.2, 0.75)
-            ctx.alpha = 0.8
-        gerberfile = read(filename)
-        gerberfile.render(ctx)
-
-    print('Saving image to test.svg')
-    ctx.dump('test.svg')
+    main()

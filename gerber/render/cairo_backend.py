@@ -15,14 +15,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from .render import GerberContext
+from .render import PCBContext
 
 import cairocffi as cairo
+
+from gerber.common import read
 from operator import mul
 import math
 import tempfile
+import os
 
 from .render import GerberContext
 from ..primitives import *
+
 
 try:
     from cStringIO import StringIO
@@ -231,3 +237,27 @@ class GerberCairoContext(GerberContext):
         self.surface.finish()
         self.surface_buffer.flush()
         return self.surface_buffer.read()
+
+
+class PCBCairoContext(PCBContext):
+    def render(self, output_filename=None, quick=False, nox=False):
+        if self.dialect:
+            self.layers = self.dialect(self.filenames)
+        ctx = GerberCairoContext()
+        ctx.alpha = 0.95
+        for filename in self.filenames:
+            print("parsing %s" % filename)
+            if filename in self.layers.outer_copper_layers:
+                ctx.color = (1, 1, 1)
+                ctx.alpha = 0.8
+            elif filename in self.layers.silk_layers:
+                ctx.color = (0.2, 0.2, 0.75)
+                ctx.alpha = 0.8
+            gerberfile = read(filename)
+            gerberfile.render(ctx)
+        if not output_filename:
+            output_filename = self.layers.pcbname
+        if os.path.splitext(output_filename)[1].upper() != 'SVG':
+            output_filename += '.svg'
+        print('Saving image to {0}'.format(output_filename))
+        ctx.dump(output_filename)

@@ -16,6 +16,7 @@
 # limitations under the License.
 import math
 from operator import add, sub
+from copy import deepcopy
 
 from .utils import validate_coordinates, inch, metric
 
@@ -113,6 +114,10 @@ class Line(Primitive):
         self._to_convert = ['start', 'end', 'aperture']
 
     @property
+    def length(self):
+        return math.sqrt((self.start[0] - self.end[0]) ** 2 + (self.start[1] - self.end[1]) ** 2)
+
+    @property
     def angle(self):
         delta_x, delta_y = tuple(map(sub, self.end, self.start))
         angle = math.atan2(delta_y, delta_x)
@@ -183,6 +188,13 @@ class Line(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.start = tuple(map(add, self.start, (x_offset, y_offset)))
         self.end = tuple(map(add, self.end, (x_offset, y_offset)))
+
+    @property
+    def reversed(self):
+        rline = deepcopy(self)
+        rline.start = self.end
+        rline.end = self.start
+        return rline
 
 
 class Arc(Primitive):
@@ -267,6 +279,17 @@ class Arc(Primitive):
         self.end = tuple(map(add, self.end, (x_offset, y_offset)))
         self.center = tuple(map(add, self.center, (x_offset, y_offset)))
 
+    @property
+    def reversed(self):
+        rarc = deepcopy(self)
+        rarc.start = self.end
+        rarc.end = self.start
+        if self.direction == 'clockwise':
+            rarc.direction = 'counterclockwise'
+        else:
+            rarc.direction = 'clockwise'
+        return rarc
+
 
 class Circle(Primitive):
     """
@@ -322,7 +345,7 @@ class Ellipse(Primitive):
         ux = (self.width / 2.) * math.cos(math.radians(self.rotation))
         vx = (self.height / 2.) * math.cos(math.radians(self.rotation) + (math.pi / 2.))
         return 2 * math.sqrt((ux * ux) + (vx * vx))
-    
+
     @property
     def _abs_height(self):
         uy = (self.width / 2.) * math.sin(math.radians(self.rotation))
@@ -340,7 +363,7 @@ class Rectangle(Primitive):
         self.width = width
         self.height = height
         self._to_convert = ['position', 'width', 'height']
-        
+
 
     @property
     def lower_left(self):
@@ -371,7 +394,7 @@ class Rectangle(Primitive):
     def _abs_height(self):
         return (math.cos(math.radians(self.rotation)) * self.height +
                 math.sin(math.radians(self.rotation)) * self.width)
-        
+
 
 class Diamond(Primitive):
     """
@@ -453,10 +476,12 @@ class ChamferRectangle(Primitive):
     def _abs_width(self):
         return (math.cos(math.radians(self.rotation)) * self.width +
                 math.sin(math.radians(self.rotation)) * self.height)
+
     @property
     def _abs_height(self):
         return (math.cos(math.radians(self.rotation)) * self.height +
                 math.sin(math.radians(self.rotation)) * self.width)
+
 
 class RoundRectangle(Primitive):
     """
