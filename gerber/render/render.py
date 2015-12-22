@@ -31,7 +31,6 @@ from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
                                  QuadrantModeStmt,)
 
 
-
 class GerberContext(object):
     """ Gerber rendering context base class
 

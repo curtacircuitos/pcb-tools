@@ -260,15 +260,6 @@ class CamFile(object):
         ctx.set_bounds(self.bounds)
         ctx._paint_background()
 
-        if invert:
-            ctx.invert = True
-            ctx._clear_mask()
-        for p in self.primitives:
-            ctx.render(p)
-        if invert:
-            ctx.invert = False
-            ctx._render_mask()
-
         _pbar = None
         if pbar:
             try:
@@ -279,10 +270,17 @@ class CamFile(object):
             except ImportError:
                 pbar = False
 
+        if invert:
+            ctx.invert = True
+            ctx._clear_mask()
         for p in self.primitives:
             ctx.render(p)
             if pbar:
                 _pbar.next()
+        if invert:
+            ctx.invert = False
+            ctx._render_mask()
+
         if pbar:
             _pbar.finish()
 
