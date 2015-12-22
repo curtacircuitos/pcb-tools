@@ -236,6 +236,13 @@ class GerberContext(object):
 class PCBContext(object):
     def __init__(self, filenames, dialect, verbose):
         self.filenames = filenames
+        if isinstance(dialect, str):
+            from ..layers import available_dialects
+            try:
+                dialect = available_dialects[dialect]
+            except KeyError:
+                raise AttributeError('Dialect not recognized : ' + dialect)
+
         self.dialect = dialect
         self.verbose = verbose
         self.layers = None
