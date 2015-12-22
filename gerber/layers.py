@@ -273,6 +273,8 @@ class GedaGerberLayerDialect(GerberLayerDialect):
             elif name.endswith('.bottomsilk'):
                 self._pcbname = name[:-(len('.bottomsilk'))]
                 return 'bottomsilk'
+            elif 'group' in name:
+                return 'internal'
             elif name.endswith('.fab'):
                 return 'fab'
             elif name.endswith('.outline'):
