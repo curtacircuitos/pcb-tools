@@ -26,6 +26,7 @@ files.
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 # License:
 
+import os
 from math import radians, sin, cos
 from operator import sub
 
@@ -163,7 +164,7 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     return ''.join(digits) if not negative else ''.join(['-'] + digits)
 
 
-def decimal_string(value, precision=6, padding=False):
+def decimal_string(value, precision=6, padding=False, allow_int=False):
     """ Convert float to string with limited precision
 
     Parameters
@@ -195,6 +196,9 @@ def decimal_string(value, precision=6, padding=False):
     elif padding:
         decimal = decimal + (precision - len(decimal)) * '0'
 
+    if allow_int and (len(decimal.strip("0")) == 0):
+        return "{}".format(int(integer))
+
     if integer or decimal:
         return ''.join([integer, '.', decimal])
     else:
@@ -219,7 +223,7 @@ def detect_file_format(data):
         if 'M48' in line:
             return 'excellon'
         elif '%FS' in line:
-            return'rs274x'
+            return 'rs274x'
     return 'unknown'
 
 

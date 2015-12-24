@@ -19,7 +19,7 @@
 """
 
 from .am_eval import OpCode, eval_macro
-
+from .utils import decimal_string
 import string
 
 
@@ -238,6 +238,37 @@ def read_macro(macro):
             instructions.append((OpCode.STORE, equation_left_side))
 
     return instructions
+
+
+def write_macro(instructions, settings):
+    stack = []
+    macro_string = ''
+    var = ''
+    precision = settings.format[1] if settings is not None else 5
+    for opcode, value in instructions:
+        if opcode == OpCode.PUSH:
+            stack.append('{}'.format(decimal_string(value, precision, allow_int=True)))
+        elif opcode == OpCode.LOAD:
+            stack.append('${}'.format(int(value)))
+        elif opcode == OpCode.ADD:
+            op2 = stack.pop()
+            op1 = stack.pop()
+            stack.append('{}+{}'.format(op1, op2))
+        elif opcode == OpCode.SUB:
+            op2 = stack.pop()
+            op1 = stack.pop()
+            stack.append('{}-{}'.format(op1, op2))
+        elif opcode == OpCode.MUL:
+            op2 = stack.pop()
+            op1 = stack.pop()
+            stack.append('{}X{}'.format(op1, op2))
+        elif opcode == OpCode.DIV:
+            op2 = stack.pop()
+            op1 = stack.pop()
+            stack.append('{}/{}'.format(op1, op2))
+        elif opcode == OpCode.PRIM:
+            stack = ['{}'.format(int(value))] + stack
+    return ",".join(stack)
 
 if __name__ == '__main__':
     import sys
