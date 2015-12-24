@@ -24,7 +24,7 @@ from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
                     inch, metric)
 
 from .am_statements import *
-from .am_read import read_macro
+from .am_read import read_macro, write_macro
 from .am_eval import eval_macro
 
 
@@ -157,7 +157,7 @@ class FSParamStmt(ParamStmt):
 
         return '%FS{0}{1}X{2}Y{3}*%'.format(zero_suppression, notation, fmt, fmt)
 
-    
+
 
     def __str__(self):
         return ('<Format Spec: %d:%d %s zero suppression %s notation>' %
@@ -299,12 +299,12 @@ class ADParamStmt(ParamStmt):
 
     def to_inch(self):
         if self.units == 'metric':
-            self.units = 'inch'    
+            self.units = 'inch'
             self.modifiers = [tuple([inch(x) for x in modifier]) for modifier in self.modifiers]
 
     def to_metric(self):
         if self.units == 'inch':
-            self.units = 'metric'    
+            self.units = 'metric'
             self.modifiers = [tuple([metric(x) for x in modifier]) for modifier in self.modifiers]
 
     def to_gerber(self, settings=None):
@@ -402,7 +402,8 @@ class AMParamStmt(ParamStmt):
                 primitive.to_metric()
 
     def to_gerber(self, settings=None):
-        return '%AM{0}*{1}%'.format(self.name, "".join([primitive.to_gerber() for primitive in self.primitives]))
+        #return '%AM{0}*{1}*%'.format(self.name, "".join([primitive.to_gerber() for primitive in self.primitives]))
+        return '%AM{0}*{1}*%'.format(self.name, write_macro(self.instructions, settings))
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, self.macro)

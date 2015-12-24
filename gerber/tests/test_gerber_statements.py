@@ -449,7 +449,8 @@ def test_AMParamStmt_dump():
     macro = '5,1,8,25.4,25.4,25.4,0.0'
     s = AMParamStmt.from_dict({'param': 'AM', 'name': name, 'macro': macro })
     s.build()
-    assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0.0*%')
+    #assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0.0*%')
+    assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0*%')
 
     s = AMParamStmt.from_dict({'param': 'AM', 'name': 'OC8', 'macro': '5,1,8,0,0,1.08239X$1,22.5'})
     s.build()
