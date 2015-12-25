@@ -43,7 +43,15 @@ class Primitive(object):
         self._to_convert = list()
         self.id = id
         self.statement_id = statement_id
+        
+    @property
+    def flashed(self):
+        '''Is this a flashed primitive'''
+        
+        raise NotImplementedError('Is flashed must be '
+                                  'implemented in subclass')
 
+    @property
     def bounding_box(self):
         """ Calculate bounding box
 
@@ -53,6 +61,17 @@ class Primitive(object):
         """
         raise NotImplementedError('Bounding box calculation must be '
                                   'implemented in subclass')
+        
+    @property
+    def bounding_box_no_aperture(self):
+        """ Calculate bouxing box without considering the aperture
+        
+        for most objects, this is the same as the bounding_box, but is different for
+        Lines and Arcs (which are not flashed)
+        
+        Return ((min x, max x), (min y, max y))
+        """
+        return self.bounding_box
 
     def to_inch(self):
         if self.units == 'metric':
@@ -111,6 +130,10 @@ class Line(Primitive):
         self.end = end
         self.aperture = aperture
         self._to_convert = ['start', 'end', 'aperture']
+    
+    @property 
+    def flashed(self):
+        return False
 
     @property
     def angle(self):
@@ -130,6 +153,15 @@ class Line(Primitive):
         max_x = max(self.start[0], self.end[0]) + width_2
         min_y = min(self.start[1], self.end[1]) - height_2
         max_y = max(self.start[1], self.end[1]) + height_2
+        return ((min_x, max_x), (min_y, max_y))
+    
+    @property
+    def bounding_box_no_aperture(self):
+        '''Gets the bounding box without the aperture'''
+        min_x = min(self.start[0], self.end[0])
+        max_x = max(self.start[0], self.end[0])
+        min_y = min(self.start[1], self.end[1])
+        max_y = max(self.start[1], self.end[1])
         return ((min_x, max_x), (min_y, max_y))
 
     @property
@@ -197,6 +229,10 @@ class Arc(Primitive):
         self.aperture = aperture
         self._to_convert = ['start', 'end', 'center', 'aperture']
 
+    @property 
+    def flashed(self):
+        return False
+    
     @property
     def radius(self):
         dy, dx = map(sub, self.start, self.center)
@@ -270,6 +306,47 @@ class Arc(Primitive):
         min_y = min(y) - radius
         max_y = max(y) + radius
         return ((min_x, max_x), (min_y, max_y))
+    
+    @property
+    def bounding_box_no_aperture(self):
+        '''Gets the bounding box without considering the aperture'''
+        two_pi = 2 * math.pi
+        theta0 = (self.start_angle + two_pi) % two_pi
+        theta1 = (self.end_angle + two_pi) % two_pi
+        points = [self.start, self.end]
+        if self.direction == 'counterclockwise':
+            # Passes through 0 degrees
+            if theta0 > theta1:
+                points.append((self.center[0] + self.radius, self.center[1]))
+            # Passes through 90 degrees
+            if theta0 <= math.pi / 2. and (theta1 >= math.pi / 2. or theta1 < theta0):
+                points.append((self.center[0], self.center[1] + self.radius))
+            # Passes through 180 degrees
+            if theta0 <= math.pi and (theta1 >= math.pi or theta1 < theta0):
+                points.append((self.center[0] - self.radius, self.center[1]))
+            # Passes through 270 degrees
+            if theta0 <= math.pi * 1.5 and (theta1 >= math.pi * 1.5 or theta1 < theta0):
+                points.append((self.center[0], self.center[1] - self.radius ))
+        else:
+             # Passes through 0 degrees
+            if theta1 > theta0:
+                points.append((self.center[0] + self.radius, self.center[1]))
+            # Passes through 90 degrees
+            if theta1 <= math.pi / 2. and (theta0 >= math.pi / 2. or theta0 < theta1):
+                points.append((self.center[0], self.center[1] + self.radius))
+            # Passes through 180 degrees
+            if theta1 <= math.pi and (theta0 >= math.pi or theta0 < theta1):
+                points.append((self.center[0] - self.radius, self.center[1]))
+            # Passes through 270 degrees
+            if theta1 <= math.pi * 1.5 and (theta0 >= math.pi * 1.5 or theta0 < theta1):
+                points.append((self.center[0], self.center[1] - self.radius ))
+        x, y = zip(*points)
+            
+        min_x = min(x)
+        max_x = max(x)
+        min_y = min(y)
+        max_y = max(y)
+        return ((min_x, max_x), (min_y, max_y))
 
     def offset(self, x_offset=0, y_offset=0):
         self.start = tuple(map(add, self.start, (x_offset, y_offset)))
@@ -287,6 +364,10 @@ class Circle(Primitive):
         self.diameter = diameter
         self._to_convert = ['position', 'diameter']
 
+    @property 
+    def flashed(self):
+        return True
+    
     @property
     def radius(self):
         return self.diameter / 2.
@@ -314,6 +395,9 @@ class Ellipse(Primitive):
         self.height = height
         self._to_convert = ['position', 'width', 'height']
 
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def bounding_box(self):
@@ -350,7 +434,10 @@ class Rectangle(Primitive):
         self.height = height
         self._to_convert = ['position', 'width', 'height']
         
-
+    @property 
+    def flashed(self):
+        return True
+    
     @property
     def lower_left(self):
         return (self.position[0] - (self._abs_width / 2.),
@@ -392,6 +479,10 @@ class Diamond(Primitive):
         self.width = width
         self.height = height
         self._to_convert = ['position', 'width', 'height']
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def lower_left(self):
@@ -436,6 +527,10 @@ class ChamferRectangle(Primitive):
         self.chamfer = chamfer
         self.corners = corners
         self._to_convert = ['position', 'width', 'height', 'chamfer']
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def lower_left(self):
@@ -479,6 +574,10 @@ class RoundRectangle(Primitive):
         self.radius = radius
         self.corners = corners
         self._to_convert = ['position', 'width', 'height', 'radius']
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def lower_left(self):
@@ -520,6 +619,10 @@ class Obround(Primitive):
         self.width = width
         self.height = height
         self._to_convert = ['position', 'width', 'height']
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def lower_left(self):
@@ -583,6 +686,10 @@ class Polygon(Primitive):
         self.sides = sides
         self.radius = radius
         self._to_convert = ['position', 'radius']
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def bounding_box(self):
@@ -603,6 +710,10 @@ class Region(Primitive):
         super(Region, self).__init__(**kwargs)
         self.primitives = primitives
         self._to_convert = ['primitives']
+        
+    @property 
+    def flashed(self):
+        return False
 
     @property
     def bounding_box(self):
@@ -629,6 +740,10 @@ class RoundButterfly(Primitive):
         self.position = position
         self.diameter = diameter
         self._to_convert = ['position', 'diameter']
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def radius(self):
@@ -655,7 +770,10 @@ class SquareButterfly(Primitive):
         self.position = position
         self.side = side
         self._to_convert = ['position', 'side']
-
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def bounding_box(self):
@@ -691,6 +809,10 @@ class Donut(Primitive):
             self.width = 0.5 * math.sqrt(3.) * outer_diameter
             self.height = outer_diameter
         self._to_convert = ['position', 'width', 'height', 'inner_diameter', 'outer_diameter']
+        
+    @property 
+    def flashed(self):
+        return True
 
     @property
     def lower_left(self):
@@ -726,7 +848,11 @@ class SquareRoundDonut(Primitive):
         self.inner_diameter = inner_diameter
         self.outer_diameter = outer_diameter
         self._to_convert = ['position', 'inner_diameter', 'outer_diameter']
-
+        
+    @property 
+    def flashed(self):
+        return True
+    
     @property
     def lower_left(self):
         return tuple([c - self.outer_diameter / 2. for c in self.position])
@@ -757,6 +883,10 @@ class Drill(Primitive):
         self.diameter = diameter
         self.hit = hit
         self._to_convert = ['position', 'diameter']
+        
+    @property 
+    def flashed(self):
+        return False
 
     @property
     def radius(self):
