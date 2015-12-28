@@ -60,7 +60,7 @@ class ExcellonToolDefinitionParser(object):
     matchers = [
                 (allegro_tool, 'mils'),
                 (allegro_comment_mils, 'mils'),
-                (allegro_comment_mils, 'mm'),
+                (allegro_comment_mm, 'mm'),
                 ]
     
     def __init__(self, settings=None):
