@@ -18,6 +18,7 @@ import math
 from operator import add, sub
 
 from .utils import validate_coordinates, inch, metric
+from jsonpickle.util import PRIMITIVES
 
 
 class Primitive(object):
@@ -425,6 +426,10 @@ class Ellipse(Primitive):
 
 class Rectangle(Primitive):
     """
+    When rotated, the rotation is about the center point.
+    
+    Only aperture macro generated Rectangle objects can be rotated. If you aren't in a AMGroup,
+    then you don't need to worry about rotation
     """
     def __init__(self, position, width, height, **kwargs):
         super(Rectangle, self).__init__(**kwargs)
@@ -702,6 +707,57 @@ class Polygon(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
 
+class AMGroup(Primitive):
+    """
+    """
+    def __init__(self, amprimitives, **kwargs):
+        super(AMGroup, self).__init__(**kwargs)
+        
+        self.primitives = []
+        for amprim in amprimitives:
+            prim = amprim.to_primitive(self.units)
+            if prim:
+               self.primitives.append(prim)
+        self._position = None
+        self._to_convert = ['arimitives']
+        
+    @property
+    def flashed(self):
+        return True
+    
+    @property
+    def bounding_box(self):
+        xlims, ylims = zip(*[p.bounding_box for p in self.primitives])
+        minx, maxx = zip(*xlims)
+        miny, maxy = zip(*ylims)
+        min_x = min(minx)
+        max_x = max(maxx)
+        min_y = min(miny)
+        max_y = max(maxy)
+        return ((min_x, max_x), (min_y, max_y))
+    
+    @property
+    def position(self):
+        return self._position
+    
+    @position.setter
+    def position(self, new_pos):
+        '''
+        Sets the position of the AMGroup.
+        This offset all of the objects by the specified distance.
+        '''
+        
+        if self._position:
+            dx = new_pos[0] - self._position[0]
+            dy = new_pos[0] - self._position[0]
+        else:
+            dx = new_pos[0]
+            dy = new_pos[1]
+        
+        for primitive in self.primitives:
+            primitive.offset(dx, dy)
+            
+        self._position = new_pos
 
 class Region(Primitive):
     """

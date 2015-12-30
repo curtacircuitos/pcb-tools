@@ -26,6 +26,7 @@ from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
 from .am_statements import *
 from .am_read import read_macro
 from .am_eval import eval_macro
+from .primitives import AMGroup
 
 
 class Statement(object):
@@ -388,6 +389,8 @@ class AMParamStmt(ParamStmt):
                 self.primitives.append(AMThermalPrimitive.from_gerber(primitive))
             else:
                 self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
+                
+        return AMGroup(self.primitives, units=self.units)
 
     def to_inch(self):
         if self.units == 'metric':

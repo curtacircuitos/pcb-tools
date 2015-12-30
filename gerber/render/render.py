@@ -150,6 +150,8 @@ class GerberContext(object):
             self._render_polygon(primitive, color)
         elif isinstance(primitive, Drill):
             self._render_drill(primitive, self.drill_color)
+        elif isinstance(primitive, AMGroup):
+            self._render_amgroup(primitive, color)
         elif isinstance(primitive, TestRecord):
             self._render_test_record(primitive, color)
         else:
@@ -177,6 +179,9 @@ class GerberContext(object):
         pass
 
     def _render_drill(self, primitive, color):
+        pass
+    
+    def _render_amgroup(self, primitive, color):
         pass
 
     def _render_test_record(self, primitive, color):

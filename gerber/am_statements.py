@@ -16,7 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from math import pi
 from .utils import validate_coordinates, inch, metric
+from .primitives import Circle, Line, Rectangle
 
 
 # TODO: Add support for aperture macro variables
@@ -67,6 +69,12 @@ class AMPrimitive(object):
 
     def to_metric(self):
         raise NotImplementedError('Subclass must implement `to-metric`')
+    
+    def to_primitive(self, units):
+        """
+        Convert to a primitive, as defines the primitives module (for drawing)
+        """
+        raise NotImplementedError('Subclass must implement `to-primitive`')
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -119,6 +127,12 @@ class AMCommentPrimitive(AMPrimitive):
 
     def to_gerber(self, settings=None):
         return '0 %s *' % self.comment
+
+    def to_primitive(self, units):
+        """
+        Returns None - has not primitive representation
+        """
+        return None
 
     def __str__(self):
         return '<Aperture Macro Comment: %s>' % self.comment
@@ -188,6 +202,9 @@ class AMCirclePrimitive(AMPrimitive):
                     x = self.position[0],
                     y = self.position[1])
         return '{code},{exposure},{diameter},{x},{y}*'.format(**data)
+
+    def to_primitive(self, units):
+        return Circle((self.position), self.diameter, units=units)
 
 
 class AMVectorLinePrimitive(AMPrimitive):
@@ -273,6 +290,9 @@ class AMVectorLinePrimitive(AMPrimitive):
                     endy = self.end[1],
                     rotation = self.rotation)
         return fmtstr.format(**data)
+    
+    def to_primitive(self, units):
+        return Line(self.start, self.end, Rectangle(None, self.width, self.width), units=units)
 
 
 class AMOutlinePrimitive(AMPrimitive):
@@ -360,6 +380,9 @@ class AMOutlinePrimitive(AMPrimitive):
             rotation=str(self.rotation)
         )
         return "{code},{exposure},{n_points},{start_point},{points},{rotation}*".format(**data)
+    
+    def to_primitive(self, units):
+        raise NotImplementedError()
 
 
 class AMPolygonPrimitive(AMPrimitive):
@@ -450,6 +473,9 @@ class AMPolygonPrimitive(AMPrimitive):
         )
         fmt = "{code},{exposure},{vertices},{position},{diameter},{rotation}*"
         return fmt.format(**data)
+    
+    def to_primitive(self, units):
+        raise NotImplementedError()
 
 
 class AMMoirePrimitive(AMPrimitive):
@@ -562,6 +588,9 @@ class AMMoirePrimitive(AMPrimitive):
         fmt = "{code},{position},{diameter},{ring_thickness},{gap},{max_rings},{crosshair_thickness},{crosshair_length},{rotation}*"
         return fmt.format(**data)
 
+    def to_primitive(self, units):
+        raise NotImplementedError()
+
 
 class AMThermalPrimitive(AMPrimitive):
     """ Aperture Macro Thermal primitive. Code 7.
@@ -646,6 +675,9 @@ class AMThermalPrimitive(AMPrimitive):
         fmt = "{code},{position},{outer_diameter},{inner_diameter},{gap}*"
         return fmt.format(**data)
 
+    def to_primitive(self, units):
+        raise NotImplementedError()
+
 
 class AMCenterLinePrimitive(AMPrimitive):
     """ Aperture Macro Center Line primitive. Code 21.
@@ -729,6 +761,9 @@ class AMCenterLinePrimitive(AMPrimitive):
         fmt = "{code},{exposure},{width},{height},{center},{rotation}*"
         return fmt.format(**data)
 
+    def to_primitive(self, units):
+        return Rectangle(self.center, self.width, self.height, rotation=self.rotation * pi / 180.0, units=units)
+
 
 class AMLowerLeftLinePrimitive(AMPrimitive):
     """ Aperture Macro Lower Left Line primitive. Code 22.
@@ -811,6 +846,9 @@ class AMLowerLeftLinePrimitive(AMPrimitive):
         fmt = "{code},{exposure},{width},{height},{lower_left},{rotation}*"
         return fmt.format(**data)
 
+    def to_primitive(self, units):
+        raise NotImplementedError()
+
 
 class AMUnsupportPrimitive(AMPrimitive):
     @classmethod
@@ -829,3 +867,6 @@ class AMUnsupportPrimitive(AMPrimitive):
 
     def to_gerber(self, settings=None):
         return self.primitive
+
+    def to_primitive(self, units):
+        return None

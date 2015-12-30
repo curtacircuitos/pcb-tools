@@ -122,11 +122,27 @@ class GerberCairoContext(GerberContext):
     def _render_rectangle(self, rectangle, color):
         ll = map(mul, rectangle.lower_left, self.scale)
         width, height = tuple(map(mul, (rectangle.width, rectangle.height), map(abs, self.scale)))
+        
+        if rectangle.rotation != 0:
+            self.ctx.save()
+            
+            center = map(mul, rectangle.position, self.scale)
+            matrix = cairo.Matrix()
+            matrix.translate(center[0], center[1])
+            # For drawing, we already handles the translation
+            ll[0] = ll[0] - center[0]
+            ll[1] = ll[1] - center[1]
+            matrix.rotate(rectangle.rotation)
+            self.ctx.transform(matrix)
+            
         self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
         self.ctx.set_operator(cairo.OPERATOR_OVER if (rectangle.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)        
         self.ctx.set_line_width(0)
         self.ctx.rectangle(ll[0], ll[1], width, height)
         self.ctx.fill()
+        
+        if rectangle.rotation != 0:
+            self.ctx.restore()
 
     def _render_obround(self, obround, color):
         self._render_circle(obround.subshapes['circle1'], color)
@@ -135,6 +151,10 @@ class GerberCairoContext(GerberContext):
 
     def _render_drill(self, circle, color):
         self._render_circle(circle, color)
+        
+    def _render_amgroup(self, amgroup, color):
+        for primitive in amgroup.primitives:
+            self.render(primitive)
 
     def _render_test_record(self, primitive, color):
         self.ctx.select_font_face('monospace', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)
