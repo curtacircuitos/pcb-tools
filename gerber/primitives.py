@@ -17,7 +17,7 @@
 import math
 from operator import add, sub
 
-from .utils import validate_coordinates, inch, metric
+from .utils import validate_coordinates, inch, metric, rotate_point
 from jsonpickle.util import PRIMITIVES
 
 
@@ -683,6 +683,7 @@ class Obround(Primitive):
 
 class Polygon(Primitive):
     """
+    Polygon flash defined by a set number of sized.
     """
     def __init__(self, position, sides, radius, **kwargs):
         super(Polygon, self).__init__(**kwargs)
@@ -706,6 +707,18 @@ class Polygon(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+        
+    @property
+    def vertices(self):
+        
+        offset = math.degrees(self.rotation)
+        da = 360.0 / self.sides
+        
+        points = []
+        for i in xrange(self.sides):
+            points.append(rotate_point((self.position[0] + self.radius, self.position[1]), offset + da * i, self.position))
+        
+        return points
 
 class AMGroup(Primitive):
     """

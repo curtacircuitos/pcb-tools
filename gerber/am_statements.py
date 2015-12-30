@@ -18,7 +18,7 @@
 
 import math
 from .utils import validate_coordinates, inch, metric, rotate_point
-from .primitives import Circle, Line, Outline, Rectangle
+from .primitives import Circle, Line, Outline, Polygon, Rectangle
 
 
 # TODO: Add support for aperture macro variables
@@ -483,7 +483,7 @@ class AMPolygonPrimitive(AMPrimitive):
         return fmt.format(**data)
     
     def to_primitive(self, units):
-        raise NotImplementedError()
+        return Polygon(self.position, self.vertices, self.diameter / 2.0, rotation=math.radians(self.rotation), units=units)
 
 
 class AMMoirePrimitive(AMPrimitive):

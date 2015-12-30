@@ -148,6 +148,22 @@ class GerberCairoContext(GerberContext):
         self._render_circle(obround.subshapes['circle1'], color)
         self._render_circle(obround.subshapes['circle2'], color)
         self._render_rectangle(obround.subshapes['rectangle'], color)
+        
+    def _render_polygon(self, polygon, color):
+        vertices = polygon.vertices 
+        
+        self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
+        self.ctx.set_operator(cairo.OPERATOR_OVER if (polygon.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
+        self.ctx.set_line_width(0)
+        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        
+        # Start from before the end so it is easy to iterate and make sure it is closed
+        self.ctx.move_to(*map(mul, vertices[-1], self.scale))
+        for v in vertices:
+            self.ctx.line_to(*map(mul, v, self.scale))
+
+        self.ctx.fill()
+        
 
     def _render_drill(self, circle, color):
         self._render_circle(circle, color)
