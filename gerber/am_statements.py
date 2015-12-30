@@ -16,9 +16,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from math import pi
-from .utils import validate_coordinates, inch, metric
-from .primitives import Circle, Line, Rectangle
+import math
+from .utils import validate_coordinates, inch, metric, rotate_point
+from .primitives import Circle, Line, Outline, Rectangle
 
 
 # TODO: Add support for aperture macro variables
@@ -382,7 +382,15 @@ class AMOutlinePrimitive(AMPrimitive):
         return "{code},{exposure},{n_points},{start_point},{points},{rotation}*".format(**data)
     
     def to_primitive(self, units):
-        raise NotImplementedError()
+        
+        lines = []
+        prev_point = rotate_point(self.points[0], self.rotation)
+        for point in self.points[1:]:
+            cur_point = rotate_point(self.points[0], self.rotation)
+            
+            lines.append(Line(prev_point, cur_point, Circle((0,0), 0)))
+        
+        return Outline(lines, units=units)
 
 
 class AMPolygonPrimitive(AMPrimitive):
@@ -762,7 +770,7 @@ class AMCenterLinePrimitive(AMPrimitive):
         return fmt.format(**data)
 
     def to_primitive(self, units):
-        return Rectangle(self.center, self.width, self.height, rotation=self.rotation * pi / 180.0, units=units)
+        return Rectangle(self.center, self.width, self.height, rotation=math.radians(self.rotation), units=units)
 
 
 class AMLowerLeftLinePrimitive(AMPrimitive):

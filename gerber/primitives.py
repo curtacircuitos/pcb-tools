@@ -758,6 +758,47 @@ class AMGroup(Primitive):
             primitive.offset(dx, dy)
             
         self._position = new_pos
+        
+
+class Outline(Primitive):
+    """
+    Outlines only exist as the rendering for a apeture macro outline.
+    They don't exist outside of AMGroup objects
+    """
+    def __init__(self, primitives, **kwargs):
+        super(Outline, self).__init__(**kwargs)
+        self.primitives = primitives
+        self._to_convert = ['primitives']
+        
+    @property 
+    def flashed(self):
+        return True
+
+    @property
+    def bounding_box(self):
+        xlims, ylims = zip(*[p.bounding_box for p in self.primitives])
+        minx, maxx = zip(*xlims)
+        miny, maxy = zip(*ylims)
+        min_x = min(minx)
+        max_x = max(maxx)
+        min_y = min(miny)
+        max_y = max(maxy)
+        return ((min_x, max_x), (min_y, max_y))
+
+    def offset(self, x_offset=0, y_offset=0):
+        for p in self.primitives:
+            p.offset(x_offset, y_offset)
+
+    @property
+    def width(self):
+        bounding_box = self.bounding_box()
+        return bounding_box[0][1] - bounding_box[0][0]
+    
+    @property
+    def width(self):
+        bounding_box = self.bounding_box()
+        return bounding_box[1][1] - bounding_box[1][0]
+
 
 class Region(Primitive):
     """

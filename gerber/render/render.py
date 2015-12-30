@@ -152,6 +152,8 @@ class GerberContext(object):
             self._render_drill(primitive, self.drill_color)
         elif isinstance(primitive, AMGroup):
             self._render_amgroup(primitive, color)
+        elif isinstance(primitive, Outline):
+            self._render_region(primitive, color)
         elif isinstance(primitive, TestRecord):
             self._render_test_record(primitive, color)
         else:
