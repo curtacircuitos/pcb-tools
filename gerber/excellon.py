@@ -480,6 +480,7 @@ class ExcellonParser(object):
         elif line[:4] == 'FMAT':
             stmt = FormatStmt.from_excellon(line)
             self.statements.append(stmt)
+            self.format = stmt.format_tuple
 
         elif line[:3] == 'G40':
             self.statements.append(CutterCompensationOffStmt())

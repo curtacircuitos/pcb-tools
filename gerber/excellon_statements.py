@@ -670,6 +670,10 @@ class FormatStmt(ExcellonStatement):
 
     def to_excellon(self, settings=None):
         return 'FMAT,%d' % self.format
+    
+    @property
+    def format_tuple(self):
+        return (self.format, 6 - self.format)
 
 
 class LinkToolStmt(ExcellonStatement):
