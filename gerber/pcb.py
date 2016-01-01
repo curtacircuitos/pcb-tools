@@ -21,7 +21,6 @@ from .exceptions import ParseError
 from .layers import PCBLayer, LayerSet, sort_layers
 from .common import read as gerber_read
 from .utils import listdir
-from .render import theme
 
 
 class PCB(object):
@@ -58,21 +57,9 @@ class PCB(object):
     def __init__(self, layers, name=None):
         self.layers = sort_layers(layers)
         self.name = name
-        self._theme = theme.THEMES['Default']
-        self.theme = self._theme
 
     def __len__(self):
         return len(self.layers)
-
-    @property
-    def theme(self):
-        return self._theme
-
-    @theme.setter
-    def theme(self, theme):
-        self._theme = theme
-        for layer in self.layers:
-            layer.settings = theme[layer.layer_class]
 
     @property
     def top_layers(self):

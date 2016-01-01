@@ -21,7 +21,8 @@ from operator import mul
 import math
 import tempfile
 
-from .render import GerberContext
+from .render import GerberContext, RenderSettings
+from .theme import THEMES
 from ..primitives import *
 
 try:
@@ -41,6 +42,15 @@ class GerberCairoContext(GerberContext):
         self.mask_ctx = None
         self.origin_in_inch = None
         self.size_in_inch = None
+        self._xform_matrix = None
+
+    @property
+    def origin_in_pixels(self):
+        return tuple(map(mul, self.origin_in_inch, self.scale)) if self.origin_in_inch is not None else (0.0, 0.0)
+
+    @property
+    def size_in_pixels(self):
+        return tuple(map(mul, self.size_in_inch, self.scale)) if self.size_in_inch is not None else (0.0, 0.0)
 
     def set_bounds(self, bounds, new_surface=False):
         origin_in_inch = (bounds[0][0], bounds[1][0])
@@ -60,34 +70,56 @@ class GerberCairoContext(GerberContext):
             self.mask_ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
             self.mask_ctx.scale(1, -1)
             self.mask_ctx.translate(-(origin_in_inch[0] * self.scale[0]), (-origin_in_inch[1]*self.scale[0]) - size_in_pixels[1])
+        self._xform_matrix = cairo.Matrix(xx=1.0, yy=-1.0, x0=-self.origin_in_pixels[0], y0=self.size_in_pixels[1] + self.origin_in_pixels[1])
 
-    def render_layers(self, layers, filename):
+    def render_layers(self, layers, filename, theme=THEMES['default']):
         """ Render a set of layers
         """
         self.set_bounds(layers[0].bounds, True)
         self._paint_background(True)
         for layer in layers:
-            self._render_layer(layer)
+            self._render_layer(layer, theme)
         self.dump(filename)
 
-    @property
-    def origin_in_pixels(self):
-        return tuple(map(mul, self.origin_in_inch, self.scale)) if self.origin_in_inch is not None else (0.0, 0.0)
+    def dump(self, filename):
+        """ Save image as `filename`
+        """
+        is_svg = filename.lower().endswith(".svg")
+        if is_svg:
+            self.surface.finish()
+            self.surface_buffer.flush()
+            with open(filename, "w") as f:
+                self.surface_buffer.seek(0)
+                f.write(self.surface_buffer.read())
+                f.flush()
+        else:
+            self.surface.write_to_png(filename)
 
-    @property
-    def size_in_pixels(self):
-        return tuple(map(mul, self.size_in_inch, self.scale)) if self.size_in_inch is not None else (0.0, 0.0)
+    def dump_str(self):
+        """ Return a string containing the rendered image.
+        """
+        fobj = StringIO()
+        self.surface.write_to_png(fobj)
+        return fobj.getvalue()
 
-    def _render_layer(self, layer):
-        self.color = layer.settings.color
-        self.alpha = layer.settings.alpha
-        self.invert = layer.settings.invert
-        if layer.settings.mirror:
+    def dump_svg_str(self):
+        """ Return a string containg the rendered SVG.
+        """
+        self.surface.finish()
+        self.surface_buffer.flush()
+        return self.surface_buffer.read()
+
+    def _render_layer(self, layer, theme=THEMES['default']):
+        settings = theme.get(layer.layer_class, RenderSettings())
+        self.color = settings.color
+        self.alpha = settings.alpha
+        self.invert = settings.invert
+        if settings.mirror:
             raise Warning('mirrored layers aren\'t supported yet...')
         if self.invert:
             self._clear_mask()
-        for p in layer.primitives:
-            self.render(p)
+        for prim in layer.primitives:
+            self.render(prim)
         if self.invert:
             self._render_mask()
 
@@ -209,10 +241,11 @@ class GerberCairoContext(GerberContext):
 
     def _render_test_record(self, primitive, color):
         position = tuple(map(add, primitive.position, self.origin_in_inch))
+        self.ctx.set_operator(cairo.OPERATOR_OVER)
         self.ctx.select_font_face('monospace', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
         self.ctx.set_font_size(13)
         self._render_circle(Circle(position, 0.015), color)
-        self.ctx.set_source_rgb(*color)
+        self.ctx.set_source_rgba(*color, alpha=self.alpha)
         self.ctx.set_operator(cairo.OPERATOR_OVER if primitive.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
         self.ctx.move_to(*[self.scale[0] * (coord + 0.015) for coord in position])
         self.ctx.scale(1, -1)
@@ -227,8 +260,7 @@ class GerberCairoContext(GerberContext):
     def _render_mask(self):
         self.ctx.set_operator(cairo.OPERATOR_OVER)
         ptn = cairo.SurfacePattern(self.mask)
-        ptn.set_matrix(cairo.Matrix(xx=1.0, yy=-1.0, x0=-self.origin_in_pixels[0],
-                                    y0=self.size_in_pixels[1] + self.origin_in_pixels[1]))
+        ptn.set_matrix(self._xform_matrix)
         self.ctx.set_source(ptn)
         self.ctx.paint()
 
@@ -237,29 +269,3 @@ class GerberCairoContext(GerberContext):
             self.bg = True
             self.ctx.set_source_rgba(*self.background_color, alpha=1.0)
             self.ctx.paint()
-
-    def dump(self, filename):
-        is_svg = filename.lower().endswith(".svg")
-        if is_svg:
-            self.surface.finish()
-            self.surface_buffer.flush()
-            with open(filename, "w") as f:
-                self.surface_buffer.seek(0)
-                f.write(self.surface_buffer.read())
-                f.flush()
-        else:
-            self.surface.write_to_png(filename)
-
-    def dump_str(self):
-        """ Return a string containing the rendered image.
-        """
-        fobj = StringIO()
-        self.surface.write_to_png(fobj)
-        return fobj.getvalue()
-
-    def dump_svg_str(self):
-        """ Return a string containg the rendered SVG.
-        """
-        self.surface.finish()
-        self.surface_buffer.flush()
-        return self.surface_buffer.read()

@@ -183,8 +183,10 @@ class GerberContext(object):
         pass
 
 
-class Renderable(object):
-    def __init__(self, settings=None):
-        self.settings = settings
-        self.primitives = []
+class RenderSettings(object):
+    def __init__(self, color=(0.0, 0.0, 0.0), alpha=1.0, invert=False, mirror=False):
+        self.color = color
+        self.alpha = alpha
+        self.invert = invert
+        self.mirror = mirror
 

@@ -16,6 +16,8 @@
 # limitations under the License.
 
 
+from .render import RenderSettings
+
 COLORS = {
     'black': (0.0, 0.0, 0.0),
     'white': (1.0, 1.0, 1.0),
@@ -31,14 +33,6 @@ COLORS = {
     'enig copper': (0.686, 0.525, 0.510),
     'hasl copper': (0.871, 0.851, 0.839)
 }
-
-
-class RenderSettings(object):
-    def __init__(self, color, alpha=1.0, invert=False, mirror=False):
-        self.color = color
-        self.alpha = alpha
-        self.invert = invert
-        self.mirror = mirror
 
 
 class Theme(object):
@@ -57,8 +51,13 @@ class Theme(object):
     def __getitem__(self, key):
         return getattr(self, key)
 
+    def get(self, key, noneval=None):
+        val = getattr(self, key)
+        return val if val is not None else noneval
+
+
 THEMES = {
-    'Default': Theme(),
+    'default': Theme(),
     'OSH Park': Theme(name='OSH Park',
                       top=RenderSettings(COLORS['enig copper']),
                       bottom=RenderSettings(COLORS['enig copper']),
