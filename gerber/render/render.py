@@ -60,7 +60,6 @@ class GerberContext(object):
     def __init__(self, units='inch'):
         self._units = units
         self._color = (0.7215, 0.451, 0.200)
-        self._drill_color = (0.25, 0.25, 0.25)
         self._background_color = (0.0, 0.0, 0.0)
         self._alpha = 1.0
         self._invert = False
@@ -150,7 +149,7 @@ class GerberContext(object):
         elif isinstance(primitive, Polygon):
             self._render_polygon(primitive, color)
         elif isinstance(primitive, Drill):
-            self._render_drill(primitive, self.drill_color)
+            self._render_drill(primitive, color)
         elif isinstance(primitive, TestRecord):
             self._render_test_record(primitive, color)
         else:
@@ -184,16 +183,10 @@ class GerberContext(object):
         pass
 
 
-class Renderable(object):
-    def __init__(self, color=None, alpha=None, invert=False):
+class RenderSettings(object):
+    def __init__(self, color=(0.0, 0.0, 0.0), alpha=1.0, invert=False, mirror=False):
         self.color = color
         self.alpha = alpha
         self.invert = invert
+        self.mirror = mirror
 
-    def to_render(self):
-        """ Override this in subclass. Should return a list of Primitives or Renderables
-        """
-        raise NotImplementedError('to_render() must be implemented in subclass')
-
-    def apply_theme(self, theme):
-        raise NotImplementedError('apply_theme() must be implemented in subclass')

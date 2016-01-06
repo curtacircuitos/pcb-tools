@@ -17,6 +17,7 @@
 
 from . import rs274x
 from . import excellon
+from . import ipc356
 from .exceptions import ParseError
 from .utils import detect_file_format
 
@@ -43,6 +44,8 @@ def read(filename):
         return rs274x.read(filename)
     elif fmt == 'excellon':
         return excellon.read(filename)
+    elif fmt == 'ipc_d_356':
+        return ipc356.read(filename)
     else:
         raise ParseError('Unable to detect file format')
 

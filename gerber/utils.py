@@ -26,6 +26,7 @@ files.
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 # License:
 
+import os
 from math import radians, sin, cos
 from operator import sub
 
@@ -219,7 +220,10 @@ def detect_file_format(data):
         if 'M48' in line:
             return 'excellon'
         elif '%FS' in line:
-            return'rs274x'
+            return 'rs274x'
+        elif ((len(line.split()) >= 2) and
+             (line.split()[0] == 'P') and (line.split()[1] == 'JOB')):
+            return 'ipc_d_356'
     return 'unknown'
 
 
@@ -288,3 +292,13 @@ def rotate_point(point, angle, center=(0.0, 0.0)):
     x = center[0] + (cos(angle) * xdelta) - (sin(angle) * ydelta)
     y = center[1] + (sin(angle) * xdelta) - (cos(angle) * ydelta)
     return (x, y)
+
+
+def listdir(directory, ignore_hidden=True, ignore_os=True):
+    os_files = ('.DS_Store', 'Thumbs.db', 'ethumbs.db')
+    files = os.listdir(directory)
+    if ignore_hidden:
+        files = [f for f in files if not f.startswith('.')]
+    if ignore_os:
+        files = [f for f in files if not f in os_files]
+    return files

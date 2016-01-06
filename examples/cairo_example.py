@@ -36,7 +36,6 @@ mask = read(os.path.join(GERBER_FOLDER, 'soldermask.GTS'))
 silk = read(os.path.join(GERBER_FOLDER, 'silkscreen.GTO'))
 drill = read(os.path.join(GERBER_FOLDER, 'ncdrill.DRD'))
 
-
 # Create a new drawing context
 ctx = GerberCairoContext()
 
