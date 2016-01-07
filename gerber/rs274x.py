@@ -80,8 +80,10 @@ class GerberFile(CamFile):
         `bounds` is stored as ((min x, max x), (min y, max y))
 
     """
-    def __init__(self, statements, settings, primitives, filename=None):
+    def __init__(self, statements, settings, primitives, apertures, filename=None):
         super(GerberFile, self).__init__(statements, settings, primitives, filename)
+        
+        self.apertures = apertures
 
     @property
     def comments(self):
@@ -227,7 +229,7 @@ class GerberParser(object):
         for stmt in self.statements:
             stmt.units = self.settings.units
 
-        return GerberFile(self.statements, self.settings, self.primitives, filename)
+        return GerberFile(self.statements, self.settings, self.primitives, self.apertures.values(), filename)
 
     def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}

@@ -76,7 +76,10 @@ class GerberCairoContext(GerberContext):
         radius = self.scale[0] * arc.radius
         angle1 = arc.start_angle
         angle2 = arc.end_angle
-        width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
+        if isinstance(arc.aperture, Circle):
+            width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
+        else:
+            width = max(arc.aperture.width, arc.aperture.height, 0.001)
         self.ctx.set_source_rgba(color[0], color[1], color[2],  self.alpha)
         self.ctx.set_operator(cairo.OPERATOR_OVER if (arc.level_polarity == "dark" and not self.invert)else cairo.OPERATOR_CLEAR)        
         self.ctx.set_line_width(width * self.scale[0])
@@ -163,7 +166,6 @@ class GerberCairoContext(GerberContext):
             self.ctx.line_to(*map(mul, v, self.scale))
 
         self.ctx.fill()
-        
 
     def _render_drill(self, circle, color):
         self._render_circle(circle, color)
