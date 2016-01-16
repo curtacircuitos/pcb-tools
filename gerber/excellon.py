@@ -500,9 +500,12 @@ class ExcellonParser(object):
             self.statements.append(infeed_rate_stmt)
 
         elif line[0] == 'T' and self.state == 'HEADER':
-            tool = ExcellonTool.from_excellon(line, self._settings())
-            self.tools[tool.number] = tool
-            self.statements.append(tool)
+            if not ',OFF' in line and not ',ON' in line:
+                tool = ExcellonTool.from_excellon(line, self._settings())
+                self.tools[tool.number] = tool
+                self.statements.append(tool)
+            else:
+                self.statements.append(UnknownStmt.from_excellon(line))
 
         elif line[0] == 'T' and self.state != 'HEADER':
             stmt = ToolSelectionStmt.from_excellon(line)
