@@ -386,9 +386,11 @@ class AMOutlinePrimitive(AMPrimitive):
         lines = []
         prev_point = rotate_point(self.points[0], self.rotation)
         for point in self.points[1:]:
-            cur_point = rotate_point(self.points[0], self.rotation)
+            cur_point = rotate_point(point, self.rotation)
             
             lines.append(Line(prev_point, cur_point, Circle((0,0), 0)))
+            
+            prev_point = cur_point
         
         return Outline(lines, units=units)
 
