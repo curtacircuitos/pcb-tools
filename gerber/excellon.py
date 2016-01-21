@@ -92,7 +92,6 @@ class DrillHit(object):
         Center position of the drill.
     
     """
-
     def __init__(self, tool, position):
         self.tool = tool
         self.position = position
@@ -619,7 +618,7 @@ class ExcellonParser(object):
                 tool = self._get_tool(stmt.tool)
                         
                 if not tool:
-                    # FIXME: for weird files with no tools defined, original calc from gerbv
+                    # FIXME: for weird files with no tools defined, original calc from gerb
                     if self._settings().units == "inch":
                         diameter = (16 + 8 * stmt.tool) / 1000.0
                     else:

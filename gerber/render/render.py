@@ -182,6 +182,7 @@ class GerberContext(object):
         return
 
 
+
     def _render_line(self, primitive, color):
         pass
 

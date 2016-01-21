@@ -204,7 +204,8 @@ def test_arc_bounds():
 
 def test_arc_conversion():
     c = Circle((0, 0), 25.4, units='metric')
-    a = Arc((2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0),'clockwise', c, 'single-quadrant', units='metric')
+    a = Arc((2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0),
+            'clockwise', c, 'single-quadrant', units='metric')
 
     # No effect
     a.to_metric()
@@ -227,7 +228,8 @@ def test_arc_conversion():
     assert_equal(a.aperture.diameter, 1.0)
 
     c = Circle((0, 0), 1.0, units='inch')
-    a = Arc((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0),'clockwise', c, 'single-quadrant', units='inch')
+    a = Arc((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0),
+            'clockwise', c, 'single-quadrant', units='inch')
     a.to_metric()
     assert_equal(a.start, (2.54, 25.4))
     assert_equal(a.end, (254.0, 2540.0))
@@ -254,11 +256,13 @@ def test_circle_radius():
     c = Circle((1, 1), 2)
     assert_equal(c.radius, 1)
 
+
 def test_circle_hole_radius():
     """ Test Circle primitive hole radius calculation
     """
     c = Circle((1, 1), 4, 2)
     assert_equal(c.hole_radius, 1)
+
 
 def test_circle_bounds():
     """ Test Circle bounding box calculation
@@ -301,7 +305,7 @@ def test_circle_conversion():
     assert_equal(c.diameter, 10.)
     assert_equal(c.hole_diameter, 5.)
 
-    #no effect
+    # no effect
     c.to_inch()
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
@@ -338,11 +342,12 @@ def test_circle_conversion():
     assert_equal(c.diameter, 254.)
     assert_equal(c.hole_diameter, 127.)
 
-    #no effect
+    # no effect
     c.to_metric()
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
     assert_equal(c.hole_diameter, 127.)
+
 
 
 def test_circle_offset():
@@ -443,6 +448,7 @@ def test_rectangle_hole_radius():
     assert_equal(0.5, r.hole_radius)
 
 
+
 def test_rectangle_bounds():
     """ Test rectangle bounding box calculation
     """
@@ -530,7 +536,7 @@ def test_rectangle_conversion():
     assert_equal(r.hole_diameter, 127.0)
 
     r.to_metric()
-    assert_equal(r.position, (2.54,25.4))
+    assert_equal(r.position, (2.54, 25.4))
     assert_equal(r.width, 254.0)
     assert_equal(r.height, 2540.0)
     assert_equal(r.hole_diameter, 127.0)
@@ -881,6 +887,7 @@ def test_polygon_ctor():
         assert_equal(p.hole_diameter, hole_diameter)
 
 
+
 def test_polygon_bounds():
     """ Test polygon bounding box calculation
     """
@@ -1200,6 +1207,7 @@ def test_drill_ctor_validation():
     """
     assert_raises(TypeError, Drill, 3, 5, None)
     assert_raises(TypeError, Drill, (3,4,5), 5, None)
+
 
 def test_drill_bounds():
     d = Drill((0, 0), 2, None)

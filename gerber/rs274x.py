@@ -95,6 +95,7 @@ class GerberFile(CamFile):
         `bounds` is stored as ((min x, max x), (min y, max y))
 
     """
+
     def __init__(self, statements, settings, primitives, apertures, filename=None):
         super(GerberFile, self).__init__(statements, settings, primitives, filename)
         
@@ -568,7 +569,7 @@ class GerberParser(object):
             self.interpolation = 'arc'
             self.direction = ('clockwise' if stmt.function in
                               ('G02', 'G2') else 'counterclockwise')
-            
+
         if stmt.only_function:
             # Sometimes we get a coordinate statement
             # that only sets the function. If so, don't
@@ -594,7 +595,6 @@ class GerberParser(object):
                 else:
                     # from gerber spec revision J3, Section 4.5, page 55:
                     #  The segments are not graphics objects in themselves; segments are part of region which is the graphics object. The segments have no thickness.
-
                     # The current aperture is associated with the region.
                     # This has no graphical effect, but allows all its attributes to
                     # be applied to the region.
@@ -616,12 +616,24 @@ class GerberParser(object):
                 j = 0 if stmt.j is None else stmt.j
                 center = self._find_center(start, end, (i, j))
                 if self.region_mode == 'off':
-                    self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], quadrant_mode=self.quadrant_mode, level_polarity=self.level_polarity, units=self.settings.units))
+                    self.primitives.append(Arc(start, end, center, self.direction,
+                                               self.apertures[self.aperture],
+                                               quadrant_mode=self.quadrant_mode,
+                                               level_polarity=self.level_polarity,
+                                               units=self.settings.units))
                 else:
                     if self.current_region is None:
-                        self.current_region = [Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), quadrant_mode=self.quadrant_mode, level_polarity=self.level_polarity, units=self.settings.units),]
+                        self.current_region = [Arc(start, end, center, self.direction,
+                                                   self.apertures.get(self.aperture, Circle((0,0), 0)),
+                                                   quadrant_mode=self.quadrant_mode,
+                                                   level_polarity=self.level_polarity,
+                                                   units=self.settings.units),]
                     else:
-                        self.current_region.append(Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), quadrant_mode=self.quadrant_mode, level_polarity=self.level_polarity, units=self.settings.units))
+                        self.current_region.append(Arc(start, end, center, self.direction,
+                                                       self.apertures.get(self.aperture, Circle((0,0), 0)),
+                                                       quadrant_mode=self.quadrant_mode,
+                                                       level_polarity=self.level_polarity,
+                                                       units=self.settings.units))
 
         elif self.op == "D02" or self.op == "D2":
             

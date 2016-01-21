@@ -19,8 +19,11 @@
 from math import asin
 import math
 
+from .primitives import *
 from .primitives import Circle, Line, Outline, Polygon, Rectangle
+from .utils import validate_coordinates, inch, metric
 from .utils import validate_coordinates, inch, metric, rotate_point
+
 
 
 # TODO: Add support for aperture macro variables

@@ -16,10 +16,10 @@
 # limitations under the License.
 
 
-from itertools import combinations
+
 import math
 from operator import add
-
+from itertools import combinations
 from .utils import validate_coordinates, inch, metric, convex_hull, rotate_point, nearly_equal
 
 
@@ -69,6 +69,9 @@ class Primitive(object):
         raise NotImplementedError('Is flashed must be '
                                   'implemented in subclass')
 
+    def __eq__(self, other):
+        return self.__dict__ == other.__dict__
+    
     @property
     def units(self):
         return self._units
@@ -183,10 +186,7 @@ class Primitive(object):
             self.position = tuple([coord + offset for coord, offset
                                    in zip(self.position,
                                           (x_offset, y_offset))])
-
-    def __eq__(self, other):
-        return self.__dict__ == other.__dict__
-    
+            
     def to_statement(self):
         pass
 
@@ -203,7 +203,6 @@ class Primitive(object):
         self._segments = None
         for attr in self._memoized:
             setattr(self, attr, None)
-
 
 class Line(Primitive):
     """
@@ -238,7 +237,6 @@ class Line(Primitive):
         self._changed()
         self._end = value
 
-
     @property
     def angle(self):
         delta_x, delta_y = tuple(
@@ -261,7 +259,7 @@ class Line(Primitive):
             max_y = max(self.start[1], self.end[1]) + height_2
             self._bounding_box = ((min_x, max_x), (min_y, max_y))
         return self._bounding_box
-    
+
     @property
     def bounding_box_no_aperture(self):
         '''Gets the bounding box without the aperture'''
@@ -295,11 +293,11 @@ class Line(Primitive):
         return self._vertices
 
     def offset(self, x_offset=0, y_offset=0):
+        self._changed()
         self.start = tuple([coord + offset for coord, offset
                             in zip(self.start, (x_offset, y_offset))])
         self.end = tuple([coord + offset for coord, offset
                           in zip(self.end, (x_offset, y_offset))])
-        self._changed()
         
     def equivalent(self, other, offset):
         
@@ -309,11 +307,13 @@ class Line(Primitive):
         equiv_start = tuple(map(add, other.start, offset))
         equiv_end = tuple(map(add, other.end, offset))
 
+
         return nearly_equal(self.start, equiv_start) and nearly_equal(self.end, equiv_end)
 
 class Arc(Primitive):
     """
     """
+    
     def __init__(self, start, end, center, direction, aperture, quadrant_mode, **kwargs):
         super(Arc, self).__init__(**kwargs)
         self._start = start
@@ -489,6 +489,7 @@ class Arc(Primitive):
 class Circle(Primitive):
     """
     """
+    
     def __init__(self, position, diameter, hole_diameter = None, **kwargs):
         super(Circle, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -631,6 +632,7 @@ class Rectangle(Primitive):
     Only aperture macro generated Rectangle objects can be rotated. If you aren't in a AMGroup,
     then you don't need to worry about rotation
     """
+    
     def __init__(self, position, width, height, hole_diameter=0, **kwargs):
         super(Rectangle, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -685,7 +687,7 @@ class Rectangle(Primitive):
     def upper_right(self):
         return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
-        
+
     @property
     def lower_left(self):
         return (self.position[0] - (self.axis_aligned_width / 2.),
@@ -994,6 +996,7 @@ class RoundRectangle(Primitive):
 class Obround(Primitive):
     """
     """
+    
     def __init__(self, position, width, height, hole_diameter=0, **kwargs):
         super(Obround, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -1162,6 +1165,18 @@ class Polygon(Primitive):
         
         return points
     
+    @property
+    def vertices(self):
+        if self._vertices is None:
+            theta = math.radians(360/self.sides)
+            vertices = [(self.position[0] + (math.cos(theta * side) * self.radius),
+                         self.position[1] + (math.sin(theta * side) * self.radius))
+                        for side in range(self.sides)]
+            self._vertices = [(((x * self._cos_theta) - (y * self._sin_theta)),
+                               ((x * self._sin_theta) + (y * self._cos_theta)))
+                              for x, y in vertices]
+        return self._vertices
+
     def equivalent(self, other, offset):
         """
         Is this the outline the same as the other, ignoring the position offset?
@@ -1170,7 +1185,7 @@ class Polygon(Primitive):
         # Quick check if it even makes sense to compare them
         if type(self) != type(other) or self.sides != other.sides or self.radius != other.radius:
             return False
-
+        
         equiv_pos = tuple(map(add, other.position, offset))
 
         return nearly_equal(self.position, equiv_pos)
@@ -1281,6 +1296,7 @@ class Outline(Primitive):
     Outlines only exist as the rendering for a apeture macro outline.
     They don't exist outside of AMGroup objects
     """
+
     def __init__(self, primitives, **kwargs):
         super(Outline, self).__init__(**kwargs)
         self.primitives = primitives
@@ -1295,16 +1311,19 @@ class Outline(Primitive):
 
     @property
     def bounding_box(self):
-        xlims, ylims = zip(*[p.bounding_box for p in self.primitives])
-        minx, maxx = zip(*xlims)
-        miny, maxy = zip(*ylims)
-        min_x = min(minx)
-        max_x = max(maxx)
-        min_y = min(miny)
-        max_y = max(maxy)
-        return ((min_x, max_x), (min_y, max_y))
+        if self._bounding_box is None:
+            xlims, ylims = zip(*[p.bounding_box for p in self.primitives])
+            minx, maxx = zip(*xlims)
+            miny, maxy = zip(*ylims)
+            min_x = min(minx)
+            max_x = max(maxx)
+            min_y = min(miny)
+            max_y = max(maxy)
+            self._bounding_box = ((min_x, max_x), (min_y, max_y))
+        return self._bounding_box
 
     def offset(self, x_offset=0, y_offset=0):
+        self._changed()
         for p in self.primitives:
             p.offset(x_offset, y_offset)
 
@@ -1458,7 +1477,8 @@ class Donut(Primitive):
             self.width = 0.5 * math.sqrt(3.) * outer_diameter
             self.height = outer_diameter
 
-        self._to_convert = ['position', 'width', 'height', 'inner_diameter', 'outer_diameter']
+        self._to_convert = ['position', 'width',
+                            'height', 'inner_diameter', 'outer_diameter']
         
         # TODO This does not reset bounding box correctly
         
@@ -1474,7 +1494,7 @@ class Donut(Primitive):
     @property
     def upper_right(self):
         return (self.position[0] + (self.width / 2.),
-                self.position[1] + (self.height / 2.))
+                self.position[1] + (self.height / 2.)
 
     @property
     def bounding_box(self):
@@ -1525,6 +1545,8 @@ class Drill(Primitive):
         self._diameter = diameter
         self.hit = hit
         self._to_convert = ['position', 'diameter', 'hit']
+        
+        # TODO Ths won't handle the hit updates correctly
         
     @property 
     def flashed(self):
@@ -1588,19 +1610,13 @@ class Slot(Primitive):
     @property 
     def flashed(self):
         return False
-
-    @property
-    def radius(self):
-        return self.diameter / 2.
-
-    @property
+    
     def bounding_box(self):
-        radius = self.radius
-        min_x = min(self.start[0], self.end[0]) - radius
-        max_x = max(self.start[0], self.end[0]) + radius
-        min_y = min(self.start[1], self.end[1]) - radius
-        max_y = max(self.start[1], self.end[1]) + radius
-        return ((min_x, max_x), (min_y, max_y))
+        if self._bounding_box is None:
+            ll = tuple([c - self.outer_diameter / 2. for c in self.position])
+            ur = tuple([c + self.outer_diameter / 2. for c in self.position])
+            self._bounding_box = ((ll[0], ur[0]), (ll[1], ur[1]))
+        return self._bounding_box
 
     def offset(self, x_offset=0, y_offset=0):
         self.start = tuple(map(add, self.start, (x_offset, y_offset)))
