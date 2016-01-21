@@ -1,2 +1,3 @@
 ## The following requirements were added by pip --freeze:
 cairocffi==0.6
+pyhull==1.5.6

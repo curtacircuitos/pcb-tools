@@ -63,13 +63,15 @@ class PCB(object):
 
     @property
     def top_layers(self):
-        board_layers = [l for l in reversed(self.layers) if l.layer_class in ('topsilk', 'topmask', 'top')]
+        board_layers = [l for l in reversed(self.layers) if l.layer_class in
+                        ('topsilk', 'topmask', 'top')]
         drill_layers = [l for l in self.drill_layers if 'top' in l.layers]
         return board_layers + drill_layers
 
     @property
     def bottom_layers(self):
-        board_layers = [l for l in self.layers if l.layer_class in ('bottomsilk', 'bottommask', 'bottom')]
+        board_layers = [l for l in self.layers if l.layer_class in
+                        ('bottomsilk', 'bottommask', 'bottom')]
         drill_layers = [l for l in self.drill_layers if 'bottom' in l.layers]
         return board_layers + drill_layers
 
@@ -78,10 +80,16 @@ class PCB(object):
         return [l for l in self.layers if l.layer_class == 'drill']
 
     @property
+    def copper_layers(self):
+        return [layer for layer in self.layers if layer.layer_class in
+                ('top', 'bottom', 'internal')]
+
+    @property
     def layer_count(self):
         """ Number of *COPPER* layers
         """
-        return len([l for l in self.layers if l.layer_class in ('top', 'bottom', 'internal')])
+        return len([l for l in self.layers if l.layer_class in
+                    ('top', 'bottom', 'internal')])
 
     @property
     def board_bounds(self):
@@ -91,4 +99,3 @@ class PCB(object):
         for layer in self.layers:
             if layer.layer_class == 'top':
                 return layer.bounds
-

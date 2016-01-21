@@ -52,7 +52,7 @@ def test_format():
                   ((2, 6), '-1', -0.000001), ((2, 5), '-1', -0.00001),
                   ((2, 4), '-1', -0.0001), ((2, 3), '-1', -0.001),
                   ((2, 2), '-1', -0.01), ((2, 1), '-1', -0.1),
-                  ((2, 6), '0', 0) ]
+                  ((2, 6), '0', 0)]
     for fmt, string, value in test_cases:
         assert_equal(value, parse_gerber_value(string, fmt, zero_suppression))
         assert_equal(string, write_gerber_value(value, fmt, zero_suppression))
@@ -76,7 +76,7 @@ def test_decimal_truncation():
     value = 1.123456789
     for x in range(10):
         result = decimal_string(value, precision=x)
-        calculated = '1.' + ''.join(str(y) for y in range(1,x+1))
+        calculated = '1.' + ''.join(str(y) for y in range(1, x + 1))
         assert_equal(result, calculated)
 
 
@@ -96,25 +96,34 @@ def test_parse_format_validation():
     """
     assert_raises(ValueError, parse_gerber_value, '00001111', (7, 5))
     assert_raises(ValueError, parse_gerber_value, '00001111', (5, 8))
-    assert_raises(ValueError, parse_gerber_value, '00001111', (13,1))
-    
+    assert_raises(ValueError, parse_gerber_value, '00001111', (13, 1))
+
+
 def test_write_format_validation():
     """ Test write_gerber_value() format validation
     """
     assert_raises(ValueError, write_gerber_value, 69.0, (7, 5))
     assert_raises(ValueError, write_gerber_value, 69.0, (5, 8))
-    assert_raises(ValueError, write_gerber_value, 69.0, (13,1))
+    assert_raises(ValueError, write_gerber_value, 69.0, (13, 1))
 
 
 def test_detect_format_with_short_file():
     """ Verify file format detection works with short files
     """
     assert_equal('unknown', detect_file_format('gerber/tests/__init__.py'))
-    
+
+
 def test_validate_coordinates():
     assert_raises(TypeError, validate_coordinates, 3)
     assert_raises(TypeError, validate_coordinates, 3.1)
     assert_raises(TypeError, validate_coordinates, '14')
     assert_raises(TypeError, validate_coordinates, (0,))
-    assert_raises(TypeError, validate_coordinates, (0,1,2))
-    assert_raises(TypeError, validate_coordinates, (0,'string'))
+    assert_raises(TypeError, validate_coordinates, (0, 1, 2))
+    assert_raises(TypeError, validate_coordinates, (0, 'string'))
+
+
+def test_convex_hull():
+    points = [(0, 0), (1, 0), (1, 1), (0.5, 0.5), (0, 1), (0, 0)]
+    expected = [(0, 0), (1, 0), (1, 1), (0, 1), (0, 0)]
+    assert_equal(set(convex_hull(points)), set(expected))
+    

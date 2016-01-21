@@ -200,7 +200,8 @@ class GerberParser(object):
     DEPRECATED_FORMAT = re.compile(r'(?P<format>G9[01])\*')
     # end deprecated
 
-    PARAMS = (FS, MO, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY, AD_MACRO, AM, AS, IN, IP, IR, MI, OF, SF, LN)
+    PARAMS = (FS, MO, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY,
+              AD_MACRO, AM, AS, IN, IP, IR, MI, OF, SF, LN)
 
     PARAM_STMT = [re.compile(r"%?{0}\*%?".format(p)) for p in PARAMS]
 
@@ -418,7 +419,8 @@ class GerberParser(object):
                 # deprecated codes
                 (deprecated_unit, r) = _match_one(self.DEPRECATED_UNIT, line)
                 if deprecated_unit:
-                    stmt = MOParamStmt(param="MO", mo="inch" if "G70" in deprecated_unit["mode"] else "metric")
+                    stmt = MOParamStmt(param="MO", mo="inch" if "G70" in
+                                       deprecated_unit["mode"] else "metric")
                     self.settings.units = stmt.mode
                     yield stmt
                     line = r
@@ -532,7 +534,9 @@ class GerberParser(object):
             if self.region_mode == 'on' and stmt.mode == 'off':
                 # Sometimes we have regions that have no points. Skip those
                 if self.current_region:
-                    self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity, units=self.settings.units))
+                    self.primitives.append(Region(self.current_region,
+                                                  level_polarity=self.level_polarity, units=self.settings.units))
+
                 self.current_region = None
             self.region_mode = stmt.mode
         elif stmt.type == 'QuadrantMode':
@@ -562,7 +566,8 @@ class GerberParser(object):
             self.interpolation = 'linear'
         elif stmt.function in ('G02', 'G2', 'G03', 'G3'):
             self.interpolation = 'arc'
-            self.direction = ('clockwise' if stmt.function in ('G02', 'G2') else 'counterclockwise')
+            self.direction = ('clockwise' if stmt.function in
+                              ('G02', 'G2') else 'counterclockwise')
             
         if stmt.only_function:
             # Sometimes we get a coordinate statement
@@ -582,16 +587,30 @@ class GerberParser(object):
 
             if self.interpolation == 'linear':
                 if self.region_mode == 'off':
-                    self.primitives.append(Line(start, end, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
+                    self.primitives.append(Line(start, end,
+                                                self.apertures[self.aperture],
+                                                level_polarity=self.level_polarity,
+                                                units=self.settings.units))
                 else:
                     # from gerber spec revision J3, Section 4.5, page 55:
                     #  The segments are not graphics objects in themselves; segments are part of region which is the graphics object. The segments have no thickness.
-                    #  The current aperture is associated with the region. This has no graphical effect, but allows all its attributes to be applied to the region.
+
+                    # The current aperture is associated with the region.
+                    # This has no graphical effect, but allows all its attributes to
+                    # be applied to the region.
 
                     if self.current_region is None:
-                        self.current_region = [Line(start, end, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units),]
-                    else:    
-                        self.current_region.append(Line(start, end, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units))
+                        self.current_region = [Line(start, end,
+                                                    self.apertures.get(self.aperture,
+                                                                       Circle((0, 0), 0)),
+                                                    level_polarity=self.level_polarity,
+                                                    units=self.settings.units), ]
+                    else:
+                        self.current_region.append(Line(start, end,
+                                                        self.apertures.get(self.aperture,
+                                                                           Circle((0, 0), 0)),
+                                                        level_polarity=self.level_polarity,
+                                                        units=self.settings.units))
             else:
                 i = 0 if stmt.i is None else stmt.i
                 j = 0 if stmt.j is None else stmt.j
@@ -614,17 +633,23 @@ class GerberParser(object):
 
         elif self.op == "D03" or self.op == "D3":
             primitive = copy.deepcopy(self.apertures[self.aperture])
-            # XXX: temporary fix because there are no primitives for Macros and Polygon
+
+
             if primitive is not None:
-                # XXX: just to make it easy to spot
-                if isinstance(primitive, type([])):
-                    print(primitive[0].to_gerber())
-                else:
+
+                if not isinstance(primitive, AMParamStmt):
                     primitive.position = (x, y)
                     primitive.level_polarity = self.level_polarity
                     primitive.units = self.settings.units
                     self.primitives.append(primitive)
-
+                else:
+                    # Aperture Macro
+                    for am_prim in primitive.primitives:
+                        renderable = am_prim.to_primitive((x, y),
+                                                          self.level_polarity,
+                                                          self.settings.units)
+                        if renderable is not None:
+                            self.primitives.append(renderable)
         self.x, self.y = x, y
         
     def _find_center(self, start, end, offsets):

@@ -56,6 +56,7 @@ class ExcellonStatement(object):
     def to_excellon(self, settings=None):
         raise NotImplementedError('to_excellon must be implemented in a '
                                   'subclass')
+
     def to_inch(self):
         self.units = 'inch'
 
@@ -67,6 +68,7 @@ class ExcellonStatement(object):
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+
 
 class ExcellonTool(ExcellonStatement):
     """ Excellon Tool class
@@ -238,7 +240,6 @@ class ExcellonTool(ExcellonStatement):
             self.settings.units = 'inch'
             if self.diameter is not None:
                 self.diameter = inch(self.diameter)
-
 
     def to_metric(self):
         if self.settings.units != 'metric':
@@ -648,6 +649,7 @@ class EndOfProgramStmt(ExcellonStatement):
         if self.y is not None:
             self.y += y_offset
 
+
 class UnitStmt(ExcellonStatement):
     
     @classmethod
@@ -688,6 +690,7 @@ class UnitStmt(ExcellonStatement):
 
     def to_metric(self):
         self.units = 'metric'
+
 
 class IncrementalModeStmt(ExcellonStatement):
 
@@ -783,6 +786,7 @@ class MeasuringModeStmt(ExcellonStatement):
 
     def to_metric(self):
         self.units = 'metric'
+
 
 class RouteModeStmt(ExcellonStatement):
 

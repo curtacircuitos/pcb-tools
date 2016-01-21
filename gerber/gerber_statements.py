@@ -44,6 +44,7 @@ class Statement(object):
     type : string
         String identifying the statement type.
     """
+
     def __init__(self, stype, units='inch'):
         self.type = stype
         self.units = units
@@ -85,6 +86,7 @@ class ParamStmt(Statement):
     param : string
         Parameter type code
     """
+
     def __init__(self, param):
         Statement.__init__(self, "PARAM")
         self.param = param
@@ -162,8 +164,6 @@ class FSParamStmt(ParamStmt):
             fmt = ''.join(map(str, self.format))
 
         return '%FS{0}{1}X{2}Y{3}*%'.format(zero_suppression, notation, fmt, fmt)
-
-    
 
     def __str__(self):
         return ('<Format Spec: %d:%d %s zero suppression %s notation>' %
@@ -343,13 +343,15 @@ class ADParamStmt(ParamStmt):
 
     def to_inch(self):
         if self.units == 'metric':
-            self.units = 'inch'    
-            self.modifiers = [tuple([inch(x) for x in modifier]) for modifier in self.modifiers]
+            self.units = 'inch'
+            self.modifiers = [tuple([inch(x) for x in modifier])
+                              for modifier in self.modifiers]
 
     def to_metric(self):
         if self.units == 'inch':
-            self.units = 'metric'    
-            self.modifiers = [tuple([metric(x) for x in modifier]) for modifier in self.modifiers]
+            self.units = 'metric'
+            self.modifiers = [tuple([metric(x) for x in modifier])
+                              for modifier in self.modifiers]
 
     def to_gerber(self, settings=None):
         if any(self.modifiers):
@@ -426,10 +428,11 @@ class AMParamStmt(ParamStmt):
                 self.primitives.append(AMOutlinePrimitive.from_gerber(primitive))
             elif primitive[0] == '5':
                 self.primitives.append(AMPolygonPrimitive.from_gerber(primitive))
-            elif primitive[0] =='6':
+            elif primitive[0] == '6':
                 self.primitives.append(AMMoirePrimitive.from_gerber(primitive))
             elif primitive[0] == '7':
-                self.primitives.append(AMThermalPrimitive.from_gerber(primitive))
+                self.primitives.append(
+                    AMThermalPrimitive.from_gerber(primitive))
             else:
                 self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
                 
@@ -878,13 +881,17 @@ class CoordStmt(Statement):
         op = stmt_dict.get('op')
 
         if x is not None:
-            x = parse_gerber_value(stmt_dict.get('x'), settings.format, settings.zero_suppression)
+            x = parse_gerber_value(stmt_dict.get('x'), settings.format,
+                                   settings.zero_suppression)
         if y is not None:
-            y = parse_gerber_value(stmt_dict.get('y'), settings.format, settings.zero_suppression)
+            y = parse_gerber_value(stmt_dict.get('y'), settings.format,
+                                   settings.zero_suppression)
         if i is not None:
-            i = parse_gerber_value(stmt_dict.get('i'), settings.format, settings.zero_suppression)
+            i = parse_gerber_value(stmt_dict.get('i'), settings.format,
+                                   settings.zero_suppression)
         if j is not None:
-            j = parse_gerber_value(stmt_dict.get('j'), settings.format, settings.zero_suppression)
+            j = parse_gerber_value(stmt_dict.get('j'), settings.format,
+                                   settings.zero_suppression)
         return cls(function, x, y, i, j, op, settings)
     
     @classmethod
@@ -958,13 +965,17 @@ class CoordStmt(Statement):
         if self.function:
             ret += self.function
         if self.x is not None:
-            ret += 'X{0}'.format(write_gerber_value(self.x, settings.format, settings.zero_suppression))
+            ret += 'X{0}'.format(write_gerber_value(self.x, settings.format,
+                                                    settings.zero_suppression))
         if self.y is not None:
-            ret += 'Y{0}'.format(write_gerber_value(self.y, settings.format, settings.zero_suppression))
+            ret += 'Y{0}'.format(write_gerber_value(self.y, settings.format,
+                                                    settings.zero_suppression))
         if self.i is not None:
-            ret += 'I{0}'.format(write_gerber_value(self.i, settings.format, settings.zero_suppression))
+            ret += 'I{0}'.format(write_gerber_value(self.i, settings.format,
+                                                    settings.zero_suppression))
         if self.j is not None:
-            ret += 'J{0}'.format(write_gerber_value(self.j, settings.format, settings.zero_suppression))
+            ret += 'J{0}'.format(write_gerber_value(self.j, settings.format,
+                                                    settings.zero_suppression))
         if self.op:
             ret += self.op
         return ret + '*'
@@ -1046,6 +1057,7 @@ class CoordStmt(Statement):
 class ApertureStmt(Statement):
     """ Aperture Statement
     """
+
     def __init__(self, d, deprecated=None):
         Statement.__init__(self, "APERTURE")
         self.d = int(d)
@@ -1079,6 +1091,7 @@ class CommentStmt(Statement):
 class EofStmt(Statement):
     """ EOF Statement
     """
+
     def __init__(self):
         Statement.__init__(self, "EOF")
 
@@ -1149,6 +1162,7 @@ class RegionModeStmt(Statement):
 class UnknownStmt(Statement):
     """ Unknown Statement
     """
+
     def __init__(self, line):
         Statement.__init__(self, "UNKNOWN")
         self.line = line
@@ -1158,4 +1172,3 @@ class UnknownStmt(Statement):
 
     def __str__(self):
         return '<Unknown Statement: \'%s\'>' % self.line
-

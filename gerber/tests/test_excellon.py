@@ -13,6 +13,7 @@ from .tests import *
 NCDRILL_FILE = os.path.join(os.path.dirname(__file__),
                             'resources/ncdrill.DRD')
 
+
 def test_format_detection():
     """ Test file type detection
     """
@@ -75,7 +76,8 @@ def test_conversion():
     for statement in ncdrill_inch.statements:
         statement.to_metric()
 
-    for m_tool, i_tool in zip(iter(ncdrill.tools.values()), iter(ncdrill_inch.tools.values())):
+    for m_tool, i_tool in zip(iter(ncdrill.tools.values()),
+                              iter(ncdrill_inch.tools.values())):
         assert_equal(i_tool, m_tool)
 
     for m, i in zip(ncdrill.primitives, inch_primitives):
@@ -188,12 +190,10 @@ def test_parse_incremental_position():
     p = ExcellonParser(FileSettings(notation='incremental'))
     p._parse_line('X01Y01')
     p._parse_line('X01Y01')
-    assert_equal(p.pos, [2.,2.])
+    assert_equal(p.pos, [2., 2.])
 
 
 def test_parse_unknown():
     p = ExcellonParser(FileSettings())
     p._parse_line('Not A Valid Statement')
     assert_equal(p.statements[0].stmt, 'Not A Valid Statement')
-
-

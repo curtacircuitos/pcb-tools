@@ -57,12 +57,14 @@ class GerberContext(object):
     alpha : float
         Rendering opacity. Between 0.0 (transparent) and 1.0 (opaque.)
     """
+
     def __init__(self, units='inch'):
         self._units = units
         self._color = (0.7215, 0.451, 0.200)
         self._background_color = (0.0, 0.0, 0.0)
         self._alpha = 1.0
         self._invert = False
+        self.ctx = None
 
     @property
     def units(self):
@@ -134,11 +136,10 @@ class GerberContext(object):
     def render(self, primitive):
         if not primitive:
             return
-        color = (self.color if primitive.level_polarity == 'dark'
-                 else self.background_color)
         
         self._pre_render_primitive(primitive)
         
+        color = self.color
         if isinstance(primitive, Line):
             self._render_line(primitive, color)
         elif isinstance(primitive, Arc):
@@ -180,6 +181,7 @@ class GerberContext(object):
         """
         return
 
+
     def _render_line(self, primitive, color):
         pass
 
@@ -215,9 +217,9 @@ class GerberContext(object):
 
 
 class RenderSettings(object):
+
     def __init__(self, color=(0.0, 0.0, 0.0), alpha=1.0, invert=False, mirror=False):
         self.color = color
         self.alpha = alpha
         self.invert = invert
         self.mirror = mirror
-

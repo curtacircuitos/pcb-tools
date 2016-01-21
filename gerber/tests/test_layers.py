@@ -15,7 +15,7 @@ def test_guess_layer_class():
     test_vectors = [(None, 'unknown'), ('NCDRILL.TXT', 'unknown'),
                     ('example_board.gtl', 'top'),
                     ('exampmle_board.sst', 'topsilk'),
-                    ('ipc-d-356.ipc', 'ipc_netlist'),]
+                    ('ipc-d-356.ipc', 'ipc_netlist'), ]
 
     for hint in hints:
         for ext in hint.ext:

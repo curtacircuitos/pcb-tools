@@ -22,6 +22,7 @@ CAM File Operations
 """
 import copy
 
+
 def to_inch(cam_file):
     """ Convert Gerber or Excellon file units to imperial
 
@@ -39,6 +40,7 @@ def to_inch(cam_file):
     cam_file.to_inch()
     return cam_file
 
+
 def to_metric(cam_file):
     """ Convert Gerber or Excellon file units to metric
 
@@ -55,6 +57,7 @@ def to_metric(cam_file):
     cam_file = copy.deepcopy(cam_file)
     cam_file.to_metric()
     return cam_file
+
 
 def offset(cam_file, x_offset, y_offset):
     """ Offset a Cam file by a specified amount in the X and Y directions.
@@ -79,6 +82,7 @@ def offset(cam_file, x_offset, y_offset):
     cam_file.offset(x_offset, y_offset)
     return cam_file
 
+
 def scale(cam_file, x_scale, y_scale):
     """ Scale a Cam file by a specified amount in the X and Y directions.
 
@@ -100,6 +104,7 @@ def scale(cam_file, x_scale, y_scale):
     """
     # TODO
     pass
+
 
 def rotate(cam_file, angle):
     """ Rotate a Cam file a specified amount about the origin.

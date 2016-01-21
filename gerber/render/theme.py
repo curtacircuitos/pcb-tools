@@ -23,7 +23,7 @@ COLORS = {
     'white': (1.0, 1.0, 1.0),
     'red': (1.0, 0.0, 0.0),
     'green': (0.0, 1.0, 0.0),
-    'blue' : (0.0, 0.0, 1.0),
+    'blue': (0.0, 0.0, 1.0),
     'fr-4': (0.290, 0.345, 0.0),
     'green soldermask': (0.0, 0.612, 0.396),
     'blue soldermask': (0.059, 0.478, 0.651),
@@ -36,6 +36,7 @@ COLORS = {
 
 
 class Theme(object):
+
     def __init__(self, name=None, **kwargs):
         self.name = 'Default' if name is None else name
         self.background = kwargs.get('background', RenderSettings(COLORS['black'], alpha=0.0))
@@ -67,4 +68,3 @@ THEMES = {
                   topmask=RenderSettings(COLORS['blue soldermask'], alpha=0.8, invert=True),
                   bottommask=RenderSettings(COLORS['blue soldermask'], alpha=0.8, invert=True)),
 }
-

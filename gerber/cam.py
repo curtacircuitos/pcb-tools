@@ -22,6 +22,7 @@ CAM File
 This module provides common base classes for Excellon/Gerber CNC files
 """
 
+
 class FileSettings(object):
     """ CAM File Settings
 
@@ -52,6 +53,7 @@ class FileSettings(object):
     specify both. `zero_suppression` will take on the opposite value of `zeros`
     and vice versa
     """
+
     def __init__(self, notation='absolute', units='inch',
                  zero_suppression=None, format=(2, 5), zeros=None,
                  angle_units='degrees'):
@@ -248,6 +250,12 @@ class CamFile(object):
         """
         pass
 
+    def to_inch(self):
+        pass
+
+    def to_metric(self):
+        pass
+
     def render(self, ctx, invert=False, filename=None):
         """ Generate image of layer.
 
@@ -262,15 +270,11 @@ class CamFile(object):
 
         ctx.set_bounds(self.bounding_box)
         ctx._paint_background()
-
-        if invert:
-            ctx.invert = True
-            ctx._clear_mask()
+        ctx.invert = invert
+        ctx._new_render_layer()
         for p in self.primitives:
             ctx.render(p)
-        if invert:
-            ctx.invert = False
-            ctx._render_mask()
+        ctx._flatten()
 
         if filename is not None:
             ctx.dump(filename)

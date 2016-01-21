@@ -95,7 +95,8 @@ def sort_layers(layers):
                    'bottompaste', 'drill', ]
     output = []
     drill_layers = [layer for layer in layers if layer.layer_class == 'drill']
-    internal_layers = list(sorted([layer for layer in layers if layer.layer_class == 'internal']))
+    internal_layers = list(sorted([layer for layer in layers
+                                   if layer.layer_class == 'internal']))
 
     for layer_class in layer_order:
         if layer_class == 'internal':
@@ -151,6 +152,8 @@ class PCBLayer(object):
         else:
             return None
 
+    def __repr__(self):
+        return '<PCBLayer: {}>'.format(self.layer_class)
 
 class DrillLayer(PCBLayer):
     @classmethod
@@ -163,6 +166,7 @@ class DrillLayer(PCBLayer):
 
 
 class InternalLayer(PCBLayer):
+
     @classmethod
     def from_gerber(cls, camfile):
         filename = camfile.filename
@@ -208,6 +212,7 @@ class InternalLayer(PCBLayer):
 
 
 class LayerSet(object):
+
     def __init__(self, name, layers, **kwargs):
         super(LayerSet, self).__init__(**kwargs)
         self.name = name
