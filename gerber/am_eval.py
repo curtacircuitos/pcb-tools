@@ -18,15 +18,16 @@
 """ This module provides RS-274-X AM macro evaluation.
 """
 
+
 class OpCode:
-    PUSH  = 1
-    LOAD  = 2
+    PUSH = 1
+    LOAD = 2
     STORE = 3
-    ADD   = 4
-    SUB   = 5
-    MUL   = 6
-    DIV   = 7
-    PRIM  = 8
+    ADD = 4
+    SUB = 5
+    MUL = 6
+    DIV = 7
+    PRIM = 8
 
     @staticmethod
     def str(opcode):
@@ -49,16 +50,18 @@ class OpCode:
         else:
             return "UNKNOWN"
 
+
 def eval_macro(instructions, parameters={}):
 
     if not isinstance(parameters, type({})):
         p = {}
         for i, val in enumerate(parameters):
-            p[i+1] = val
+            p[i + 1] = val
 
         parameters = p
 
     stack = []
+
     def pop():
         return stack.pop()
 

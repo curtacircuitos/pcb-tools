@@ -26,7 +26,8 @@ import string
 class Token:
     ADD = "+"
     SUB = "-"
-    MULT = ("x", "X") # compatibility as many gerber writes do use non compliant X
+    # compatibility as many gerber writes do use non compliant X
+    MULT = ("x", "X")
     DIV = "/"
     OPERATORS = (ADD, SUB, MULT[0], MULT[1], DIV)
     LEFT_PARENS = "("
@@ -62,6 +63,7 @@ def is_op(token):
 
 
 class Scanner:
+
     def __init__(self, s):
         self.buff = s
         self.n = 0
@@ -111,7 +113,8 @@ class Scanner:
 
 def print_instructions(instructions):
     for opcode, argument in instructions:
-        print("%s %s" % (OpCode.str(opcode), str(argument) if argument is not None else ""))
+        print("%s %s" % (OpCode.str(opcode),
+                         str(argument) if argument is not None else ""))
 
 
 def read_macro(macro):

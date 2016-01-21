@@ -22,7 +22,6 @@ from .exceptions import ParseError
 from .utils import detect_file_format
 
 
-
 def read(filename):
     """ Read a gerber or excellon file and return a representative object.
 
@@ -73,5 +72,3 @@ def loads(data):
         return excellon.loads(data)
     else:
         raise TypeError('Unable to detect file format')
-
-

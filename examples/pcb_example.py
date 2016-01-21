@@ -24,6 +24,7 @@ import os
 from gerber import PCB
 from gerber.render import GerberCairoContext, theme
 
+
 GERBER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'gerbers'))
 
 
@@ -33,7 +34,7 @@ ctx = GerberCairoContext()
 # Create a new PCB
 pcb = PCB.from_directory(GERBER_FOLDER)
 
-pcb.theme = theme.THEMES['OSH Park']
-ctx.render_layers(pcb.top_layers, os.path.join(os.path.dirname(__file__), 'pcb_top.png'))
-ctx.render_layers(pcb.bottom_layers, os.path.join(os.path.dirname(__file__), 'pcb_bottom.png'))
+# Render PCB
+ctx.render_layers(pcb.top_layers, os.path.join(os.path.dirname(__file__), 'pcb_top.png',), theme.THEMES['OSH Park'])
+ctx.render_layers(pcb.bottom_layers, os.path.join(os.path.dirname(__file__), 'pcb_bottom.png'), theme.THEMES['OSH Park'])
 

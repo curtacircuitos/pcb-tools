@@ -76,6 +76,7 @@ def loads(data):
 
 
 class DrillHit(object):
+
     def __init__(self, tool, position):
         self.tool = tool
         self.position = position
@@ -118,6 +119,7 @@ class ExcellonFile(CamFile):
         either 'inch' or 'metric'.
 
     """
+
     def __init__(self, statements, tools, hits, settings, filename=None):
         super(ExcellonFile, self).__init__(statements=statements,
                                            settings=settings,
@@ -127,8 +129,7 @@ class ExcellonFile(CamFile):
 
     @property
     def primitives(self):
-        return [Drill(hit.position, hit.tool.diameter,units=self.settings.units) for hit in self.hits]
-
+        return [Drill(hit.position, hit.tool.diameter, units=self.settings.units) for hit in self.hits]
 
     @property
     def bounds(self):
@@ -162,7 +163,8 @@ class ExcellonFile(CamFile):
         rprt += '  Code      Size     Hits    Path Length\n'
         rprt += '  --------------------------------------\n'
         for tool in iter(self.tools.values()):
-            rprt += toolfmt.format(tool.number, tool.diameter, tool.hit_count, self.path_length(tool.number))
+            rprt += toolfmt.format(tool.number, tool.diameter,
+                                   tool.hit_count, self.path_length(tool.number))
         if filename is not None:
             with open(filename, 'w') as f:
                 f.write(rprt)
@@ -184,7 +186,8 @@ class ExcellonFile(CamFile):
                 f.write(ToolSelectionStmt(tool.number).to_excellon(self.settings) + '\n')
                 for hit in self.hits:
                     if hit.tool.number == tool.number:
-                        f.write(CoordinateStmt(*hit.position).to_excellon(self.settings) + '\n')
+                        f.write(CoordinateStmt(
+                            *hit.position).to_excellon(self.settings) + '\n')
             f.write(EndOfProgramStmt().to_excellon() + '\n')
 
     def to_inch(self):
@@ -200,8 +203,7 @@ class ExcellonFile(CamFile):
             for primitive in self.primitives:
                 primitive.to_inch()
             for hit in self.hits:
-                hit.position = tuple(map(inch, hit,position))
-
+                hit.position = tuple(map(inch, hit, position))
 
     def to_metric(self):
         """  Convert units to metric
@@ -223,7 +225,8 @@ class ExcellonFile(CamFile):
         for primitive in self.primitives:
             primitive.offset(x_offset, y_offset)
         for hit in self. hits:
-            hit.position = tuple(map(operator.add, hit.position, (x_offset, y_offset)))
+            hit.position = tuple(map(operator.add, hit.position,
+                                     (x_offset, y_offset)))
 
     def path_length(self, tool_number=None):
         """ Return the path length for a given tool
@@ -233,9 +236,11 @@ class ExcellonFile(CamFile):
         for hit in self.hits:
             tool = hit.tool
             num = tool.number
-            positions[num] = (0, 0) if positions.get(num) is None else positions[num]
+            positions[num] = (0, 0) if positions.get(
+                num) is None else positions[num]
             lengths[num] = 0.0 if lengths.get(num) is None else lengths[num]
-            lengths[num] = lengths[num] + math.hypot(*tuple(map(operator.sub, positions[num], hit.position)))
+            lengths[num] = lengths[
+                num] + math.hypot(*tuple(map(operator.sub, positions[num], hit.position)))
             positions[num] = hit.position
 
         if tool_number is None:
@@ -244,13 +249,13 @@ class ExcellonFile(CamFile):
             return lengths.get(tool_number)
 
     def hit_count(self, tool_number=None):
-            counts = {}
-            for tool in iter(self.tools.values()):
-                counts[tool.number] = tool.hit_count
-            if tool_number is None:
-                return counts
-            else:
-                return counts.get(tool_number)
+        counts = {}
+        for tool in iter(self.tools.values()):
+            counts[tool.number] = tool.hit_count
+        if tool_number is None:
+            return counts
+        else:
+            return counts.get(tool_number)
 
     def update_tool(self, tool_number, **kwargs):
         """ Change parameters of a tool
@@ -274,7 +279,6 @@ class ExcellonFile(CamFile):
                 hit.tool = newtool
 
 
-
 class ExcellonParser(object):
     """ Excellon File Parser
 
@@ -283,6 +287,7 @@ class ExcellonParser(object):
     settings : FileSettings or dict-like
         Excellon file settings to use when interpreting the excellon file.
     """
+
     def __init__(self, settings=None):
         self.notation = 'absolute'
         self.units = 'inch'
@@ -299,7 +304,6 @@ class ExcellonParser(object):
             self.zeros = settings.zeros
             self.notation = settings.notation
             self.format = settings.format
-
 
     @property
     def coordinates(self):
@@ -350,7 +354,8 @@ class ExcellonParser(object):
 
             # get format from altium comment
             if "FILE_FORMAT" in comment_stmt.comment:
-                detected_format = tuple([int(x) for x in comment_stmt.comment.split('=')[1].split(":")])
+                detected_format = tuple(
+                    [int(x) for x in comment_stmt.comment.split('=')[1].split(":")])
                 if detected_format:
                     self.format = detected_format
 
@@ -435,7 +440,7 @@ class ExcellonParser(object):
             self.zeros = stmt.zeros
             self.statements.append(stmt)
 
-        elif line[:3] == 'M71' or line [:3] == 'M72':
+        elif line[:3] == 'M71' or line[:3] == 'M72':
             stmt = MeasuringModeStmt.from_excellon(line)
             self.units = stmt.units
             self.statements.append(stmt)
@@ -481,17 +486,20 @@ class ExcellonParser(object):
 
             # T0 is used as END marker, just ignore
             if stmt.tool != 0:
-                # FIXME: for weird files with no tools defined, original calc from gerbv
+                # FIXME: for weird files with no tools defined, original calc
+                # from gerbv
                 if stmt.tool not in self.tools:
                     if self._settings().units == "inch":
-                        diameter = (16 + 8 * stmt.tool) / 1000.0;
+                        diameter = (16 + 8 * stmt.tool) / 1000.0
                     else:
-                        diameter = metric((16 + 8 * stmt.tool) / 1000.0);
+                        diameter = metric((16 + 8 * stmt.tool) / 1000.0)
 
-                    tool = ExcellonTool(self._settings(), number=stmt.tool, diameter=diameter)
+                    tool = ExcellonTool(
+                        self._settings(), number=stmt.tool, diameter=diameter)
                     self.tools[tool.number] = tool
 
-                    # FIXME: need to add this tool definition inside header to make sure it is properly written
+                    # FIXME: need to add this tool definition inside header to
+                    # make sure it is properly written
                     for i, s in enumerate(self.statements):
                         if isinstance(s, ToolSelectionStmt) or isinstance(s, ExcellonTool):
                             self.statements.insert(i, tool)
@@ -575,7 +583,7 @@ def detect_excellon_format(data=None, filename=None):
                       and 'FILE_FORMAT' in stmt.comment]
 
     detected_format = (tuple([int(val) for val in
-                             format_comment[0].split('=')[1].split(':')])
+                              format_comment[0].split('=')[1].split(':')])
                        if len(format_comment) == 1 else None)
     detected_zeros = zero_statements[0] if len(zero_statements) == 1 else None
 
@@ -637,5 +645,5 @@ def _layer_size_score(size, hole_count, hole_area):
     board_area = size[0] * size[1]
     hole_percentage = hole_area / board_area
     hole_score = (hole_percentage - 0.25) ** 2
-    size_score = (board_area - 8) **2
+    size_score = (board_area - 8) ** 2
     return hole_score * size_score

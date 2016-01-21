@@ -12,9 +12,10 @@ import os
 
 
 NCDRILL_FILE = os.path.join(os.path.dirname(__file__),
-                                'resources/ncdrill.DRD')
+                            'resources/ncdrill.DRD')
 TOP_COPPER_FILE = os.path.join(os.path.dirname(__file__),
-                                'resources/top_copper.GTL')
+                               'resources/top_copper.GTL')
+
 
 def test_file_type_detection():
     """ Test file type detection
@@ -38,6 +39,3 @@ def test_file_type_validation():
     """ Test file format validation
     """
     assert_raises(ParseError, read, 'LICENSE')
-
-
-

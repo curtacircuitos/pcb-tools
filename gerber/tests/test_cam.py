@@ -54,16 +54,19 @@ def test_filesettings_dict_assign():
     assert_equal(fs.zero_suppression, 'leading')
     assert_equal(fs.format, (1, 2))
 
+
 def test_camfile_init():
     """ Smoke test CamFile test
     """
     cf = CamFile()
+
 
 def test_camfile_settings():
     """ Test CamFile Default Settings
     """
     cf = CamFile()
     assert_equal(cf.settings, FileSettings())
+
 
 def test_bounds_override_smoketest():
     cf = CamFile()
@@ -89,7 +92,7 @@ def test_zeros():
     assert_equal(fs.zeros, 'trailing')
     assert_equal(fs.zero_suppression, 'leading')
 
-    fs.zeros= 'leading'
+    fs.zeros = 'leading'
     assert_equal(fs.zeros, 'leading')
     assert_equal(fs.zero_suppression, 'trailing')
 
@@ -113,12 +116,19 @@ def test_zeros():
 def test_filesettings_validation():
     """ Test FileSettings constructor argument validation
     """
-    assert_raises(ValueError, FileSettings, 'absolute-ish', 'inch', None, (2, 5), None)
-    assert_raises(ValueError, FileSettings, 'absolute', 'degrees kelvin', None, (2, 5), None)
-    assert_raises(ValueError, FileSettings, 'absolute', 'inch', 'leading', (2, 5), 'leading')
-    assert_raises(ValueError, FileSettings, 'absolute', 'inch', 'following', (2, 5), None)
-    assert_raises(ValueError, FileSettings, 'absolute', 'inch', None, (2, 5), 'following')
-    assert_raises(ValueError, FileSettings, 'absolute', 'inch', None, (2, 5, 6), None)
+    assert_raises(ValueError, FileSettings, 'absolute-ish',
+                  'inch', None, (2, 5), None)
+    assert_raises(ValueError, FileSettings, 'absolute',
+                  'degrees kelvin', None, (2, 5), None)
+    assert_raises(ValueError, FileSettings, 'absolute',
+                  'inch', 'leading', (2, 5), 'leading')
+    assert_raises(ValueError, FileSettings, 'absolute',
+                  'inch', 'following', (2, 5), None)
+    assert_raises(ValueError, FileSettings, 'absolute',
+                  'inch', None, (2, 5), 'following')
+    assert_raises(ValueError, FileSettings, 'absolute',
+                  'inch', None, (2, 5, 6), None)
+
 
 def test_key_validation():
     fs = FileSettings()
@@ -129,5 +139,3 @@ def test_key_validation():
     assert_raises(ValueError, fs.__setitem__, 'zero_suppression', 'following')
     assert_raises(ValueError, fs.__setitem__, 'zeros', 'following')
     assert_raises(ValueError, fs.__setitem__, 'format', (2, 5, 6))
-
-

@@ -23,14 +23,14 @@ This module provides utility functions for working with Gerber and Excellon
 files.
 """
 
-# Author: Hamilton Kibbe <ham@hamiltonkib.be>
-# License:
-
 import os
 from math import radians, sin, cos
 from operator import sub
+from copy import deepcopy
+from pyhull.convex_hull import ConvexHull
 
 MILLIMETERS_PER_INCH = 25.4
+
 
 def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     """ Convert gerber/excellon formatted string to floating-point number
@@ -92,7 +92,8 @@ def parse_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     else:
         digits = list(value)
 
-    result = float(''.join(digits[:integer_digits] + ['.'] + digits[integer_digits:]))
+    result = float(
+        ''.join(digits[:integer_digits] + ['.'] + digits[integer_digits:]))
     return -result if negative else result
 
 
@@ -132,7 +133,8 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     if MAX_DIGITS > 13 or integer_digits > 6 or decimal_digits > 7:
         raise ValueError('Parser only supports precision up to 6:7 format')
 
-    # Edge case... (per Gerber spec we should return 0 in all cases, see page 77)
+    # Edge case... (per Gerber spec we should return 0 in all cases, see page
+    # 77)
     if value == 0:
         return '0'
 
@@ -222,7 +224,7 @@ def detect_file_format(data):
         elif '%FS' in line:
             return 'rs274x'
         elif ((len(line.split()) >= 2) and
-             (line.split()[0] == 'P') and (line.split()[1] == 'JOB')):
+              (line.split()[0] == 'P') and (line.split()[1] == 'JOB')):
             return 'ipc_d_356'
     return 'unknown'
 
@@ -251,6 +253,7 @@ def metric(value):
         The equivalent value expressed in millimeters.
     """
     return value * MILLIMETERS_PER_INCH
+
 
 def inch(value):
     """ Convert millimeter value to inches
@@ -295,6 +298,26 @@ def rotate_point(point, angle, center=(0.0, 0.0)):
 
 
 def listdir(directory, ignore_hidden=True, ignore_os=True):
+    """ List files in given directory.
+    Differs from os.listdir() in that hidden and OS-generated files are ignored
+    by default.
+
+    Parameters
+    ----------
+    directory : str
+        path to the directory for which to list files.
+
+    ignore_hidden : bool
+        If True, ignore files beginning with a leading '.'
+
+    ignore_os : bool
+        If True, ignore OS-generated files, e.g. Thumbs.db
+
+    Returns
+    -------
+    files : list
+        list of files in specified directory
+    """
     os_files = ('.DS_Store', 'Thumbs.db', 'ethumbs.db')
     files = os.listdir(directory)
     if ignore_hidden:
@@ -302,3 +325,9 @@ def listdir(directory, ignore_hidden=True, ignore_os=True):
     if ignore_os:
         files = [f for f in files if not f in os_files]
     return files
+
+
+def convex_hull(points):
+    vertices = ConvexHull(points).vertices
+    return [points[idx] for idx in
+            set([point for pair in vertices for point in pair])]
