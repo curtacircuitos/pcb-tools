@@ -18,6 +18,7 @@
 
 import cairocffi as cairo
 import tempfile
+import copy
 
 from .render import GerberContext, RenderSettings
 from .theme import THEMES
@@ -37,6 +38,7 @@ class GerberCairoContext(GerberContext):
         self.surface = None
         self.ctx = None
         self.active_layer = None
+        self.active_matrix = None
         self.output_ctx = None
         self.bg = False
         self.mask = None
@@ -120,9 +122,7 @@ class GerberCairoContext(GerberContext):
         self.invert = settings.invert
 
         # Get a new clean layer to render on
-        self._new_render_layer()
-        if settings.mirror:
-            raise Warning('mirrored layers aren\'t supported yet...')
+        self._new_render_layer(mirror=settings.mirror)
         for prim in layer.primitives:
             self.render(prim)
         # Add layer to image
@@ -262,30 +262,35 @@ class GerberCairoContext(GerberContext):
         self.ctx.show_text(primitive.net_name)
         self.ctx.scale(1, -1)
 
-    def _new_render_layer(self, color=None):
+    def _new_render_layer(self, color=None, mirror=False):
         size_in_pixels = self.scale_point(self.size_in_inch)
         layer = cairo.SVGSurface(None, size_in_pixels[0], size_in_pixels[1])
         ctx = cairo.Context(layer)
         ctx.set_fill_rule(cairo.FILL_RULE_EVEN_ODD)
         ctx.scale(1, -1)
         ctx.translate(-(self.origin_in_inch[0] * self.scale[0]),
-                           (-self.origin_in_inch[1] * self.scale[0])
-                           - size_in_pixels[1])
+                           (-self.origin_in_inch[1] * self.scale[0]) - size_in_pixels[1])
         if self.invert:
             ctx.set_operator(cairo.OPERATOR_OVER)
             ctx.set_source_rgba(*self.color, alpha=self.alpha)
             ctx.paint()
+        matrix = copy.copy(self._xform_matrix)
+        if mirror:
+            matrix.xx = -1.0
+            matrix.x0 = self.origin_in_pixels[0] + self.size_in_pixels[0]
         self.ctx = ctx
         self.active_layer = layer
+        self.active_matrix = matrix
 
     def _flatten(self):
         self.output_ctx.set_operator(cairo.OPERATOR_OVER)
         ptn = cairo.SurfacePattern(self.active_layer)
-        ptn.set_matrix(self._xform_matrix)
+        ptn.set_matrix(self.active_matrix)
         self.output_ctx.set_source(ptn)
         self.output_ctx.paint()
         self.ctx = None
         self.active_layer = None
+        self.active_matrix = None
 
     def _paint_background(self, force=False):
         if (not self.bg) or force:

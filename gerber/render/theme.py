@@ -41,11 +41,11 @@ class Theme(object):
         self.name = 'Default' if name is None else name
         self.background = kwargs.get('background', RenderSettings(COLORS['black'], alpha=0.0))
         self.topsilk = kwargs.get('topsilk', RenderSettings(COLORS['white']))
-        self.bottomsilk = kwargs.get('bottomsilk', RenderSettings(COLORS['white']))
+        self.bottomsilk = kwargs.get('bottomsilk', RenderSettings(COLORS['white'], mirror=True))
         self.topmask = kwargs.get('topmask', RenderSettings(COLORS['green soldermask'], alpha=0.8, invert=True))
-        self.bottommask = kwargs.get('bottommask', RenderSettings(COLORS['green soldermask'], alpha=0.8, invert=True))
+        self.bottommask = kwargs.get('bottommask', RenderSettings(COLORS['green soldermask'], alpha=0.8, invert=True, mirror=True))
         self.top = kwargs.get('top', RenderSettings(COLORS['hasl copper']))
-        self.bottom = kwargs.get('top', RenderSettings(COLORS['hasl copper']))
+        self.bottom = kwargs.get('bottom', RenderSettings(COLORS['hasl copper'], mirror=True))
         self.drill = kwargs.get('drill', RenderSettings(COLORS['black']))
         self.ipc_netlist = kwargs.get('ipc_netlist', RenderSettings(COLORS['red']))
 
@@ -61,9 +61,10 @@ THEMES = {
     'default': Theme(),
     'OSH Park': Theme(name='OSH Park',
                       top=RenderSettings(COLORS['enig copper']),
-                      bottom=RenderSettings(COLORS['enig copper']),
+                      bottom=RenderSettings(COLORS['enig copper'], mirror=True),
                       topmask=RenderSettings(COLORS['purple soldermask'], alpha=0.8, invert=True),
-                      bottommask=RenderSettings(COLORS['purple soldermask'], alpha=0.8, invert=True)),
+                      bottommask=RenderSettings(COLORS['purple soldermask'], alpha=0.8, invert=True, mirror=True)),
+
     'Blue': Theme(name='Blue',
                   topmask=RenderSettings(COLORS['blue soldermask'], alpha=0.8, invert=True),
                   bottommask=RenderSettings(COLORS['blue soldermask'], alpha=0.8, invert=True)),
