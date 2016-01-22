@@ -463,7 +463,7 @@ class AMPolygonPrimitive(AMPrimitive):
         # Offset the primitive from macro position
         position = tuple([a + b for a , b in zip (position, self.position)])
         # Return a renderable primitive
-        return Polygon(position, vertices, self.diameter/2.,
+        return Polygon(position, self.vertices, self.diameter/2.,
                        rotation=self.rotation, level_polarity=level_polarity,
                        units=units)
 
