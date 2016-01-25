@@ -604,8 +604,8 @@ def detect_excellon_format(data=None, filename=None):
             settings = FileSettings(zeros=zeros, format=fmt)
             try:
                 p = ExcellonParser(settings)
-                p.parse_raw(data)
-                size = tuple([t[0] - t[1] for t in p.bounds])
+                ef = p.parse_raw(data)
+                size = tuple([t[0] - t[1] for t in ef.bounds])
                 hole_area = 0.0
                 for hit in p.hits:
                     tool = hit.tool
