@@ -45,7 +45,8 @@ class GerberContext(object):
         Measurement units. 'inch' or 'metric'
 
     color : tuple (<float>, <float>, <float>)
-        Color used for rendering as a tuple of normalized (red, green, blue) values.
+        Color used for rendering as a tuple of normalized (red, green, blue)
+        values.
 
     drill_color : tuple (<float>, <float>, <float>)
         Color used for rendering drill hits. Format is the same as for `color`.
@@ -62,8 +63,9 @@ class GerberContext(object):
         self._units = units
         self._color = (0.7215, 0.451, 0.200)
         self._background_color = (0.0, 0.0, 0.0)
+        self._drill_color = (0.0, 0.0, 0.0)
         self._alpha = 1.0
-        self._invert = False
+        self.invert = False
         self.ctx = None
 
     @property
@@ -125,14 +127,6 @@ class GerberContext(object):
             raise ValueError('Alpha must be between 0.0 and 1.0')
         self._alpha = alpha
 
-    @property
-    def invert(self):
-        return self._invert
-
-    @invert.setter
-    def invert(self, invert):
-        self._invert = invert
-
     def render(self, primitive):
         color = self.color
         if isinstance(primitive, Line):
@@ -155,7 +149,6 @@ class GerberContext(object):
             self._render_test_record(primitive, color)
         else:
             return
-
 
     def _render_line(self, primitive, color):
         pass
@@ -186,8 +179,8 @@ class GerberContext(object):
 
 
 class RenderSettings(object):
-
-    def __init__(self, color=(0.0, 0.0, 0.0), alpha=1.0, invert=False, mirror=False):
+    def __init__(self, color=(0.0, 0.0, 0.0), alpha=1.0, invert=False,
+                 mirror=False):
         self.color = color
         self.alpha = alpha
         self.invert = invert

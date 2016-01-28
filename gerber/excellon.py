@@ -28,7 +28,7 @@ import operator
 
 try:
     from cStringIO import StringIO
-except(ImportError):
+except ImportError:
     from io import StringIO
 
 from .excellon_statements import *
@@ -57,12 +57,15 @@ def read(filename):
     return ExcellonParser(settings).parse(filename)
 
 
-def loads(data):
+def loads(data, filename=None):
     """ Read data from string and return an ExcellonFile
     Parameters
     ----------
     data : string
         string containing Excellon file contents
+
+    filename : string, optional
+        string containing the filename of the data source
 
     Returns
     -------
@@ -72,7 +75,7 @@ def loads(data):
     """
     # File object should use settings from source file by default.
     settings = FileSettings(**detect_excellon_format(data))
-    return ExcellonParser(settings).parse_raw(data)
+    return ExcellonParser(settings).parse_raw(data, filename)
 
 
 class DrillHit(object):

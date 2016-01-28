@@ -48,7 +48,7 @@ def read(filename):
     return GerberParser().parse(filename)
 
 
-def loads(data):
+def loads(data, filename=None):
     """ Generate a GerberFile object from rs274x data in memory
 
     Parameters
@@ -56,12 +56,15 @@ def loads(data):
     data : string
         string containing gerber file contents
 
+    filename : string, optional
+        string containing the filename of the data source
+
     Returns
     -------
     file : :class:`gerber.rs274x.GerberFile`
         A GerberFile created from the specified file.
     """
-    return GerberParser().parse_raw(data)
+    return GerberParser().parse_raw(data, filename)
 
 
 class GerberFile(CamFile):

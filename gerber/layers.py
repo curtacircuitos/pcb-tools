@@ -19,8 +19,9 @@ import os
 import re
 from collections import namedtuple
 
+from . import common
 from .excellon import ExcellonFile
-from .ipc356 import IPC_D_356
+from .ipc356 import IPCNetlist
 
 
 Hint = namedtuple('Hint', 'layer ext name')
@@ -73,7 +74,19 @@ hints = [
          ext=['ipc'],
          name=[],
          ),
+    Hint(layer='drawing',
+         ext=['fab'],
+         name=['assembly drawing', 'assembly', 'fabrication', 'fab drawing']
+         ),
 ]
+
+
+def load_layer(filename):
+    return PCBLayer.from_cam(common.read(filename))
+
+
+def load_layer_data(data, filename=None):
+    return PCBLayer.from_cam(common.loads(data, filename))
 
 
 def guess_layer_class(filename):
@@ -89,24 +102,30 @@ def guess_layer_class(filename):
     return 'unknown'
 
 
-def sort_layers(layers):
+def sort_layers(layers, from_top=True):
     layer_order = ['outline', 'toppaste', 'topsilk', 'topmask', 'top',
                    'internal', 'bottom', 'bottommask', 'bottomsilk',
-                   'bottompaste', 'drill', ]
+                   'bottompaste']
+    append_after = ['drill', 'drawing']
+
     output = []
-    drill_layers = [layer for layer in layers if layer.layer_class == 'drill']
     internal_layers = list(sorted([layer for layer in layers
                                    if layer.layer_class == 'internal']))
 
     for layer_class in layer_order:
         if layer_class == 'internal':
             output += internal_layers
-        elif layer_class == 'drill':
-            output += drill_layers
         else:
             for layer in layers:
                 if layer.layer_class == layer_class:
                     output.append(layer)
+    if not from_top:
+        output = list(reversed(output))
+
+    for layer_class in append_after:
+        for layer in layers:
+            if layer.layer_class == layer_class:
+                output.append(layer)
     return output
 
 
@@ -126,14 +145,14 @@ class PCBLayer(object):
 
     """
     @classmethod
-    def from_gerber(cls, camfile):
+    def from_cam(cls, camfile):
         filename = camfile.filename
         layer_class = guess_layer_class(filename)
         if isinstance(camfile, ExcellonFile) or (layer_class == 'drill'):
-            return DrillLayer.from_gerber(camfile)
+            return DrillLayer.from_cam(camfile)
         elif layer_class == 'internal':
-            return InternalLayer.from_gerber(camfile)
-        if isinstance(camfile, IPC_D_356):
+            return InternalLayer.from_cam(camfile)
+        if isinstance(camfile, IPCNetlist):
             layer_class = 'ipc_netlist'
         return cls(filename, layer_class, camfile)
 
@@ -155,9 +174,10 @@ class PCBLayer(object):
     def __repr__(self):
         return '<PCBLayer: {}>'.format(self.layer_class)
 
+
 class DrillLayer(PCBLayer):
     @classmethod
-    def from_gerber(cls, camfile):
+    def from_cam(cls, camfile):
         return cls(camfile.filename, camfile)
 
     def __init__(self, filename=None, cam_source=None, layers=None, **kwargs):
@@ -168,11 +188,11 @@ class DrillLayer(PCBLayer):
 class InternalLayer(PCBLayer):
 
     @classmethod
-    def from_gerber(cls, camfile):
+    def from_cam(cls, camfile):
         filename = camfile.filename
         try:
             order = int(re.search(r'\d+', filename).group())
-        except:
+        except AttributeError:
             order = 0
         return cls(filename, camfile, order)
 
@@ -209,23 +229,3 @@ class InternalLayer(PCBLayer):
         if not hasattr(other, 'order'):
             raise TypeError()
         return (self.order <= other.order)
-
-
-class LayerSet(object):
-
-    def __init__(self, name, layers, **kwargs):
-        super(LayerSet, self).__init__(**kwargs)
-        self.name = name
-        self.layers = list(layers)
-
-    def __len__(self):
-        return len(self.layers)
-
-    def __getitem__(self, item):
-        return self.layers[item]
-
-    def to_render(self):
-        return self.layers
-
-    def apply_theme(self, theme):
-        pass

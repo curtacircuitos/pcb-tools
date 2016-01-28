@@ -24,46 +24,54 @@ a .png file.
 """
 
 import os
-from gerber import read
-from gerber.render import GerberCairoContext, theme
+from gerber import load_layer
+from gerber.render import GerberCairoContext, RenderSettings, theme
 
 GERBER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'gerbers'))
 
 
 # Open the gerber files
-copper = read(os.path.join(GERBER_FOLDER, 'copper.GTL'))
-mask = read(os.path.join(GERBER_FOLDER, 'soldermask.GTS'))
-silk = read(os.path.join(GERBER_FOLDER, 'silkscreen.GTO'))
-drill = read(os.path.join(GERBER_FOLDER, 'ncdrill.DRD'))
+copper = load_layer(os.path.join(GERBER_FOLDER, 'copper.GTL'))
+mask = load_layer(os.path.join(GERBER_FOLDER, 'soldermask.GTS'))
+silk = load_layer(os.path.join(GERBER_FOLDER, 'silkscreen.GTO'))
+drill = load_layer(os.path.join(GERBER_FOLDER, 'ncdrill.DRD'))
 
 # Create a new drawing context
 ctx = GerberCairoContext()
 
-# Set opacity and color for copper layer
-ctx.alpha = 1.0
-ctx.color = theme.COLORS['hasl copper']
-
-# Draw the copper layer
-copper.render(ctx)
-
-# Set opacity and color for soldermask layer
-ctx.alpha = 0.75
-ctx.color = theme.COLORS['green soldermask']
+# Draw the copper layer. render_layer() uses the default color scheme for the
+# layer, based on the layer type. Copper layers are rendered as
+ctx.render_layer(copper)
 
 # Draw the soldermask layer
-mask.render(ctx, invert=True)
+ctx.render_layer(mask)
 
-# Set opacity and color for silkscreen layer
-ctx.alpha = 1.0
-ctx.color = theme.COLORS['white']
 
-# Draw the silkscreen layer
-silk.render(ctx)
+# The default style can be overridden by passing a RenderSettings instance to
+# render_layer().
+# First, create a settings object:
+our_settings = RenderSettings(color=theme.COLORS['white'], alpha=0.85)
 
-# Set opacity for drill layer
-ctx.alpha = 1.0
-ctx.color = theme.COLORS['black']
-drill.render(ctx)
+# Draw the silkscreen layer, and specify the rendering settings to use
+ctx.render_layer(silk, settings=our_settings)
+
+# Draw the drill layer
+ctx.render_layer(drill)
 
 # Write output to png file
 ctx.dump(os.path.join(os.path.dirname(__file__), 'cairo_example.png'))
+
+# Load the bottom layers
+copper = load_layer(os.path.join(GERBER_FOLDER, 'bottom_copper.GBL'))
+mask = load_layer(os.path.join(GERBER_FOLDER, 'bottom_mask.GBS'))
+
+# Clear the drawing
+ctx.clear()
+
+# Render bottom layers
+ctx.render_layer(copper)
+ctx.render_layer(mask)
+ctx.render_layer(drill)
+
+# Write png file
+ctx.dump(os.path.join(os.path.dirname(__file__), 'cairo_bottom.png'))

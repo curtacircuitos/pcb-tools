@@ -34,8 +34,6 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
-.idea/workspace.xml
-.idea/misc.xml
 .idea
 
 # Komodo Files

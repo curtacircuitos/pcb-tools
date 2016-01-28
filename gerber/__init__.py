@@ -24,4 +24,5 @@ files in python.
 """
 
 from .common import read, loads
+from .layers import load_layer, load_layer_data
 from .pcb import PCB

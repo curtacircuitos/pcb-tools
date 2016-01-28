@@ -251,7 +251,7 @@ class CamFile(object):
     def to_metric(self):
         pass
 
-    def render(self, ctx, invert=False, filename=None):
+    def render(self, ctx=None, invert=False, filename=None):
         """ Generate image of layer.
 
         Parameters
@@ -262,13 +262,16 @@ class CamFile(object):
         filename : string <optional>
             If provided, save the rendered image to `filename`
         """
+        if ctx is None:
+            from .render import GerberCairoContext
+            ctx = GerberCairoContext()
         ctx.set_bounds(self.bounds)
         ctx._paint_background()
         ctx.invert = invert
         ctx._new_render_layer()
         for p in self.primitives:
             ctx.render(p)
-        ctx._flatten()
+        ctx._paint()
 
         if filename is not None:
             ctx.dump(filename)

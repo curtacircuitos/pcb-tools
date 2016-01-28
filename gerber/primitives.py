@@ -166,7 +166,6 @@ class Primitive(object):
                                    in zip(self.position,
                                           (x_offset, y_offset))])
 
-
     def _changed(self):
         """ Clear memoized properties.
 
@@ -568,11 +567,11 @@ class Rectangle(Primitive):
 
     @property
     def axis_aligned_width(self):
-        return (self._cos_theta * self.width + self._sin_theta * self.height)
+        return (self._cos_theta * self.width) + (self._sin_theta * self.height)
 
     @property
     def axis_aligned_height(self):
-        return (self._cos_theta * self.height + self._sin_theta * self.width)
+        return (self._cos_theta * self.height) + (self._sin_theta * self.width)
 
 
 class Diamond(Primitive):
@@ -640,25 +639,24 @@ class Diamond(Primitive):
 
     @property
     def axis_aligned_width(self):
-        return (self._cos_theta * self.width + self._sin_theta * self.height)
+        return (self._cos_theta * self.width) + (self._sin_theta * self.height)
 
     @property
     def axis_aligned_height(self):
-        return (self._cos_theta * self.height + self._sin_theta * self.width)
+        return (self._cos_theta * self.height) + (self._sin_theta * self.width)
 
 
 class ChamferRectangle(Primitive):
     """
     """
-
-    def __init__(self, position, width, height, chamfer, corners, **kwargs):
+    def __init__(self, position, width, height, chamfer, corners=None, **kwargs):
         super(ChamferRectangle, self).__init__(**kwargs)
         validate_coordinates(position)
         self._position = position
         self._width = width
         self._height = height
         self._chamfer = chamfer
-        self._corners = corners
+        self._corners = corners if corners is not None else [True] * 4
         self._to_convert = ['position', 'width', 'height', 'chamfer']
 
     @property
@@ -718,7 +716,37 @@ class ChamferRectangle(Primitive):
 
     @property
     def vertices(self):
-        # TODO
+        if self._vertices is None:
+            vertices = []
+            delta_w = self.width / 2.
+            delta_h = self.height / 2.
+            # order is UR, UL, LL, LR
+            rect_corners = [
+                ((self.position[0] + delta_w), (self.position[1] + delta_h)),
+                ((self.position[0] - delta_w), (self.position[1] + delta_h)),
+                ((self.position[0] - delta_w), (self.position[1] - delta_h)),
+                ((self.position[0] + delta_w), (self.position[1] - delta_h))
+            ]
+            for idx, corner, chamfered in enumerate((rect_corners, self.corners)):
+                x, y = corner
+                if chamfered:
+                    if idx == 0:
+                        vertices.append((x - self.chamfer, y))
+                        vertices.append((x, y - self.chamfer))
+                    elif idx == 1:
+                        vertices.append((x + self.chamfer, y))
+                        vertices.append((x, y - self.chamfer))
+                    elif idx == 2:
+                        vertices.append((x + self.chamfer, y))
+                        vertices.append((x, y + self.chamfer))
+                    elif idx == 3:
+                        vertices.append((x - self.chamfer, y))
+                        vertices.append((x, y + self.chamfer))
+                else:
+                    vertices.append(corner)
+            self._vertices = [((x * self._cos_theta - y * self._sin_theta),
+                               (x * self._sin_theta + y * self._cos_theta))
+                              for x, y in vertices]
         return self._vertices
 
     @property
@@ -1142,3 +1170,4 @@ class TestRecord(Primitive):
         self.position = position
         self.net_name = net_name
         self.layer = layer
+        self._to_convert = ['position']

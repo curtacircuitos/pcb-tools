@@ -291,9 +291,9 @@ def rotate_point(point, angle, center=(0.0, 0.0)):
         `point` rotated about `center` by `angle` degrees.
     """
     angle = radians(angle)
-    xdelta, ydelta = tuple(map(sub, point, center))
-    x = center[0] + (cos(angle) * xdelta) - (sin(angle) * ydelta)
-    y = center[1] + (sin(angle) * xdelta) - (cos(angle) * ydelta)
+    x_delta, y_delta = tuple(map(sub, point, center))
+    x = center[0] + (cos(angle) * x_delta) - (sin(angle) * y_delta)
+    y = center[1] + (sin(angle) * x_delta) - (cos(angle) * y_delta)
     return (x, y)
 
 
