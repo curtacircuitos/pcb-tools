@@ -601,14 +601,24 @@ class UnitStmt(ExcellonStatement):
     def from_excellon(cls, line, **kwargs):
         units = 'inch' if 'INCH' in line else 'metric'
         zeros = 'leading' if 'LZ' in line else 'trailing'
-        return cls(units, zeros, **kwargs)
+        if '0000.00' in line:
+            format = (4, 2)
+        elif '000.000' in line:
+            format = (3, 3)
+        elif '00.0000' in line:
+            format = (2, 4)
+        else:
+            format = None
+        return cls(units, zeros, format, **kwargs)
 
-    def __init__(self, units='inch', zeros='leading', **kwargs):
+    def __init__(self, units='inch', zeros='leading', format=None, **kwargs):
         super(UnitStmt, self).__init__(**kwargs)
         self.units = units.lower()
         self.zeros = zeros
+        self.format = format
 
     def to_excellon(self, settings=None):
+        # TODO This won't export the invalid format statement if it exists
         stmt = '%s,%s' % ('INCH' if self.units == 'inch' else 'METRIC',
                           'LZ' if self.zeros == 'leading'
                           else 'TZ')

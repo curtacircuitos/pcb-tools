@@ -461,6 +461,8 @@ class ExcellonParser(object):
             stmt = UnitStmt.from_excellon(line)
             self.units = stmt.units
             self.zeros = stmt.zeros
+            if stmt.format:
+                self.format = stmt.format
             self.statements.append(stmt)
 
         elif line[:3] == 'M71' or line [:3] == 'M72':

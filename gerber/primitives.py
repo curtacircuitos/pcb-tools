@@ -827,7 +827,7 @@ class Region(Primitive):
 
     @property
     def bounding_box(self):
-        xlims, ylims = zip(*[p.bounding_box for p in self.primitives])
+        xlims, ylims = zip(*[p.bounding_box_no_aperture for p in self.primitives])
         minx, maxx = zip(*xlims)
         miny, maxy = zip(*ylims)
         min_x = min(minx)
