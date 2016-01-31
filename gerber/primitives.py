@@ -221,13 +221,14 @@ class Line(Primitive):
 class Arc(Primitive):
     """
     """
-    def __init__(self, start, end, center, direction, aperture, **kwargs):
+    def __init__(self, start, end, center, direction, aperture, quadrant_mode, **kwargs):
         super(Arc, self).__init__(**kwargs)
         self.start = start
         self.end = end
         self.center = center
         self.direction = direction
         self.aperture = aperture
+        self.quadrant_mode = quadrant_mode
         self._to_convert = ['start', 'end', 'center', 'aperture']
 
     @property 

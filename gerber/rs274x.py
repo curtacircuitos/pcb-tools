@@ -496,12 +496,12 @@ class GerberParser(object):
                 j = 0 if stmt.j is None else stmt.j
                 center = (start[0] + i, start[1] + j)
                 if self.region_mode == 'off':
-                    self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], level_polarity=self.level_polarity, units=self.settings.units))
+                    self.primitives.append(Arc(start, end, center, self.direction, self.apertures[self.aperture], quadrant_mode=self.quadrant_mode, level_polarity=self.level_polarity, units=self.settings.units))
                 else:
                     if self.current_region is None:
-                        self.current_region = [Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units),]
+                        self.current_region = [Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), quadrant_mode=self.quadrant_mode, level_polarity=self.level_polarity, units=self.settings.units),]
                     else:
-                        self.current_region.append(Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), level_polarity=self.level_polarity, units=self.settings.units))
+                        self.current_region.append(Arc(start, end, center, self.direction, self.apertures.get(self.aperture, Circle((0,0), 0)), quadrant_mode=self.quadrant_mode, level_polarity=self.level_polarity, units=self.settings.units))
 
         elif self.op == "D02" or self.op == "D2":
             pass

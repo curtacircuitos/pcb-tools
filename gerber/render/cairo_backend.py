@@ -76,6 +76,9 @@ class GerberCairoContext(GerberContext):
         radius = self.scale[0] * arc.radius
         angle1 = arc.start_angle
         angle2 = arc.end_angle
+        if angle1 == angle2 and arc.quadrant_mode != 'single-quadrant':
+            # Make the angles slightly different otherwise Cario will draw nothing
+            angle2 -= 0.000000001
         if isinstance(arc.aperture, Circle):
             width = arc.aperture.diameter if arc.aperture.diameter != 0 else 0.001
         else:
