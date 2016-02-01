@@ -730,7 +730,10 @@ class AMGroup(Primitive):
         self.primitives = []
         for amprim in amprimitives:
             prim = amprim.to_primitive(self.units)
-            if prim:
+            if isinstance(prim, list):
+                for p in prim:
+                    self.primitives.append(p)
+            elif prim:
                self.primitives.append(prim)
         self._position = None
         self._to_convert = ['arimitives']

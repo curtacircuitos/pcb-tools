@@ -19,6 +19,7 @@
 import math
 from .utils import validate_coordinates, inch, metric, rotate_point
 from .primitives import Circle, Line, Outline, Polygon, Rectangle
+from math import asin
 
 
 # TODO: Add support for aperture macro variables
@@ -649,9 +650,10 @@ class AMThermalPrimitive(AMPrimitive):
         outer_diameter = float(modifiers[3])
         inner_diameter= float(modifiers[4])
         gap = float(modifiers[5])
-        return cls(code, position, outer_diameter, inner_diameter, gap)
+        rotation = float(modifiers[6])
+        return cls(code, position, outer_diameter, inner_diameter, gap, rotation)
 
-    def __init__(self, code, position, outer_diameter, inner_diameter, gap):
+    def __init__(self, code, position, outer_diameter, inner_diameter, gap, rotation):
         if code != 7:
             raise ValueError('ThermalPrimitive code is 7')
         super(AMThermalPrimitive, self).__init__(code, 'on')
@@ -660,6 +662,7 @@ class AMThermalPrimitive(AMPrimitive):
         self.outer_diameter = outer_diameter
         self.inner_diameter = inner_diameter
         self.gap = gap
+        self.rotation = rotation
 
     def to_inch(self):
         self.position = tuple([inch(x) for x in self.position])
@@ -684,9 +687,83 @@ class AMThermalPrimitive(AMPrimitive):
         )
         fmt = "{code},{position},{outer_diameter},{inner_diameter},{gap}*"
         return fmt.format(**data)
+    
+    def _approximate_arc_cw(self, start_angle, end_angle, radius, center):
+        """
+        Get an arc as a series of points
+        
+        Parameters
+        ----------
+        start_angle : The start angle in radians
+        end_angle : The end angle in radians
+        radius`: Radius of the arc
+        center : The center point of the arc (x, y) tuple
+        
+        Returns
+        -------
+        array of point tuples
+        """
+        
+        # The total sweep
+        sweep_angle = end_angle - start_angle
+        num_steps = 10
+            
+        angle_step = sweep_angle / num_steps
+            
+        radius = radius
+        center = center
+        
+        points = []
+    
+        for i in range(num_steps + 1):
+            current_angle = start_angle + (angle_step * i)
+            
+            nextx = (center[0] + math.cos(current_angle) * radius)
+            nexty = (center[1] + math.sin(current_angle) * radius)
+            
+            points.append((nextx, nexty))
+    
+        return points
 
     def to_primitive(self, units):
-        raise NotImplementedError()
+                
+        # We start with calculating the top right section, then duplicate it
+        
+        inner_radius = self.inner_diameter / 2.0
+        outer_radius = self.outer_diameter / 2.0
+        
+        # Calculate the start angle relative to the horizontal axis
+        inner_offset_angle = asin(self.gap / 2.0 / inner_radius)
+        outer_offset_angle = asin(self.gap / 2.0 / outer_radius)
+        
+        rotation_rad = math.radians(self.rotation)
+        inner_start_angle = inner_offset_angle + rotation_rad
+        inner_end_angle =  math.pi / 2 - inner_offset_angle + rotation_rad
+        
+        outer_start_angle = outer_offset_angle + rotation_rad
+        outer_end_angle = math.pi / 2 - outer_offset_angle + rotation_rad
+        
+        outlines = []
+        aperture = Circle((0, 0), 0)
+        
+        points = (self._approximate_arc_cw(inner_start_angle, inner_end_angle, inner_radius, self.position)
+                + list(reversed(self._approximate_arc_cw(outer_start_angle, outer_end_angle, outer_radius, self.position))))
+        
+        # There are four outlines at rotated sections
+        for rotation in [0, 90.0, 180.0, 270.0]:
+
+            lines = []
+            prev_point = rotate_point(points[0], rotation, self.position)
+            for point in points[1:]:
+                cur_point = rotate_point(point, rotation, self.position)
+                
+                lines.append(Line(prev_point, cur_point, aperture))
+            
+            prev_point = cur_point
+            
+            outlines.append(Outline(lines, units=units))
+
+        return outlines
 
 
 class AMCenterLinePrimitive(AMPrimitive):
