@@ -418,15 +418,15 @@ class GerberParser(object):
         aperture = None
         if shape == 'C':
             diameter = modifiers[0][0]
-            aperture = Circle(position=None, diameter=diameter)
+            aperture = Circle(position=None, diameter=diameter, units=self.settings.units)
         elif shape == 'R':
             width = modifiers[0][0]
             height = modifiers[0][1]
-            aperture = Rectangle(position=None, width=width, height=height)
+            aperture = Rectangle(position=None, width=width, height=height, units=self.settings.units)
         elif shape == 'O':
             width = modifiers[0][0]
             height = modifiers[0][1]
-            aperture = Obround(position=None, width=width, height=height)
+            aperture = Obround(position=None, width=width, height=height, units=self.settings.units)
         elif shape == 'P':
             # FIXME: not supported yet?
             pass
@@ -438,7 +438,7 @@ class GerberParser(object):
     def _evaluate_mode(self, stmt):
         if stmt.type == 'RegionMode':
             if self.region_mode == 'on' and stmt.mode == 'off':
-                self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity))
+                self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity, units=self.settings.units))
                 self.current_region = None
             self.region_mode = stmt.mode
         elif stmt.type == 'QuadrantMode':
