@@ -72,9 +72,10 @@ class FileSettings(object):
 
         elif zero_suppression is not None:
             if zero_suppression not in ['leading', 'trailing']:
-                raise ValueError('Zero suppression must be either leading or \
-                                 trailling')
-            self.zero_suppression = zero_suppression
+                # This is a common problem in Eagle files, so just suppress it
+                self.zero_suppression = 'leading'
+            else:
+                self.zero_suppression = zero_suppression
 
         elif zeros is not None:
             if zeros not in ['leading', 'trailing']:
