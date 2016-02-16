@@ -237,18 +237,29 @@ class GerberParser(object):
 
         length = len(data)
         start = 0
+        in_header = True
         
         for cur in range(0, length):
-            
+
             val = data[cur]
+            
+            if val == '%' and start == cur:
+                in_header = True
+                continue
+                
             if val == '\r' or val == '\n':
                 if start != cur:
                     yield data[start:cur]
                 start = cur + 1
                 
-            elif val == '*':
+            elif not in_header and val == '*':
                 yield data[start:cur + 1]
                 start = cur + 1
+                
+            elif in_header and val == '%':
+                yield data[start:cur + 1]
+                start = cur + 1
+                in_header = False
 
     def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
@@ -457,7 +468,9 @@ class GerberParser(object):
     def _evaluate_mode(self, stmt):
         if stmt.type == 'RegionMode':
             if self.region_mode == 'on' and stmt.mode == 'off':
-                self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity, units=self.settings.units))
+                # Sometimes we have regions that have no points. Skip those
+                if self.current_region:
+                    self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity, units=self.settings.units))
                 self.current_region = None
             self.region_mode = stmt.mode
         elif stmt.type == 'QuadrantMode':
