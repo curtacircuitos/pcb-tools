@@ -220,8 +220,7 @@ class GerberParser(object):
         return self.parse_raw(data, filename=None)
 
     def parse_raw(self, data, filename=None):
-        lines = [line for line in StringIO(data)]
-        for stmt in self._parse(lines):
+        for stmt in self._parse(self._split_commands(data)):
             self.evaluate(stmt)
             self.statements.append(stmt)
 
@@ -230,6 +229,26 @@ class GerberParser(object):
             stmt.units = self.settings.units
 
         return GerberFile(self.statements, self.settings, self.primitives, self.apertures.values(), filename)
+    
+    def _split_commands(self, data):
+        """
+        Split the data into commands. Commands end with * (and also newline to help with some badly formatted files)
+        """
+
+        length = len(data)
+        start = 0
+        
+        for cur in range(0, length):
+            
+            val = data[cur]
+            if val == '\r' or val == '\n':
+                if start != cur:
+                    yield data[start:cur]
+                start = cur + 1
+                
+            elif val == '*':
+                yield data[start:cur + 1]
+                start = cur + 1
 
     def dump_json(self):
         stmts = {"statements": [stmt.__dict__ for stmt in self.statements]}
@@ -244,7 +263,7 @@ class GerberParser(object):
     def _parse(self, data):
         oldline = ''
 
-        for i, line in enumerate(data):
+        for line in data:
             line = oldline + line.strip()
 
             # skip empty lines
