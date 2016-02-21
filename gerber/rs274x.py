@@ -110,6 +110,21 @@ class GerberFile(CamFile):
                 max_y = max(stmt.y, max_y)
 
         return ((min_x, max_x), (min_y, max_y))
+    
+    @property
+    def bounding_box(self):
+        min_x = min_y = 1000000
+        max_x = max_y = -1000000
+
+        for prim in self.primitives:
+            bounds = prim.bounding_box
+            min_x = min(bounds[0][0], min_x)
+            max_x = max(bounds[0][1], max_x)
+
+            min_y = min(bounds[1][0], min_y)
+            max_y = max(bounds[1][1], max_y)
+
+        return ((min_x, max_x), (min_y, max_y))
 
     def write(self, filename, settings=None):
         """ Write data out to a gerber file
