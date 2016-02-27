@@ -284,10 +284,13 @@ def rotate_point(point, angle, center=(0.0, 0.0)):
         `point` rotated about `center` by `angle` degrees.
     """
     angle = radians(angle)
-    xdelta, ydelta = tuple(map(sub, point, center))
-    x = center[0] + (cos(angle) * xdelta) - (sin(angle) * ydelta)
-    y = center[1] + (sin(angle) * xdelta) - (cos(angle) * ydelta)
-    return (x, y)
+    
+    cos_angle = cos(angle)
+    sin_angle = sin(angle)
+    
+    return (
+            cos_angle * (point[0] - center[0]) - sin_angle * (point[1] - center[1]) + center[0],
+            sin_angle * (point[0] - center[0]) + cos_angle * (point[1] - center[1]) + center[1])
 
 
 def nearly_equal(point1, point2, ndigits = 6):

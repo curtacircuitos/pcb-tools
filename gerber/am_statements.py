@@ -334,6 +334,19 @@ class AMOutlinePrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
+    
+    @classmethod
+    def from_primitive(cls, primitive):
+        
+        start_point = (round(primitive.primitives[0].start[0], 6), round(primitive.primitives[0].start[1], 6))
+        points = []
+        for prim in primitive.primitives:
+            points.append((round(prim.end[0], 6), round(prim.end[1], 6)))
+            
+        rotation = 0.0
+        
+        return cls(4, 'on', start_point, points, rotation)
+    
     @classmethod
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")
@@ -376,17 +389,18 @@ class AMOutlinePrimitive(AMPrimitive):
             code=self.code,
             exposure="1" if self.exposure == "on" else "0",
             n_points=len(self.points),
-            start_point="%.4g,%.4g" % self.start_point,
-            points=",".join(["%.4g,%.4g" % point for point in self.points]),
+            start_point="%.6g,%.6g" % self.start_point,
+            points=",\n".join(["%.6g,%.6g" % point for point in self.points]),
             rotation=str(self.rotation)
         )
-        return "{code},{exposure},{n_points},{start_point},{points},{rotation}*".format(**data)
+        # TODO I removed a closing asterix - not sure if this works for items with multiple statements
+        return "{code},{exposure},{n_points},{start_point},{points},\n{rotation}".format(**data)
     
     def to_primitive(self, units):
         
         lines = []
-        prev_point = rotate_point(self.points[0], self.rotation)
-        for point in self.points[1:]:
+        prev_point = rotate_point(self.start_point, self.rotation)
+        for point in self.points:
             cur_point = rotate_point(point, self.rotation)
             
             lines.append(Line(prev_point, cur_point, Circle((0,0), 0)))

@@ -168,6 +168,10 @@ class FSParamStmt(ParamStmt):
 class MOParamStmt(ParamStmt):
     """ MO - Gerber Mode (measurement units) Statement.
     """
+    
+    @classmethod
+    def from_units(cls, units):
+        return cls(None, 'inch')
 
     @classmethod
     def from_dict(cls, stmt_dict):

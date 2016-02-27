@@ -779,7 +779,7 @@ class AMGroup(Primitive):
         
         if self._position:
             dx = new_pos[0] - self._position[0]
-            dy = new_pos[0] - self._position[0]
+            dy = new_pos[1] - self._position[1]
         else:
             dx = new_pos[0]
             dy = new_pos[1]

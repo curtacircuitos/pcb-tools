@@ -1,12 +1,49 @@
 
 from .render import GerberContext
+from ..am_statements import *
 from ..gerber_statements import *
-from ..primitives import AMGroup, Arc, Circle, Line, Rectangle
+from ..primitives import AMGroup, Arc, Circle, Line, Outline, Rectangle
+from copy import deepcopy
+
+class AMGroupContext(object):
+    '''A special renderer to generate aperature macros from an AMGroup'''
+    
+    def __init__(self):
+        self.statements = []
+    
+    def render(self, amgroup, name):
+        
+        # Clone ourselves, then offset by the psotion so that
+        # our render doesn't have to consider offset. Just makes things simplder
+        nooffset_group = deepcopy(amgroup)
+        nooffset_group.position = (0, 0)
+        
+        # Now draw the shapes
+        for primitive in nooffset_group.primitives:
+            if isinstance(primitive, Outline):
+                self._render_outline(primitive)
+
+        statement = AMParamStmt('AM', name, self._statements_to_string())
+        return statement
+    
+    def _statements_to_string(self):
+        macro = ''
+
+        for statement in self.statements:
+            macro += statement.to_gerber()
+            
+        return macro
+     
+    def _render_outline(self, outline):
+        self.statements.append(AMOutlinePrimitive.from_primitive(outline))
+        
+    
 
 class Rs274xContext(GerberContext):
     
     def __init__(self, settings):
         GerberContext.__init__(self)
+        self.comments = []
         self.header = []
         self.body = []
         self.end = [EofStmt()]
@@ -27,8 +64,13 @@ class Rs274xContext(GerberContext):
         self._i_none = 0
         self._j_none = 0
         
+        self.settings = settings
+
+        self._start_header(settings)
         self._define_dcodes()
         
+    def _start_header(self, settings):
+        self.header.append(MOParamStmt.from_units(settings.units))
         
     def _define_dcodes(self):
         
@@ -67,7 +109,7 @@ class Rs274xContext(GerberContext):
         
     @property
     def statements(self):
-        return self.header + self.body + self.end
+        return self.comments + self.header + self.body + self.end
         
     def set_bounds(self, bounds):
         pass
@@ -93,6 +135,8 @@ class Rs274xContext(GerberContext):
     def _render_line(self, line, color):
         
         self._select_aperture(line.aperture)
+        
+        self._render_level_polarity(line)
             
         # Get the right function
         if self._func != CoordStmt.FUNC_LINEAR:
@@ -124,6 +168,8 @@ class Rs274xContext(GerberContext):
             
         # Select the right aperture if not already selected
         self._select_aperture(arc.aperture)
+        
+        self._render_level_polarity(arc)
         
         # Find the right movement mode. Always set to be sure it is really right
         dir = arc.direction
@@ -243,7 +289,7 @@ class Rs274xContext(GerberContext):
                 hash += str(len(primitive.primitives))
             
         return hash
-    
+
     def _get_amacro(self, amgroup, dcode = None):
         # Macros are a little special since we don't have a good way to compare them quickly
         # but in most cases, this should work
@@ -261,8 +307,13 @@ class Rs274xContext(GerberContext):
             
             # Create the statements
             # TODO
-            statements = []
+            amrenderer = AMGroupContext()
+            statement = amrenderer.render(amgroup, hash)
+            
+            self.header.append(statement)
+            
             aperdef = ADParamStmt.macro(dcode, hash)
+            self.header.append(aperdef)
             
             # Store the dcode and the original so we can check if it really is the same
             macro = (aperdef, amgroup)
@@ -280,6 +331,8 @@ class Rs274xContext(GerberContext):
         
         aper = self._get_amacro(amgroup)
         self._render_flash(amgroup, aper)
+        
+    
         
     def _render_inverted_layer(self):
         pass
