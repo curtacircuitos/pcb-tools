@@ -288,3 +288,9 @@ def rotate_point(point, angle, center=(0.0, 0.0)):
     x = center[0] + (cos(angle) * xdelta) - (sin(angle) * ydelta)
     y = center[1] + (sin(angle) * xdelta) - (cos(angle) * ydelta)
     return (x, y)
+
+
+def nearly_equal(point1, point2, ndigits = 6):
+    '''Are the points nearly equal'''
+    
+    return round(point1[0] - point2[0], ndigits) == 0 and round(point1[1] - point2[1], ndigits) == 0

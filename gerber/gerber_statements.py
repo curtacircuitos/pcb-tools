@@ -226,6 +226,11 @@ class LPParamStmt(ParamStmt):
         param = stmt_dict['param']
         lp = 'clear' if stmt_dict.get('lp') == 'C' else 'dark'
         return cls(param, lp)
+    
+    @classmethod
+    def from_region(cls, region):
+        #todo what is the first param?
+        return cls(None, region.level_polarity)
 
     def __init__(self, param, lp):
         """ Initialize LPParamStmt class
@@ -258,7 +263,21 @@ class LPParamStmt(ParamStmt):
 class ADParamStmt(ParamStmt):
     """ AD - Gerber Aperture Definition Statement
     """
-
+    
+    @classmethod
+    def rect(cls, dcode, width, height):
+        '''Create a rectangular aperture definition statement'''
+        return cls('AD', dcode, 'R', ([width, height],))
+    
+    @classmethod
+    def circle(cls, dcode, diameter):
+        '''Create a circular aperture definition statement'''
+        return cls('AD', dcode, 'C', ([diameter],))
+    
+    @classmethod
+    def macro(cls, dcode, name):
+        return cls('AD', dcode, name, '')
+    
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
@@ -293,7 +312,9 @@ class ADParamStmt(ParamStmt):
         ParamStmt.__init__(self, param)
         self.d = d
         self.shape = shape
-        if modifiers:
+        if isinstance(modifiers, tuple):
+            self.modifiers = modifiers
+        elif modifiers:
             self.modifiers = [tuple([float(x) for x in m.split("X") if len(x)]) for m in modifiers.split(",") if len(m)]
         else:
             self.modifiers = [tuple()]
@@ -817,6 +838,14 @@ class CoordStmt(Statement):
     """ Coordinate Data Block
     """
 
+    OP_DRAW = 'D01'    
+    OP_MOVE = 'D02'
+    OP_FLASH = 'D03'
+    
+    FUNC_LINEAR = 'G01'
+    FUNC_ARC_CW = 'G02'
+    FUNC_ARC_CCW = 'G03'
+
     @classmethod
     def from_dict(cls, stmt_dict, settings):
         function = stmt_dict['function']
@@ -835,6 +864,22 @@ class CoordStmt(Statement):
         if j is not None:
             j = parse_gerber_value(stmt_dict.get('j'), settings.format, settings.zero_suppression)
         return cls(function, x, y, i, j, op, settings)
+    
+    @classmethod
+    def move(cls, func, point):
+        return cls(func, point[0], point[1], None, None, CoordStmt.OP_MOVE, None)
+    
+    @classmethod
+    def line(cls, func, point):
+        return cls(func, point[0], point[1], None, None, CoordStmt.OP_DRAW, None)
+    
+    @classmethod
+    def arc(cls, func, point, center):
+        return cls(func, point[0], point[1], center[0], center[1], CoordStmt.OP_DRAW, None)
+    
+    @classmethod
+    def flash(cls, point):
+        return cls(None, point[0], point[1], None, None, CoordStmt.OP_FLASH, None)
 
     def __init__(self, function, x, y, i, j, op, settings):
         """ Initialize CoordStmt class
@@ -1003,6 +1048,14 @@ class EofStmt(Statement):
 
 
 class QuadrantModeStmt(Statement):
+    
+    @classmethod
+    def single(cls):
+        return cls('single-quadrant')
+    
+    @classmethod
+    def multi(cls):
+        return cls('multi-quadrant')
 
     @classmethod
     def from_gerber(cls, line):
@@ -1031,6 +1084,14 @@ class RegionModeStmt(Statement):
         if 'G36' not in line and 'G37' not in line:
             raise ValueError('%s is not a valid region mode statement' % line)
         return (cls('on') if line[:3] == 'G36' else cls('off'))
+    
+    @classmethod
+    def on(cls):
+        return cls('on')
+    
+    @classmethod
+    def off(cls):
+        return cls('off')
 
     def __init__(self, mode):
         super(RegionModeStmt, self).__init__('RegionMode')

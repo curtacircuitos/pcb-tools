@@ -17,8 +17,9 @@
 import math
 from operator import add, sub
 
-from .utils import validate_coordinates, inch, metric, rotate_point
+from .utils import validate_coordinates, inch, metric, rotate_point, nearly_equal
 from jsonpickle.util import PRIMITIVES
+from __builtin__ import False
 
 
 class Primitive(object):
@@ -120,6 +121,9 @@ class Primitive(object):
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
+    
+    def to_statement(self):
+        pass
 
 
 class Line(Primitive):
@@ -216,7 +220,16 @@ class Line(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.start = tuple(map(add, self.start, (x_offset, y_offset)))
         self.end = tuple(map(add, self.end, (x_offset, y_offset)))
+        
+    def equivalent(self, other, offset):
+        
+        if not isinstance(other, Line):
+            return False
+        
+        equiv_start = tuple(map(add, other.start, offset))
+        equiv_end = tuple(map(add, other.end, offset))
 
+        return nearly_equal(self.start, equiv_start) and nearly_equal(self.end, equiv_end)
 
 class Arc(Primitive):
     """
@@ -736,7 +749,7 @@ class AMGroup(Primitive):
             elif prim:
                self.primitives.append(prim)
         self._position = None
-        self._to_convert = ['arimitives']
+        self._to_convert = ['primitives']
         
     @property
     def flashed(self):
@@ -776,6 +789,21 @@ class AMGroup(Primitive):
             
         self._position = new_pos
         
+    def equivalent(self, other, offset):
+        '''
+        Is this the macro group the same as the other, ignoring the position offset?
+        '''
+        
+        if len(self.primitives) != len(other.primitives):
+            return False
+        
+        # We know they have the same number of primitives, so now check them all
+        for i in range(0, len(self.primitives)):
+            if not self.primitives[i].equivalent(other.primitives[i], offset):
+                return False
+            
+        # If we didn't find any differences, then they are the same
+        return True
 
 class Outline(Primitive):
     """
@@ -816,6 +844,20 @@ class Outline(Primitive):
         bounding_box = self.bounding_box()
         return bounding_box[1][1] - bounding_box[1][0]
 
+    def equivalent(self, other, offset):
+        '''
+        Is this the outline the same as the other, ignoring the position offset?
+        '''
+        
+        # Quick check if it even makes sense to compare them
+        if type(self) != type(other) or len(self.primitives) != len(other.primitives):
+            return False
+        
+        for i in range(0, len(self.primitives)):
+            if not self.primitives[i].equivalent(other.primitives[i], offset):
+                return False
+        
+        return True
 
 class Region(Primitive):
     """
