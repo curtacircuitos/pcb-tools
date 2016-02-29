@@ -397,6 +397,19 @@ class Circle(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+        
+    def equivalent(self, other, offset):
+        '''Is this the same as the other circle, ignoring the offiset?'''
+
+        if not isinstance(other, Circle):
+            return False
+        
+        if self.diameter != other.diameter:
+            return False
+        
+        equiv_position = tuple(map(add, other.position, offset))
+
+        return nearly_equal(self.position, equiv_position)
 
 
 class Ellipse(Primitive):
@@ -487,6 +500,19 @@ class Rectangle(Primitive):
         return (math.cos(math.radians(self.rotation)) * self.height +
                 math.sin(math.radians(self.rotation)) * self.width)
         
+    def equivalent(self, other, offset):
+        '''Is this the same as the other rect, ignoring the offiset?'''
+
+        if not isinstance(other, Rectangle):
+            return False
+        
+        if self.width != other.width or self.height != other.height or self.rotation != other.rotation:
+            return False
+        
+        equiv_position = tuple(map(add, other.position, offset))
+
+        return nearly_equal(self.position, equiv_position)
+
 
 class Diamond(Primitive):
     """
@@ -815,6 +841,9 @@ class Outline(Primitive):
         self.primitives = primitives
         self._to_convert = ['primitives']
         
+        if self.primitives[0].start != self.primitives[-1].end:
+            raise ValueError('Outline must be closed')
+        
     @property 
     def flashed(self):
         return True
@@ -833,6 +862,9 @@ class Outline(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         for p in self.primitives:
             p.offset(x_offset, y_offset)
+            
+        if self.primitives[0].start != self.primitives[-1].end:
+            raise ValueError('Outline must be closed')
 
     @property
     def width(self):

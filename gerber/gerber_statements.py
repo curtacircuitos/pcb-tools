@@ -93,6 +93,11 @@ class ParamStmt(Statement):
 class FSParamStmt(ParamStmt):
     """ FS - Gerber Format Specification Statement
     """
+    
+    @classmethod
+    def from_settings(cls, settings):
+        
+        return cls('FS', settings.zero_suppression, settings.notation, settings.format)
 
     @classmethod
     def from_dict(cls, stmt_dict):
@@ -277,6 +282,11 @@ class ADParamStmt(ParamStmt):
     def circle(cls, dcode, diameter):
         '''Create a circular aperture definition statement'''
         return cls('AD', dcode, 'C', ([diameter],))
+    
+    @classmethod
+    def obround(cls, dcode, width, height):
+        '''Create an obrou d aperture definition statement'''
+        return cls('AD', dcode, 'O', ([width, height],))
     
     @classmethod
     def macro(cls, dcode, name):

@@ -179,6 +179,10 @@ class AMCirclePrimitive(AMPrimitive):
         diameter = float(modifiers[2])
         position = (float(modifiers[3]), float(modifiers[4]))
         return cls(code, exposure, diameter, position)
+    
+    @classmethod
+    def from_primitive(cls, primitive):    
+        return cls(1, 'on', primitive.diameter, primitive.position)
 
     def __init__(self, code, exposure, diameter, position):
         validate_coordinates(position)
@@ -247,6 +251,11 @@ class AMVectorLinePrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
+    
+    @classmethod
+    def from_primitive(cls, primitive):
+        return cls(2, 'on', primitive.aperture.width, primitive.start, primitive.end, 0)
+    
     @classmethod
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(',')
@@ -406,6 +415,9 @@ class AMOutlinePrimitive(AMPrimitive):
             lines.append(Line(prev_point, cur_point, Circle((0,0), 0)))
             
             prev_point = cur_point
+            
+        if lines[0].start != lines[-1].end:
+            raise ValueError('Outline must be closed')
         
         return Outline(lines, units=units)
 
@@ -762,6 +774,8 @@ class AMThermalPrimitive(AMPrimitive):
         
         points = (self._approximate_arc_cw(inner_start_angle, inner_end_angle, inner_radius, self.position)
                 + list(reversed(self._approximate_arc_cw(outer_start_angle, outer_end_angle, outer_radius, self.position))))
+        # Add in the last point since outlines should be closed
+        points.append(points[0])
         
         # There are four outlines at rotated sections
         for rotation in [0, 90.0, 180.0, 270.0]:
@@ -818,6 +832,14 @@ class AMCenterLinePrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
+    
+    @classmethod
+    def from_primitive(cls, primitive):
+        width = primitive.width
+        height = primitive.height
+        center = primitive.position
+        rotation = math.degrees(primitive.rotation)
+        return cls(21, 'on', width, height, center, rotation)
 
     @classmethod
     def from_gerber(cls, primitive):

@@ -22,6 +22,14 @@ class AMGroupContext(object):
         for primitive in nooffset_group.primitives:
             if isinstance(primitive, Outline):
                 self._render_outline(primitive)
+            elif isinstance(primitive, Circle):
+                self._render_circle(primitive)
+            elif isinstance(primitive, Rectangle):
+                self._render_rectangle(primitive)
+            elif isinstance(primitive, Line):
+                self._render_line(primitive)
+            else:
+                raise ValueError('amgroup')
 
         statement = AMParamStmt('AM', name, self._statements_to_string())
         return statement
@@ -33,10 +41,21 @@ class AMGroupContext(object):
             macro += statement.to_gerber()
             
         return macro
+    
+    def _render_circle(self, circle):
+        self.statements.append(AMCirclePrimitive.from_primitive(circle))
+        
+    def _render_rectangle(self, rectangle):
+        self.statements.append(AMCenterLinePrimitive.from_primitive(rectangle))
+        
+    def _render_line(self, line):
+        self.statements.append(AMVectorLinePrimitive.from_primitive(line))
      
     def _render_outline(self, outline):
         self.statements.append(AMOutlinePrimitive.from_primitive(outline))
-        
+    
+    def _render_thermal(self, thermal):
+        pass
     
 
 class Rs274xContext(GerberContext):
@@ -59,6 +78,8 @@ class Rs274xContext(GerberContext):
         self._next_dcode = 10
         self._rects = {}
         self._circles = {}
+        self._obrounds = {}
+        self._polygons = {}
         self._macros = {}
         
         self._i_none = 0
@@ -67,9 +88,10 @@ class Rs274xContext(GerberContext):
         self.settings = settings
 
         self._start_header(settings)
-        self._define_dcodes()
+        #self._define_dcodes()
         
     def _start_header(self, settings):
+        self.header.append(FSParamStmt.from_settings(settings))
         self.header.append(MOParamStmt.from_units(settings.units))
         
     def _define_dcodes(self):
@@ -151,8 +173,12 @@ class Rs274xContext(GerberContext):
             # We already set the function, so the next command doesn't require that
             func = None
         
-        self.body.append(CoordStmt.line(func, self._simplify_point(line.end)))
-        self._pos = line.end
+        point = self._simplify_point(line.end)
+        
+        # In some files, we see a lot of duplicated ponts, so omit those
+        if point[0] != None or point[1] != None:
+            self.body.append(CoordStmt.line(func, self._simplify_point(line.end)))
+            self._pos = line.end
         
     def _render_arc(self, arc, color):
         
@@ -269,10 +295,33 @@ class Rs274xContext(GerberContext):
         aper = self._get_rectangle(rectangle.width, rectangle.height)
         self._render_flash(rectangle, aper)
         
+    def _get_obround(self, width, height, dcode = None):
+        
+        key = (width, height)
+        aper = self._obrounds.get(key, None)
+        
+        if not aper:
+            if not dcode:
+                dcode = self._next_dcode
+                self._next_dcode += 1
+            else:
+                self._next_dcode = max(dcode + 1, self._next_dcode)
+            
+            aper = ADParamStmt.obround(dcode, width, height)
+            self._obrounds[(width, height)] = aper
+            self.header.append(aper)
+    
+        return aper
+        
     def _render_obround(self, obround, color):
+        
+        aper = self._get_obround(obround.width, obround.height)
+        self._render_flash(obround, aper)
+        
         pass
         
     def _render_polygon(self, polygon, color):
+        raise NotImplementedError('Not implemented yet')
         pass
         
     def _render_drill(self, circle, color):
@@ -285,8 +334,19 @@ class Rs274xContext(GerberContext):
         for primitive in amgroup.primitives:
             
             hash += primitive.__class__.__name__[0]
+            
+            bbox = primitive.bounding_box
+            hash += str((bbox[0][1] - bbox[0][0]) * 100000)[0:2]
+            hash += str((bbox[1][1] - bbox[1][0]) * 100000)[0:2]
+            
             if hasattr(primitive, 'primitives'):
                 hash += str(len(primitive.primitives))
+                
+            if isinstance(primitive, Rectangle):
+                hash += str(primitive.width * 1000000)[0:2]
+                hash += str(primitive.height * 1000000)[0:2]
+            elif isinstance(primitive, Circle):
+                hash += str(primitive.diameter * 1000000)[0:2]
             
         return hash
 
@@ -331,9 +391,7 @@ class Rs274xContext(GerberContext):
         
         aper = self._get_amacro(amgroup)
         self._render_flash(amgroup, aper)
-        
-    
-        
+
     def _render_inverted_layer(self):
         pass
         

@@ -166,6 +166,10 @@ class FileSettings(object):
                 self.zero_suppression == other.zero_suppression and
                 self.format == other.format and
                 self.angle_units == other.angle_units)
+        
+    def __str__(self):
+        return ('<Settings: %s %s %s %s %s>' %
+                (self.units, self.notation, self.zero_suppression, self.format, self.angle_units))
 
 
 class CamFile(object):
