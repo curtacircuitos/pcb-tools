@@ -2,7 +2,7 @@
 from .render import GerberContext
 from ..am_statements import *
 from ..gerber_statements import *
-from ..primitives import AMGroup, Arc, Circle, Line, Outline, Polygon, Rectangle
+from ..primitives import AMGroup, Arc, Circle, Line, Obround, Outline, Polygon, Rectangle
 from copy import deepcopy
 
 class AMGroupContext(object):
@@ -152,6 +152,10 @@ class Rs274xContext(GerberContext):
                 aper = self._get_circle(aperture.diameter)
             elif isinstance(aperture, Rectangle):
                 aper = self._get_rectangle(aperture.width, aperture.height)
+            elif isinstance(aperture, Obround):
+                aper = self._get_obround(aperture.width, aperture.height)
+            elif isinstance(aperture, AMGroup):
+                aper = self._get_amacro(aperture)
             else:
                 raise NotImplementedError('Line with invalid aperture type')
                 
@@ -367,7 +371,15 @@ class Rs274xContext(GerberContext):
             
             # We hae a definition, but check that the groups actually are the same
             for macro in macroinfo:
-                offset = (amgroup.position[0] - macro[1].position[0], amgroup.position[1] - macro[1].position[1])
+                
+                # Macros should have positions, right? But if the macro is selected for non-flashes
+                # then it won't have a position. This is of course a bad gerber, but they do exist
+                if amgroup.position:
+                    position = amgroup.position
+                else:
+                    position = (0, 0)
+
+                offset = (position[0] - macro[1].position[0], position[1] - macro[1].position[1])
                 if amgroup.equivalent(macro[1], offset):
                     break
                 macro = None
