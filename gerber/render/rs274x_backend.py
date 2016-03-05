@@ -355,8 +355,19 @@ class Rs274xContext(GerberContext):
         # but in most cases, this should work
         
         hash = self._hash_amacro(amgroup)
-        macro = self._macros.get(hash, None)
+        macro = None
+        macroinfo = self._macros.get(hash, None)
         
+        if macroinfo:
+            
+            # We hae a definition, but check that the groups actually are the same
+            for macro in macroinfo:
+                offset = (amgroup.position[0] - macro[1].position[0], amgroup.position[1] - macro[1].position[1])
+                if amgroup.equivalent(macro[1], offset):
+                    break
+                macro = None
+                
+        # Did we find one in the group0
         if not macro:
             # This is a new macro, so define it
             if not dcode:
@@ -377,13 +388,11 @@ class Rs274xContext(GerberContext):
             
             # Store the dcode and the original so we can check if it really is the same
             macro = (aperdef, amgroup)
-            self._macros[hash] = macro
-        
-        else:
-            # We hae a definition, but check that the groups actually are the same
-            offset = (amgroup.position[0] - macro[1].position[0], amgroup.position[1] - macro[1].position[1])
-            if not amgroup.equivalent(macro[1], offset):
-                raise ValueError('Two AMGroup have the same hash but are not equivalent')
+            
+            if macroinfo:
+                macroinfo.append(macro)
+            else:
+                self._macros[hash] = [macro]                
             
         return macro[0]
         
