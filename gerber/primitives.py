@@ -117,7 +117,7 @@ class Primitive(object):
                             setattr(self, attr, metric(value))
 
     def offset(self, x_offset=0, y_offset=0):
-        pass
+        raise NotImplementedError('The offset member must be implemented')
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -814,6 +814,12 @@ class AMGroup(Primitive):
     def position(self):
         return self._position
     
+    def offset(self, x_offset=0, y_offset=0):
+        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+        
+        for primitive in self.primitives:
+            primitive.offset(x_offset, y_offset)
+    
     @position.setter
     def position(self, new_pos):
         '''
@@ -880,9 +886,6 @@ class Outline(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         for p in self.primitives:
             p.offset(x_offset, y_offset)
-            
-        if self.primitives[0].start != self.primitives[-1].end:
-            raise ValueError('Outline must be closed')
 
     @property
     def width(self):
