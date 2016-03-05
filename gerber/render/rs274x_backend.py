@@ -93,29 +93,10 @@ class Rs274xContext(GerberContext):
         self.settings = settings
 
         self._start_header(settings)
-        #self._define_dcodes()
         
     def _start_header(self, settings):
         self.header.append(FSParamStmt.from_settings(settings))
         self.header.append(MOParamStmt.from_units(settings.units))
-        
-    def _define_dcodes(self):
-        
-        self._get_circle(.1575, 10)
-        self._get_circle(.035, 17)
-        self._get_rectangle(0.1575, 0.1181, 15)
-        self._get_rectangle(0.0492, 0.0118, 16)
-        self._get_circle(.0197, 11)
-        self._get_rectangle(0.0236, 0.0591, 12)
-        self._get_circle(.005, 18)
-        self._get_circle(.008, 19)
-        self._get_circle(.009, 20)
-        self._get_circle(.01, 21)
-        self._get_circle(.02, 22)
-        self._get_circle(.006, 23)
-        self._get_circle(.015, 24)
-        self._get_rectangle(0.1678, 0.1284, 26)
-        self._get_rectangle(0.0338, 0.0694, 25)
         
     def _simplify_point(self, point):
         return (point[0] if point[0] != self._pos[0] else None, point[1] if point[1] != self._pos[1] else None)
@@ -330,11 +311,10 @@ class Rs274xContext(GerberContext):
         pass
         
     def _render_polygon(self, polygon, color):
-        raise NotImplementedError('Not implemented yet')
-        pass
+        raise ValueError('Polygons can only exist in the context of aperture macro')
         
-    def _render_drill(self, circle, color):
-        pass
+    def _render_drill(self, drill, color):
+        raise ValueError('Drills are not valid in RS274X files')
     
     def _hash_amacro(self, amgroup):
         '''Calculate a very quick hash code for deciding if we should even check AM groups for comparision'''
@@ -421,7 +401,3 @@ class Rs274xContext(GerberContext):
     def _render_inverted_layer(self):
         pass
         
-    def post_render_primitives(self):
-        '''No more primitives, so set the end marker'''
-        
-        self.body.append()

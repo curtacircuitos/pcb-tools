@@ -220,6 +220,22 @@ class ExcellonTool(ExcellonStatement):
 
     def _hit(self):
         self.hit_count += 1
+        
+    def equivalent(self, other):
+        """
+        Is the other tool equal to this, ignoring the tool number, and other file specified properties
+        """
+        
+        if type(self) != type(other):
+            return False
+        
+        return (self.diameter == other.diameter
+            and self.feed_rate == other.feed_rate
+            and self.retract_rate == other.retract_rate
+            and self.rpm == other.rpm
+            and self.depth_offset == other.depth_offset
+            and self.max_hit_count == other.max_hit_count
+            and self.settings.units == other.settings.units)
 
     def __repr__(self):
         unit = 'in.' if self.settings.units == 'inch' else 'mm'
@@ -320,6 +336,10 @@ class ZAxisInfeedRateStmt(ExcellonStatement):
 
 
 class CoordinateStmt(ExcellonStatement):
+
+    @classmethod
+    def from_point(cls, point):
+        return cls(point[0], point[1])
 
     @classmethod
     def from_excellon(cls, line, settings, **kwargs):
