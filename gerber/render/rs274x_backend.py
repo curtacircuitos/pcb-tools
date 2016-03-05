@@ -384,6 +384,9 @@ class Rs274xContext(GerberContext):
             self.header.append(aperdef)
             
             # Store the dcode and the original so we can check if it really is the same
+            # If it didn't have a postition, set it to 0, 0
+            if amgroup.position == None:
+                amgroup.position = (0, 0)
             macro = (aperdef, amgroup)
             
             if macroinfo:

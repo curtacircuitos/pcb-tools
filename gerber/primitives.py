@@ -18,8 +18,6 @@ import math
 from operator import add, sub
 
 from .utils import validate_coordinates, inch, metric, rotate_point, nearly_equal
-from jsonpickle.util import PRIMITIVES
-from __builtin__ import False
 
 
 class Primitive(object):
