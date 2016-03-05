@@ -461,6 +461,11 @@ class AMPolygonPrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
+    
+    @classmethod
+    def from_primitive(cls, primitive):
+        return cls(5, 'on', primitive.sides, primitive.position, primitive.diameter, primitive.rotation)
+    
     @classmethod
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")

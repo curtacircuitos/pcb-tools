@@ -2,7 +2,7 @@
 from .render import GerberContext
 from ..am_statements import *
 from ..gerber_statements import *
-from ..primitives import AMGroup, Arc, Circle, Line, Outline, Rectangle
+from ..primitives import AMGroup, Arc, Circle, Line, Outline, Polygon, Rectangle
 from copy import deepcopy
 
 class AMGroupContext(object):
@@ -28,6 +28,8 @@ class AMGroupContext(object):
                 self._render_rectangle(primitive)
             elif isinstance(primitive, Line):
                 self._render_line(primitive)
+            elif isinstance(primitive, Polygon):
+                self._render_polygon(primitive)
             else:
                 raise ValueError('amgroup')
 
@@ -53,6 +55,9 @@ class AMGroupContext(object):
      
     def _render_outline(self, outline):
         self.statements.append(AMOutlinePrimitive.from_primitive(outline))
+        
+    def _render_polygon(self, polygon):
+        self.statements.append(AMPolygonPrimitive.from_primitive(polygon))
     
     def _render_thermal(self, thermal):
         pass

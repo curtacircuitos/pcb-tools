@@ -736,6 +736,10 @@ class Polygon(Primitive):
     @property 
     def flashed(self):
         return True
+    
+    @property
+    def diameter(self):
+        return self.radius * 2
 
     @property
     def bounding_box(self):
@@ -759,6 +763,20 @@ class Polygon(Primitive):
             points.append(rotate_point((self.position[0] + self.radius, self.position[1]), offset + da * i, self.position))
         
         return points
+    
+    def equivalent(self, other, offset):
+        '''
+        Is this the outline the same as the other, ignoring the position offset?
+        '''
+        
+        # Quick check if it even makes sense to compare them
+        if type(self) != type(other) or self.sides != other.sides or self.radius != other.radius:
+            return False
+
+        equiv_pos = tuple(map(add, other.position, offset))
+
+        return nearly_equal(self.position, equiv_pos)
+
 
 class AMGroup(Primitive):
     """
