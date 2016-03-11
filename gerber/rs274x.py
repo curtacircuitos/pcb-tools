@@ -448,6 +448,7 @@ class GerberParser(object):
         else:
             aperture = self.macros[shape].build(modifiers)
 
+        aperture.units = self.settings.units
         self.apertures[d] = aperture
 
     def _evaluate_mode(self, stmt):
