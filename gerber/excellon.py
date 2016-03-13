@@ -175,21 +175,12 @@ class ExcellonFile(CamFile):
     def write(self, filename=None):
         filename = filename if filename is not None else self.filename
         with open(filename, 'w') as f:
-
-            # Copy the header verbatim
-            for statement in self.statements:
-                if not isinstance(statement, ToolSelectionStmt):
-                    f.write(statement.to_excellon(self.settings) + '\n')
-                else:
-                    break
-
-            # Write out coordinates for drill hits by tool
-            for tool in iter(self.tools.values()):
-                f.write(ToolSelectionStmt(tool.number).to_excellon(self.settings) + '\n')
-                for hit in self.hits:
-                    if hit.tool.number == tool.number:
-                        f.write(CoordinateStmt(*hit.position).to_excellon(self.settings) + '\n')
-            f.write(EndOfProgramStmt().to_excellon() + '\n')
+            self.writes(f)
+            
+    def writes(self, f):
+        # Copy the header verbatim
+        for statement in self.statements:
+            f.write(statement.to_excellon(self.settings) + '\n')
 
     def to_inch(self):
         """
@@ -300,6 +291,8 @@ class ExcellonParser(object):
         self.hits = []
         self.active_tool = None
         self.pos = [0., 0.]
+        # Default for lated is None, which means we don't know
+        self.plated = ExcellonTool.PLATED_UNKNOWN
         if settings is not None:
             self.units = settings.units
             self.zeros = settings.zeros
@@ -360,6 +353,12 @@ class ExcellonParser(object):
                 if detected_format:
                     self.format = detected_format
                     
+            if "TYPE=PLATED" in comment_stmt.comment:
+                self.plated = ExcellonTool.PLATED_YES
+                
+            if "TYPE=NON_PLATED" in comment_stmt.comment:
+                self.plated = ExcellonTool.PLATED_NO
+                    
             if "HEADER:" in comment_stmt.comment:
                 self.state = "HEADER"
                 
@@ -370,7 +369,7 @@ class ExcellonParser(object):
                 tools = ExcellonToolDefinitionParser(self._settings()).parse_raw(comment_stmt.comment)
                 if len(tools) == 1:
                     tool = tools[tools.keys()[0]]
-                    self.comment_tools[tool.number] = tool
+                    self._add_comment_tool(tool)
 
         elif line[:3] == 'M48':
             self.statements.append(HeaderBeginStmt())
@@ -503,7 +502,8 @@ class ExcellonParser(object):
 
         elif line[0] == 'T' and self.state == 'HEADER':
             if not ',OFF' in line and not ',ON' in line:
-                tool = ExcellonTool.from_excellon(line, self._settings())
+                tool = ExcellonTool.from_excellon(line, self._settings(), None, self.plated)
+                self._merge_properties(tool)
                 self.tools[tool.number] = tool
                 self.statements.append(tool)
             else:
@@ -572,6 +572,33 @@ class ExcellonParser(object):
         return FileSettings(units=self.units, format=self.format,
                             zeros=self.zeros, notation=self.notation)
         
+    def _add_comment_tool(self, tool):
+        """
+        Add a tool that was defined in the comments to this file.
+        
+        If we have already found this tool, then we will merge this comment tool definition into
+        the information for the tool
+        """
+        
+        existing = self.tools.get(tool.number)
+        if existing and existing.plated == None:
+            existing.plated = tool.plated
+        
+        self.comment_tools[tool.number] = tool
+        
+    def _merge_properties(self, tool):
+        """
+        When we have externally defined tools, merge the properties of that tool into this one
+        
+        For now, this is only plated
+        """
+        
+        if tool.plated == ExcellonTool.PLATED_UNKNOWN:
+            ext_tool = self.ext_tools.get(tool.number)
+            
+            if ext_tool:
+                tool.plated = ext_tool.plated
+
     def _get_tool(self, toolid):
         
         tool = self.tools.get(toolid)

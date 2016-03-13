@@ -111,9 +111,14 @@ class ExcellonTool(ExcellonStatement):
     hit_count : integer
         Number of tool hits in excellon file.
     """
+    
+    PLATED_UNKNOWN = None
+    PLATED_YES = 'plated'
+    PLATED_NO = 'nonplated'
+    PLATED_OPTIONAL = 'optional'
 
     @classmethod
-    def from_excellon(cls, line, settings, id=None):
+    def from_excellon(cls, line, settings, id=None, plated=None):
         """ Create a Tool from an excellon file tool definition line.
 
         Parameters
@@ -150,6 +155,10 @@ class ExcellonTool(ExcellonStatement):
                 args['number'] = int(val)
             elif cmd == 'Z':
                 args['depth_offset'] = parse_gerber_value(val, nformat, zero_suppression)
+                
+        if plated != ExcellonTool.PLATED_UNKNOWN:
+            # Sometimees we can can parse the 
+            args['plated'] = plated
         return cls(settings, **args)
 
     @classmethod
@@ -182,6 +191,8 @@ class ExcellonTool(ExcellonStatement):
         self.diameter = kwargs.get('diameter')
         self.max_hit_count = kwargs.get('max_hit_count')
         self.depth_offset = kwargs.get('depth_offset')
+        self.plated = kwargs.get('plated')
+            
         self.hit_count = 0
 
     def to_excellon(self, settings=None):
@@ -235,6 +246,7 @@ class ExcellonTool(ExcellonStatement):
             and self.rpm == other.rpm
             and self.depth_offset == other.depth_offset
             and self.max_hit_count == other.max_hit_count
+            and self.plated == other.plated
             and self.settings.units == other.settings.units)
 
     def __repr__(self):
