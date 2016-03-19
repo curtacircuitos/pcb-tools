@@ -306,6 +306,12 @@ class GerberParser(object):
             while did_something and len(line) > 0:
                 did_something = False
                 
+                # consume empty data blocks
+                if line[0] == '*':
+                    line = line[1:]
+                    did_something = True
+                    continue
+                
                 # coord
                 (coord, r) = _match_one(self.COORD_STMT, line)
                 if coord:
