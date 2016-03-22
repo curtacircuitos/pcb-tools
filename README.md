@@ -32,6 +32,13 @@ Rendering Examples:
 Source code for this example can be found [here](examples/cairo_example.py).
 
 
+Install from source:
+```
+$ git clone https://github.com/curtacircuitos/pcb-tools.git
+$ cd pcb-tools
+$ python setup.py install
+```
+
 Documentation:
 --------------
 [PCB Tools Documentation](http://pcb-tools.readthedocs.org/en/latest/)
