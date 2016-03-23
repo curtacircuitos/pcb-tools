@@ -10,11 +10,12 @@ class ExcellonContext(GerberContext):
         self.header = []
         self.tool_def = []
         self.body = []
+        self.start = [HeaderBeginStmt()]
         self.end = [EndOfProgramStmt()]
         
         self.handled_tools = set()
         self.cur_tool = None
-        self.pos = (None, None)
+        self._pos = (None, None)
         
         self.settings = settings
 
@@ -25,7 +26,7 @@ class ExcellonContext(GerberContext):
         
     @property
     def statements(self):
-        return self.comments + self.header + self.body + self.end
+        return self.start + self.comments + self.header + self.body + self.end
         
     def set_bounds(self, bounds):
         pass
@@ -61,15 +62,17 @@ class ExcellonContext(GerberContext):
 
     def _render_drill(self, drill, color):
         
-        if not drill in self.handled_tools:
-            self.tool_def.append(drill.tool)
+        tool = drill.hit.tool
+        if not tool in self.handled_tools:
+            self.handled_tools.add(tool)
+            self.header.append(ExcellonTool.from_tool(tool))
     
-        if drill.tool != self.cur_tool:
-            self.body.append(ToolSelectionStmt(drill.tool.number))
+        if tool != self.cur_tool:
+            self.body.append(ToolSelectionStmt(tool.number))
             
         point = self._simplify_point(drill.position)
         self._pos = drill.position
-        self.body.append(CoordinateStmt.from_point())
+        self.body.append(CoordinateStmt.from_point(point))
 
     def _render_inverted_layer(self):
         pass

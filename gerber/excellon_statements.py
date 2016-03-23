@@ -116,6 +116,21 @@ class ExcellonTool(ExcellonStatement):
     PLATED_YES = 'plated'
     PLATED_NO = 'nonplated'
     PLATED_OPTIONAL = 'optional'
+    
+    @classmethod
+    def from_tool(cls, tool):
+        args = {}
+        
+        args['depth_offset'] = tool.depth_offset
+        args['diameter'] = tool.diameter
+        args['feed_rate'] = tool.feed_rate
+        args['max_hit_count'] = tool.max_hit_count
+        args['number'] = tool.number
+        args['plated'] = tool.plated
+        args['retract_rate'] = tool.retract_rate
+        args['rpm'] = tool.rpm
+        
+        return cls(None, **args)
 
     @classmethod
     def from_excellon(cls, line, settings, id=None, plated=None):
@@ -196,8 +211,10 @@ class ExcellonTool(ExcellonStatement):
         self.hit_count = 0
 
     def to_excellon(self, settings=None):
-        fmt = self.settings.format
-        zs = self.settings.zero_suppression
+        if self.settings and not settings:
+            settings = self.settings
+        fmt = settings.format
+        zs = settings.zero_suppression
         stmt = 'T%02d' % self.number
         if self.retract_rate is not None:
             stmt += 'B%s' % write_gerber_value(self.retract_rate, fmt, zs)
