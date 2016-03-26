@@ -345,6 +345,7 @@ class ExcellonParser(object):
         self.hits = []
         self.active_tool = None
         self.pos = [0., 0.]
+        self.drill_down = False
         # Default for lated is None, which means we don't know
         self.plated = ExcellonTool.PLATED_UNKNOWN
         if settings is not None:
@@ -453,12 +454,15 @@ class ExcellonParser(object):
 
         elif line[:3] == 'M15':
             self.statements.append(ZAxisRoutPositionStmt())
+            self.drill_down = True
 
         elif line[:3] == 'M16':
             self.statements.append(RetractWithClampingStmt())
+            self.drill_down = False
 
         elif line[:3] == 'M17':
             self.statements.append(RetractWithoutClampingStmt())
+            self.drill_down = False
 
         elif line[:3] == 'M30':
             stmt = EndOfProgramStmt.from_excellon(line, self._settings())
@@ -491,6 +495,9 @@ class ExcellonParser(object):
 
             stmt = CoordinateStmt.from_excellon(line[3:], self._settings())
             stmt.mode = self.state
+            
+             # The start position is where we were before the rout command
+            start = (self.pos[0], self.pos[1])
 
             x = stmt.x
             y = stmt.y
@@ -505,9 +512,20 @@ class ExcellonParser(object):
                     self.pos[0] += x
                 if y is not None:
                     self.pos[1] += y
-
+                    
+            # Our ending position
+            end = (self.pos[0], self.pos[1])
+            
+            if self.drill_down:
+                if not self.active_tool:
+                    self.active_tool = self._get_tool(1)
+                    
+                self.hits.append(DrillSlot(self.active_tool, start, end))
+                self.active_tool._hit()
+            
         elif line[:3] == 'G05':
             self.statements.append(DrillModeStmt())
+            self.drill_down = False
             self.state = 'DRILL'
 
         elif 'INCH' in line or 'METRIC' in line:
