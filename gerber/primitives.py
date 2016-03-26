@@ -1109,6 +1109,42 @@ class Drill(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+        
+        
+class Slot(Primitive):
+    """ A drilled slot
+    """
+    def __init__(self, start, end, diameter, hit, **kwargs):
+        super(Slot, self).__init__('dark', **kwargs)
+        validate_coordinates(start)
+        validate_coordinates(end)
+        self.start = start
+        self.end = end
+        self.diameter = diameter
+        self.hit = hit
+        self._to_convert = ['start', 'end', 'diameter']
+        
+    @property 
+    def flashed(self):
+        return False
+
+    @property
+    def radius(self):
+        return self.diameter / 2.
+
+    @property
+    def bounding_box(self):
+        radius = self.radius
+        min_x = min(self.start[0], self.end[0]) - radius
+        max_x = max(self.start[0], self.end[0]) + radius
+        min_y = min(self.start[1], self.end[1]) - radius
+        max_y = max(self.start[1], self.end[1]) + radius
+        return ((min_x, max_x), (min_y, max_y))
+
+    def offset(self, x_offset=0, y_offset=0):
+        self.start = tuple(map(add, self.start, (x_offset, y_offset)))
+        self.end = tuple(map(add, self.end, (x_offset, y_offset)))
+
 
 class TestRecord(Primitive):
     """ Netlist Test record

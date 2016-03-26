@@ -34,7 +34,7 @@ except(ImportError):
 from .excellon_statements import *
 from .excellon_tool import ExcellonToolDefinitionParser
 from .cam import CamFile, FileSettings
-from .primitives import Drill
+from .primitives import Drill, Slot
 from .utils import inch, metric
 
 
@@ -93,6 +93,51 @@ class DrillHit(object):
         if self.tool.units == 'inch':
             self.tool.to_metric()
             self.position = tuple(map(metric, self.position))
+            
+    @property
+    def bounding_box(self):
+        position = self.position
+        radius = self.tool.diameter / 2.
+        
+        min_x = position[0] - radius
+        max_x = position[0] + radius
+        min_y = position[1] - radius
+        max_y = position[1] + radius
+        return ((min_x, max_x), (min_y, max_y))
+            
+            
+class DrillSlot(object):
+    """
+    A slot is created between two points. The way the slot is created depends on the statement used to create it
+    """
+    
+    def __init__(self, tool, start, end):
+        self.tool = tool
+        self.start = start
+        self.end = end
+
+    def to_inch(self):
+        if self.tool.units == 'metric':
+            self.tool.to_inch()
+            self.start = tuple(map(inch, self.start))
+            self.end = tuple(map(inch, self.end))
+
+    def to_metric(self):
+        if self.tool.units == 'inch':
+            self.tool.to_metric()
+            self.start = tuple(map(metric, self.start))
+            self.end = tuple(map(metric, self.end))
+            
+    @property
+    def bounding_box(self):
+        start = self.start
+        end = self.end
+        radius = self.tool.diameter / 2.
+        min_x = min(start[0], end[0]) - radius
+        max_x = max(start[0], end[0]) + radius
+        min_y = min(start[1], end[1]) - radius
+        max_y = max(start[1], end[1]) + radius
+        return ((min_x, max_x), (min_y, max_y))
 
 
 class ExcellonFile(CamFile):
@@ -131,7 +176,17 @@ class ExcellonFile(CamFile):
 
     @property
     def primitives(self):
-        return [Drill(hit.position, hit.tool.diameter, hit, units=self.settings.units) for hit in self.hits]
+        
+        primitives = []
+        for hit in self.hits:
+            if isinstance(hit, DrillHit):
+                primitives.append(Drill(hit.position, hit.tool.diameter, hit, units=self.settings.units))
+            elif isinstance(hit, DrillSlot):
+                primitives.append(Slot(hit.start, hit.end, hit.tool.diameter, hit, units=self.settings.units))
+            else:
+                raise ValueError('Unknown hit type')
+                
+        return primitives
 
 
     @property
@@ -139,12 +194,11 @@ class ExcellonFile(CamFile):
         xmin = ymin = 100000000000
         xmax = ymax = -100000000000
         for hit in self.hits:
-            radius = hit.tool.diameter / 2.
-            x, y = hit.position
-            xmin = min(x - radius, xmin)
-            xmax = max(x + radius, xmax)
-            ymin = min(y - radius, ymin)
-            ymax = max(y + radius, ymax)
+            bbox = hit.bounding_box
+            xmin = min(bbox[0][0], xmin)
+            xmax = max(bbox[0][1], xmax)
+            ymin = min(bbox[1][0], ymin)
+            ymax = max(bbox[1][1], ymax)
         return ((xmin, xmax), (ymin, ymax))
 
     def report(self, filename=None):
@@ -545,26 +599,54 @@ class ExcellonParser(object):
                 self.active_tool._hit()
 
         elif line[0] in ['X', 'Y']:
-            stmt = CoordinateStmt.from_excellon(line, self._settings())
-            x = stmt.x
-            y = stmt.y
-            self.statements.append(stmt)
-            if self.notation == 'absolute':
-                if x is not None:
-                    self.pos[0] = x
-                if y is not None:
-                    self.pos[1] = y
-            else:
-                if x is not None:
-                    self.pos[0] += x
-                if y is not None:
-                    self.pos[1] += y
-            if self.state == 'DRILL':
-                if not self.active_tool:
-                    self.active_tool = self._get_tool(1)
+            if 'G85' in line:
+                stmt = SlotStmt.from_excellon(line, self._settings())
                 
-                self.hits.append(DrillHit(self.active_tool, tuple(self.pos)))
-                self.active_tool._hit()
+                # I don't know if this is actually correct, but it makes sense that this is where the tool would end
+                x = stmt.x_end
+                y = stmt.y_end
+                
+                self.statements.append(stmt)
+                
+                if self.notation == 'absolute':
+                    if x is not None:
+                        self.pos[0] = x
+                    if y is not None:
+                        self.pos[1] = y
+                else:
+                    if x is not None:
+                        self.pos[0] += x
+                    if y is not None:
+                        self.pos[1] += y
+                
+                if self.state == 'DRILL':
+                    if not self.active_tool:
+                        self.active_tool = self._get_tool(1)
+                        
+                    self.hits.append(DrillSlot(self.active_tool, (stmt.x_start, stmt.y_start), (stmt.x_end, stmt.y_end)))
+                    self.active_tool._hit()
+            else:
+                stmt = CoordinateStmt.from_excellon(line, self._settings())
+                x = stmt.x
+                y = stmt.y
+                self.statements.append(stmt)
+                if self.notation == 'absolute':
+                    if x is not None:
+                        self.pos[0] = x
+                    if y is not None:
+                        self.pos[1] = y
+                else:
+                    if x is not None:
+                        self.pos[0] += x
+                    if y is not None:
+                        self.pos[1] += y
+                        
+                if self.state == 'DRILL':
+                    if not self.active_tool:
+                        self.active_tool = self._get_tool(1)
+                    
+                    self.hits.append(DrillHit(self.active_tool, tuple(self.pos)))
+                    self.active_tool._hit()
         else:
             self.statements.append(UnknownStmt.from_excellon(line))
 

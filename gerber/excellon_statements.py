@@ -37,7 +37,7 @@ __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
            'RetractWithClampingStmt', 'RetractWithoutClampingStmt',
            'CutterCompensationOffStmt', 'CutterCompensationLeftStmt',
            'CutterCompensationRightStmt', 'ZAxisInfeedRateStmt',
-           'NextToolSelectionStmt']
+           'NextToolSelectionStmt', 'SlotStmt']
 
 
 class ExcellonStatement(object):
@@ -645,6 +645,12 @@ class EndOfProgramStmt(ExcellonStatement):
             self.y += y_offset
 
 class UnitStmt(ExcellonStatement):
+    
+    @classmethod
+    def from_settings(cls, settings):
+        """Create the unit statement from the FileSettings"""
+        
+        return cls(settings.units, settings.zeros)
 
     @classmethod
     def from_excellon(cls, line, **kwargs):
@@ -826,6 +832,128 @@ class UnknownStmt(ExcellonStatement):
     def __str__(self):
         return "<Unknown Statement: %s>" % self.stmt
 
+
+class SlotStmt(ExcellonStatement):
+    """
+    G85 statement.  Defines a slot created by multiple drills between two specified points.
+    
+    Format is two coordinates, split by G85in the middle, for example, XnY0nG85XnYn
+    """
+    
+    @classmethod
+    def from_points(cls, start, end):
+        
+        return cls(start[0], start[1], end[0], end[1])
+    
+    @classmethod
+    def from_excellon(cls, line, settings, **kwargs):
+        # Split the line based on the G85 separator
+        sub_coords = line.split('G85')
+        (x_start_coord, y_start_coord) = SlotStmt.parse_sub_coords(sub_coords[0], settings)
+        (x_end_coord, y_end_coord) = SlotStmt.parse_sub_coords(sub_coords[1], settings)
+        
+            
+        c = cls(x_start_coord, y_start_coord, x_end_coord, y_end_coord, **kwargs)
+        c.units = settings.units
+        return c  
+        
+    @staticmethod
+    def parse_sub_coords(line, settings):
+        
+        x_coord = None
+        y_coord = None
+        
+        if line[0] == 'X':
+            splitline = line.strip('X').split('Y')
+            x_coord = parse_gerber_value(splitline[0], settings.format,
+                                         settings.zero_suppression)
+            if len(splitline) == 2:
+                y_coord = parse_gerber_value(splitline[1], settings.format,
+                                             settings.zero_suppression)
+        else:
+            y_coord = parse_gerber_value(line.strip(' Y'), settings.format,
+                                         settings.zero_suppression)
+            
+        return (x_coord, y_coord)
+
+
+    def __init__(self, x_start=None, y_start=None, x_end=None, y_end=None, **kwargs):
+        super(SlotStmt, self).__init__(**kwargs)
+        self.x_start = x_start
+        self.y_start = y_start
+        self.x_end = x_end
+        self.y_end = y_end
+        self.mode = None
+
+    def to_excellon(self, settings):
+        stmt = ''
+
+        if self.x_start is not None:
+            stmt += 'X%s' % write_gerber_value(self.x_start, settings.format,
+                                               settings.zero_suppression)
+        if self.y_start is not None:
+            stmt += 'Y%s' % write_gerber_value(self.y_start, settings.format,
+                                               settings.zero_suppression)
+            
+        stmt += 'G85'
+        
+        if self.x_end is not None:
+            stmt += 'X%s' % write_gerber_value(self.x_end, settings.format,
+                                               settings.zero_suppression)
+        if self.y_end is not None:
+            stmt += 'Y%s' % write_gerber_value(self.y_end, settings.format,
+                                               settings.zero_suppression)
+        
+        return stmt
+
+    def to_inch(self):
+        if self.units == 'metric':
+            self.units = 'inch'
+            if self.x_start is not None:
+                self.x_start = inch(self.x_start)
+            if self.y_start is not None:
+                self.y_start = inch(self.y_start)
+            if self.x_end is not None:
+                self.x_end = inch(self.x_end)
+            if self.y_end is not None:
+                self.y_end = inch(self.y_end)
+
+    def to_metric(self):
+        if self.units == 'inch':
+            self.units = 'metric'
+            if self.x_start is not None:
+                self.x_start = metric(self.x_start)
+            if self.y_start is not None:
+                self.y_start = metric(self.y_start)
+            if self.x_end is not None:
+                self.x_end = metric(self.x_end)
+            if self.y_end is not None:
+                self.y_end = metric(self.y_end)
+
+    def offset(self, x_offset=0, y_offset=0):
+        if self.x_start is not None:
+            self.x_start += x_offset
+        if self.y_start is not None:
+            self.y_start += y_offset
+        if self.x_end is not None:
+            self.x_end += x_offset
+        if self.y_end is not None:
+            self.y_end += y_offset
+
+    def __str__(self):
+        start_str = ''
+        if self.x_start is not None:
+            start_str += 'X: %g ' % self.x_start
+        if self.y_start is not None:
+            start_str += 'Y: %g ' % self.y_start
+            
+        end_str = ''
+        if self.x_end is not None:
+            end_str += 'X: %g ' % self.x_end
+        if self.y_end is not None:
+            end_str += 'Y: %g ' % self.y_end
+
+        return '<Slot Statement: %s to %s>' % (start_str, end_str)
 
 def pairwise(iterator):
     """ Iterate over list taking two elements at a time.

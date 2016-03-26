@@ -173,6 +173,20 @@ class GerberCairoContext(GerberContext):
     def _render_drill(self, circle, color):
         self._render_circle(circle, color)
         
+    def _render_slot(self, slot, color):
+        start = map(mul, slot.start, self.scale)
+        end = map(mul, slot.end, self.scale)
+        
+        width = slot.diameter
+
+        self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
+        self.ctx.set_operator(cairo.OPERATOR_OVER if (slot.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
+        self.ctx.set_line_width(width * self.scale[0])
+        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+        self.ctx.move_to(*start)
+        self.ctx.line_to(*end)
+        self.ctx.stroke()
+        
     def _render_amgroup(self, amgroup, color):
         for primitive in amgroup.primitives:
             self.render(primitive)

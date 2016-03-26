@@ -9,6 +9,7 @@ class ExcellonContext(GerberContext):
         self.comments = []
         self.header = []
         self.tool_def = []
+        self.body_start = [RewindStopStmt()]
         self.body = []
         self.start = [HeaderBeginStmt()]
         self.end = [EndOfProgramStmt()]
@@ -19,14 +20,22 @@ class ExcellonContext(GerberContext):
         
         self.settings = settings
 
-        self._start_header(settings)
+        self._start_header()
+        self._start_comments()
         
-    def _start_header(self, settings):
-        pass
+    def _start_header(self):
+        """Create the header from the settings"""
+        
+        self.header.append(UnitStmt.from_settings(self.settings))
+        
+    def _start_comments(self):
+        
+        # Write the digits used - this isn't valid Excellon statement, so we write as a comment
+        self.comments.append(CommentStmt('FILE_FORMAT=%d:%d' % (self.settings.format[0], self.settings.format[1])))
         
     @property
     def statements(self):
-        return self.start + self.comments + self.header + self.body + self.end
+        return self.start + self.comments + self.header + self.body_start + self.body + self.end
         
     def set_bounds(self, bounds):
         pass
@@ -69,10 +78,26 @@ class ExcellonContext(GerberContext):
     
         if tool != self.cur_tool:
             self.body.append(ToolSelectionStmt(tool.number))
+            self.cur_tool = tool
             
         point = self._simplify_point(drill.position)
         self._pos = drill.position
         self.body.append(CoordinateStmt.from_point(point))
+        
+    def _render_slot(self, slot, color):
+        
+        tool = slot.hit.tool
+        if not tool in self.handled_tools:
+            self.handled_tools.add(tool)
+            self.header.append(ExcellonTool.from_tool(tool))
+    
+        if tool != self.cur_tool:
+            self.body.append(ToolSelectionStmt(tool.number))
+            self.cur_tool = tool
+            
+        # Slots don't use simplified points
+        self._pos = slot.end
+        self.body.append(SlotStmt.from_points(slot.start, slot.end))
 
     def _render_inverted_layer(self):
         pass
