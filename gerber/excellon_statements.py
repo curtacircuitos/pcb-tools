@@ -367,8 +367,12 @@ class ZAxisInfeedRateStmt(ExcellonStatement):
 class CoordinateStmt(ExcellonStatement):
 
     @classmethod
-    def from_point(cls, point):
-        return cls(point[0], point[1])
+    def from_point(cls, point, mode=None):
+
+        stmt = cls(point[0], point[1])
+        if mode:
+            stmt.mode = mode
+        return stmt
 
     @classmethod
     def from_excellon(cls, line, settings, **kwargs):

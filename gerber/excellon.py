@@ -111,10 +111,14 @@ class DrillSlot(object):
     A slot is created between two points. The way the slot is created depends on the statement used to create it
     """
     
-    def __init__(self, tool, start, end):
+    TYPE_ROUT = 1
+    TYPE_G85 = 2
+    
+    def __init__(self, tool, start, end, slot_type):
         self.tool = tool
         self.start = start
         self.end = end
+        self.slot_type = slot_type
 
     def to_inch(self):
         if self.tool.units == 'metric':
@@ -520,7 +524,7 @@ class ExcellonParser(object):
                 if not self.active_tool:
                     self.active_tool = self._get_tool(1)
                     
-                self.hits.append(DrillSlot(self.active_tool, start, end))
+                self.hits.append(DrillSlot(self.active_tool, start, end, DrillSlot.TYPE_ROUT))
                 self.active_tool._hit()
             
         elif line[:3] == 'G05':
@@ -641,7 +645,7 @@ class ExcellonParser(object):
                     if not self.active_tool:
                         self.active_tool = self._get_tool(1)
                         
-                    self.hits.append(DrillSlot(self.active_tool, (stmt.x_start, stmt.y_start), (stmt.x_end, stmt.y_end)))
+                    self.hits.append(DrillSlot(self.active_tool, (stmt.x_start, stmt.y_start), (stmt.x_end, stmt.y_end), DrillSlot.TYPE_G85))
                     self.active_tool._hit()
             else:
                 stmt = CoordinateStmt.from_excellon(line, self._settings())
