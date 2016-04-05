@@ -85,14 +85,10 @@ class DrillHit(object):
         self.position = position
 
     def to_inch(self):
-        if self.tool.units == 'metric':
-            self.tool.to_inch()
-            self.position = tuple(map(inch, self.position))
+        self.position = tuple(map(inch, self.position))
 
     def to_metric(self):
-        if self.tool.units == 'inch':
-            self.tool.to_metric()
-            self.position = tuple(map(metric, self.position))
+        self.position = tuple(map(metric, self.position))
             
     @property
     def bounding_box(self):
@@ -121,16 +117,12 @@ class DrillSlot(object):
         self.slot_type = slot_type
 
     def to_inch(self):
-        if self.tool.units == 'metric':
-            self.tool.to_inch()
-            self.start = tuple(map(inch, self.start))
-            self.end = tuple(map(inch, self.end))
+        self.start = tuple(map(inch, self.start))
+        self.end = tuple(map(inch, self.end))
 
     def to_metric(self):
-        if self.tool.units == 'inch':
-            self.tool.to_metric()
-            self.start = tuple(map(metric, self.start))
-            self.end = tuple(map(metric, self.end))
+        self.start = tuple(map(metric, self.start))
+        self.end = tuple(map(metric, self.end))
             
     @property
     def bounding_box(self):
@@ -253,7 +245,7 @@ class ExcellonFile(CamFile):
             for primitive in self.primitives:
                 primitive.to_inch()
             for hit in self.hits:
-                hit.position = tuple(map(inch, hit.position))
+                hit.to_inch()
 
 
     def to_metric(self):
@@ -268,7 +260,7 @@ class ExcellonFile(CamFile):
             for primitive in self.primitives:
                 primitive.to_metric()
             for hit in self.hits:
-                hit.position = tuple(map(metric, hit.position))
+                hit.to_metric()
 
     def offset(self, x_offset=0, y_offset=0):
         for statement in self.statements:

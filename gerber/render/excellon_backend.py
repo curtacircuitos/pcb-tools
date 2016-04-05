@@ -36,6 +36,11 @@ class ExcellonContext(GerberContext):
         
         self.header.append(UnitStmt.from_settings(self.settings))
         
+        if self.settings.notation == 'incremental':
+            raise NotImplementedError('Incremental mode is not implemented')
+        else:
+            self.body.append(AbsoluteModeStmt())
+        
     def _start_comments(self):
         
         # Write the digits used - this isn't valid Excellon statement, so we write as a comment
