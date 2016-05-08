@@ -132,6 +132,8 @@ class GerberContext(object):
         self._invert = invert
 
     def render(self, primitive):
+        if not primitive:
+            return
         color = (self.color if primitive.level_polarity == 'dark'
                  else self.background_color)
         if isinstance(primitive, Line):
