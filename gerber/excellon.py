@@ -100,7 +100,9 @@ class DrillHit(object):
         min_y = position[1] - radius
         max_y = position[1] + radius
         return ((min_x, max_x), (min_y, max_y))
-            
+    
+    def offset(self, x_offset, y_offset):
+        self.position = tuple(map(operator.add, self.position, (x_offset, y_offset)))
             
 class DrillSlot(object):
     """
@@ -134,6 +136,10 @@ class DrillSlot(object):
         min_y = min(start[1], end[1]) - radius
         max_y = max(start[1], end[1]) + radius
         return ((min_x, max_x), (min_y, max_y))
+    
+    def offset(self, x_offset, y_offset):
+        self.start = tuple(map(operator.add, self.start, (x_offset, y_offset)))
+        self.end = tuple(map(operator.add, self.end, (x_offset, y_offset)))
 
 
 class ExcellonFile(CamFile):
@@ -268,7 +274,7 @@ class ExcellonFile(CamFile):
         for primitive in self.primitives:
             primitive.offset(x_offset, y_offset)
         for hit in self. hits:
-            hit.position = tuple(map(operator.add, hit.position, (x_offset, y_offset)))
+            hit.offset(x_offset, y_offset)
 
     def path_length(self, tool_number=None):
         """ Return the path length for a given tool
