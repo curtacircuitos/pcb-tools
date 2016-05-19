@@ -888,6 +888,10 @@ class CoordStmt(Statement):
         return cls(func, point[0], point[1], None, None, CoordStmt.OP_DRAW, None)
     
     @classmethod
+    def mode(cls, func):
+        return cls(func, None, None, None, None, None, None)
+    
+    @classmethod
     def arc(cls, func, point, center):
         return cls(func, point[0], point[1], center[0], center[1], CoordStmt.OP_DRAW, None)
     

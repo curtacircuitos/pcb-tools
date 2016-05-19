@@ -169,6 +169,8 @@ class Rs274xContext(GerberContext):
         if point[0] != None or point[1] != None:
             self.body.append(CoordStmt.line(func, self._simplify_point(line.end)))
             self._pos = line.end
+        elif func:
+            self.body.append(CoordStmt.mode(func))
         
     def _render_arc(self, arc, color):
         
