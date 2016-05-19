@@ -17,7 +17,10 @@
 
 from .render import GerberContext
 
-import cairo
+try:
+    import cairo
+except ImportError:
+    import cairocffi as cairo
 
 from operator import mul
 import math
