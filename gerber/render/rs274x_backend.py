@@ -331,7 +331,11 @@ class Rs274xContext(GerberContext):
     def _hash_amacro(self, amgroup):
         '''Calculate a very quick hash code for deciding if we should even check AM groups for comparision'''
         
-        hash = ''
+        # We always start with an X because this forms part of the name
+        # Basically, in some cases, the name might start with a C, R, etc. That can appear
+        # to conflict with normal aperture definitions. Technically, it shouldn't because normal
+        # aperture definitions should have a comma, but in some cases the commit is omitted
+        hash = 'X'
         for primitive in amgroup.primitives:
             
             hash += primitive.__class__.__name__[0]
@@ -348,6 +352,11 @@ class Rs274xContext(GerberContext):
                 hash += str(primitive.height * 1000000)[0:2]
             elif isinstance(primitive, Circle):
                 hash += str(primitive.diameter * 1000000)[0:2]
+                
+            if len(hash) > 20:
+                # The hash might actually get quite complex, so stop before
+                # it gets too long
+                break
             
         return hash
 
@@ -361,7 +370,7 @@ class Rs274xContext(GerberContext):
         
         if macroinfo:
             
-            # We hae a definition, but check that the groups actually are the same
+            # We have a definition, but check that the groups actually are the same
             for macro in macroinfo:
                 
                 # Macros should have positions, right? But if the macro is selected for non-flashes

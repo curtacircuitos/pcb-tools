@@ -142,9 +142,9 @@ class ExcellonContext(GerberContext):
             self.handled_tools.add(tool)
             self.header.append(ExcellonTool.from_tool(tool))
             
-            if tool != self.cur_tool:
-                self.body.append(ToolSelectionStmt(tool.number))
-                self.cur_tool = tool
+        if tool != self.cur_tool:
+            self.body.append(ToolSelectionStmt(tool.number))
+            self.cur_tool = tool
         
         # Two types of drilling - normal drill and slots
         if slot.hit.slot_type == DrillSlot.TYPE_ROUT:
@@ -172,8 +172,8 @@ class ExcellonContext(GerberContext):
             point = self._simplify_point(slot.end)
             self._pos = slot.end
             self.body.append(CoordinateStmt.from_point(point, mode="LINEAR"))
-            
-            self.drill_down = ExcellonContext.MODE_SLOT
+
+            self.drill_mode = ExcellonContext.MODE_SLOT
                 
         else:
             # This is a G85 slot, so do this in normally drilling mode
