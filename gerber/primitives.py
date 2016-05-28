@@ -795,8 +795,25 @@ class AMGroup(Primitive):
             elif prim:
                self.primitives.append(prim)
         self._position = None
-        self._to_convert = ['primitives']
+        self._to_convert = ['_position', 'primitives']
         self.stmt = stmt
+        
+    def to_inch(self):
+        if self.units == 'metric':
+            super(AMGroup, self).to_inch()
+            
+            # If we also have a stmt, convert that too
+            if self.stmt:
+                self.stmt.to_inch()
+
+
+    def to_metric(self):
+        if self.units == 'inch':
+            super(AMGroup, self).to_metric()
+            
+            # If we also have a stmt, convert that too
+            if self.stmt:
+                self.stmt.to_metric()
         
     @property
     def flashed(self):

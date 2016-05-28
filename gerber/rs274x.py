@@ -373,7 +373,9 @@ class GerberParser(object):
                     elif param["param"] == "AD":
                         yield ADParamStmt.from_dict(param)
                     elif param["param"] == "AM":
-                        yield AMParamStmt.from_dict(param)
+                        stmt = AMParamStmt.from_dict(param)
+                        stmt.units = self.settings.units
+                        yield stmt
                     elif param["param"] == "OF":
                         yield OFParamStmt.from_dict(param)
                     elif param["param"] == "IN":
