@@ -13,28 +13,38 @@ class AMGroupContext(object):
     
     def render(self, amgroup, name):
         
-        # Clone ourselves, then offset by the psotion so that
-        # our render doesn't have to consider offset. Just makes things simpler
-        nooffset_group = deepcopy(amgroup)
-        nooffset_group.position = (0, 0)
+        if amgroup.stmt:
+            # We know the statement it was generated from, so use that to create the AMParamStmt
+            # It will give a much better result
+            
+            stmt = deepcopy(amgroup.stmt)
+            stmt.name = name
+            
+            return stmt
         
-        # Now draw the shapes
-        for primitive in nooffset_group.primitives:
-            if isinstance(primitive, Outline):
-                self._render_outline(primitive)
-            elif isinstance(primitive, Circle):
-                self._render_circle(primitive)
-            elif isinstance(primitive, Rectangle):
-                self._render_rectangle(primitive)
-            elif isinstance(primitive, Line):
-                self._render_line(primitive)
-            elif isinstance(primitive, Polygon):
-                self._render_polygon(primitive)
-            else:
-                raise ValueError('amgroup')
-
-        statement = AMParamStmt('AM', name, self._statements_to_string())
-        return statement
+        else:
+            # Clone ourselves, then offset by the psotion so that
+            # our render doesn't have to consider offset. Just makes things simpler
+            nooffset_group = deepcopy(amgroup)
+            nooffset_group.position = (0, 0)
+            
+            # Now draw the shapes
+            for primitive in nooffset_group.primitives:
+                if isinstance(primitive, Outline):
+                    self._render_outline(primitive)
+                elif isinstance(primitive, Circle):
+                    self._render_circle(primitive)
+                elif isinstance(primitive, Rectangle):
+                    self._render_rectangle(primitive)
+                elif isinstance(primitive, Line):
+                    self._render_line(primitive)
+                elif isinstance(primitive, Polygon):
+                    self._render_polygon(primitive)
+                else:
+                    raise ValueError('amgroup')
+    
+            statement = AMParamStmt('AM', name, self._statements_to_string())
+            return statement
     
     def _statements_to_string(self):
         macro = ''

@@ -715,8 +715,9 @@ class AMThermalPrimitive(AMPrimitive):
             outer_diameter = self.outer_diameter,
             inner_diameter = self.inner_diameter,
             gap = self.gap,
+            rotation = self.rotation
         )
-        fmt = "{code},{position},{outer_diameter},{inner_diameter},{gap}*"
+        fmt = "{code},{position},{outer_diameter},{inner_diameter},{gap},{rotation}*"
         return fmt.format(**data)
     
     def _approximate_arc_cw(self, start_angle, end_angle, radius, center):
