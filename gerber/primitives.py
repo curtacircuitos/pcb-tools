@@ -763,9 +763,9 @@ class Polygon(Primitive):
         return points
     
     def equivalent(self, other, offset):
-        '''
+        """
         Is this the outline the same as the other, ignoring the position offset?
-        '''
+        """
         
         # Quick check if it even makes sense to compare them
         if type(self) != type(other) or self.sides != other.sides or self.radius != other.radius:
@@ -779,7 +779,11 @@ class Polygon(Primitive):
 class AMGroup(Primitive):
     """
     """
-    def __init__(self, amprimitives, **kwargs):
+    def __init__(self, amprimitives, stmt = None, **kwargs):
+        """
+        
+        stmt : The original statment that generated this, since it is really hard to re-generate from primitives
+        """
         super(AMGroup, self).__init__(**kwargs)
         
         self.primitives = []
@@ -792,6 +796,7 @@ class AMGroup(Primitive):
                self.primitives.append(prim)
         self._position = None
         self._to_convert = ['primitives']
+        self.stmt = stmt
         
     @property
     def flashed(self):

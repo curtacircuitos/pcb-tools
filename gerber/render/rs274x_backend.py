@@ -14,7 +14,7 @@ class AMGroupContext(object):
     def render(self, amgroup, name):
         
         # Clone ourselves, then offset by the psotion so that
-        # our render doesn't have to consider offset. Just makes things simplder
+        # our render doesn't have to consider offset. Just makes things simpler
         nooffset_group = deepcopy(amgroup)
         nooffset_group.position = (0, 0)
         

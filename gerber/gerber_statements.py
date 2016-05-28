@@ -176,7 +176,7 @@ class MOParamStmt(ParamStmt):
     
     @classmethod
     def from_units(cls, units):
-        return cls(None, 'inch')
+        return cls(None, units)
 
     @classmethod
     def from_dict(cls, stmt_dict):
@@ -425,7 +425,7 @@ class AMParamStmt(ParamStmt):
             else:
                 self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
                 
-        return AMGroup(self.primitives, units=self.units)
+        return AMGroup(self.primitives, stmt=self, units=self.units)
 
     def to_inch(self):
         if self.units == 'metric':
