@@ -167,7 +167,7 @@ class GerberParser(object):
     STRING = r"[a-zA-Z0-9_+\-/!?<>”’(){}.\|&@# :]+"
     NAME = r"[a-zA-Z_$\.][a-zA-Z_$\.0-9+\-]+"
 
-    FS = r"(?P<param>FS)(?P<zero>(L|T|D))?(?P<notation>(A|I))X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])"
+    FS = r"(?P<param>FS)(?P<zero>(L|T|D))?(?P<notation>(A|I))[NG0-9]*X(?P<x>[0-7][0-7])Y(?P<y>[0-7][0-7])[DM0-9]*"
     MO = r"(?P<param>MO)(?P<mo>(MM|IN))"
     LP = r"(?P<param>LP)(?P<lp>(D|C))"
     AD_CIRCLE = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>C)[,]?(?P<modifiers>[^,%]*)"
