@@ -498,7 +498,7 @@ class ExcellonParser(object):
             stmt = CoordinateStmt.from_excellon(line[3:], self._settings())
             stmt.mode = self.state
             
-             # The start position is where we were before the rout command
+            # The start position is where we were before the rout command
             start = (self.pos[0], self.pos[1])
 
             x = stmt.x
@@ -647,6 +647,10 @@ class ExcellonParser(object):
                     self.active_tool._hit()
             else:
                 stmt = CoordinateStmt.from_excellon(line, self._settings())
+                
+                # We need this in case we are in rout mode
+                start = (self.pos[0], self.pos[1])
+                
                 x = stmt.x
                 y = stmt.y
                 self.statements.append(stmt)
@@ -667,6 +671,13 @@ class ExcellonParser(object):
                     
                     self.hits.append(DrillHit(self.active_tool, tuple(self.pos)))
                     self.active_tool._hit()
+                    
+                elif self.state == 'LINEAR' and self.drill_down:
+                    if not self.active_tool:
+                        self.active_tool = self._get_tool(1)
+                        
+                    self.hits.append(DrillSlot(self.active_tool, start, tuple(self.pos), DrillSlot.TYPE_ROUT))
+                    
         else:
             self.statements.append(UnknownStmt.from_excellon(line))
 
