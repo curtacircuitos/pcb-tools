@@ -835,7 +835,7 @@ class AMGroup(Primitive):
         return self._position
     
     def offset(self, x_offset=0, y_offset=0):
-        self.position = tuple(map(add, self.position, (x_offset, y_offset)))
+        self._position = tuple(map(add, self._position, (x_offset, y_offset)))
         
         for primitive in self.primitives:
             primitive.offset(x_offset, y_offset)
