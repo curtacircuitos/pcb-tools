@@ -409,7 +409,7 @@ class AMOutlinePrimitive(AMPrimitive):
             rotation=str(self.rotation)
         )
         # TODO I removed a closing asterix - not sure if this works for items with multiple statements
-        return "{code},{exposure},{n_points},{start_point},{points},\n{rotation}".format(**data)
+        return "{code},{exposure},{n_points},{start_point},{points},\n{rotation}*".format(**data)
     
     def to_primitive(self, units):
         
