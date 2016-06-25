@@ -483,8 +483,18 @@ class GerberParser(object):
             height = modifiers[0][1]
             aperture = Obround(position=None, width=width, height=height, units=self.settings.units)
         elif shape == 'P':
-            # FIXME: not supported yet?
-            pass
+            outer_diameter = modifiers[0][0]
+            number_vertices = int(modifiers[0][1])
+            if len(modifiers[0]) > 2:
+                rotation = modifiers[0][2]
+            else:
+                rotation = 0
+                
+            if len(modifiers[0]) > 3:
+                hole_diameter = modifiers[0][3]
+            else:
+                hole_diameter = 0
+            aperture = Polygon(position=None, sides=number_vertices, radius=outer_diameter/2.0, hole_radius=hole_diameter/2.0, rotation=rotation)
         else:
             aperture = self.macros[shape].build(modifiers)
 

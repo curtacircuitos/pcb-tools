@@ -310,7 +310,7 @@ class Rs274xContext(GerberContext):
                 self._next_dcode = max(dcode + 1, self._next_dcode)
             
             aper = ADParamStmt.obround(dcode, width, height)
-            self._obrounds[(width, height)] = aper
+            self._obrounds[key] = aper
             self.header.append(aper)
     
         return aper
@@ -320,10 +320,28 @@ class Rs274xContext(GerberContext):
         aper = self._get_obround(obround.width, obround.height)
         self._render_flash(obround, aper)
         
-        pass
-        
     def _render_polygon(self, polygon, color):
-        raise ValueError('Polygons can only exist in the context of aperture macro')
+        
+        aper = self._get_polygon(polygon.radius, polygon.sides, polygon.rotation, polygon.hole_radius)
+        self._render_flash(polygon, aper)
+        
+    def _get_polygon(self, radius, num_vertices, rotation, hole_radius, dcode = None):
+        
+        key = (radius, num_vertices, rotation, hole_radius)
+        aper = self._polygons.get(key, None)
+        
+        if not aper:
+            if not dcode:
+                dcode = self._next_dcode
+                self._next_dcode += 1
+            else:
+                self._next_dcode = max(dcode + 1, self._next_dcode)
+                
+            aper = ADParamStmt.polygon(dcode, radius * 2, num_vertices, rotation, hole_radius * 2)
+            self._polygons[key] = aper
+            self.header.append(aper)
+            
+        return aper
         
     def _render_drill(self, drill, color):
         raise ValueError('Drills are not valid in RS274X files')

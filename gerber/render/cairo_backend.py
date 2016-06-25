@@ -159,6 +159,9 @@ class GerberCairoContext(GerberContext):
         self._render_rectangle(obround.subshapes['rectangle'], color)
         
     def _render_polygon(self, polygon, color):
+        if polygon.hole_radius > 0:
+            self.ctx.push_group()
+        
         vertices = polygon.vertices 
         
         self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
@@ -172,6 +175,18 @@ class GerberCairoContext(GerberContext):
             self.ctx.line_to(*map(mul, v, self.scale))
 
         self.ctx.fill()
+        
+        if polygon.hole_radius > 0:
+            # Render the center clear
+            center = tuple(map(mul, polygon.position, self.scale))
+            self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
+            self.ctx.set_operator(cairo.OPERATOR_CLEAR)        
+            self.ctx.set_line_width(0)
+            self.ctx.arc(center[0], center[1], polygon.hole_radius * self.scale[0], 0, 2 * math.pi)
+            self.ctx.fill()
+            
+            self.ctx.pop_group_to_source()
+            self.ctx.paint_with_alpha(1)
 
     def _render_drill(self, circle, color):
         self._render_circle(circle, color)

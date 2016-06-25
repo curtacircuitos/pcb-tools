@@ -285,8 +285,13 @@ class ADParamStmt(ParamStmt):
     
     @classmethod
     def obround(cls, dcode, width, height):
-        '''Create an obrou d aperture definition statement'''
+        '''Create an obround aperture definition statement'''
         return cls('AD', dcode, 'O', ([width, height],))
+    
+    @classmethod
+    def polygon(cls, dcode, diameter, num_vertices, rotation, hole_diameter):
+        '''Create a polygon aperture definition statement'''
+        return cls('AD', dcode, 'P', ([diameter, num_vertices, rotation, hole_diameter],))
     
     @classmethod
     def macro(cls, dcode, name):

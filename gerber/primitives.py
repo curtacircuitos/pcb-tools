@@ -721,14 +721,15 @@ class Obround(Primitive):
 
 class Polygon(Primitive):
     """
-    Polygon flash defined by a set number of sized.
+    Polygon flash defined by a set number of sides.
     """
-    def __init__(self, position, sides, radius, **kwargs):
+    def __init__(self, position, sides, radius, hole_radius, **kwargs):
         super(Polygon, self).__init__(**kwargs)
         validate_coordinates(position)
         self.position = position
         self.sides = sides
         self.radius = radius
+        self.hole_radius = hole_radius
         self._to_convert = ['position', 'radius']
         
     @property 
@@ -753,7 +754,7 @@ class Polygon(Primitive):
     @property
     def vertices(self):
         
-        offset = math.degrees(self.rotation)
+        offset = self.rotation
         da = 360.0 / self.sides
         
         points = []
