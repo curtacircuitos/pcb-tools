@@ -191,8 +191,11 @@ class GerberCairoContext(GerberContext):
         self.ctx.stroke()
         
     def _render_amgroup(self, amgroup, color):
+        self.ctx.push_group()
         for primitive in amgroup.primitives:
             self.render(primitive)
+        self.ctx.pop_group_to_source()
+        self.ctx.paint_with_alpha(1)
 
     def _render_test_record(self, primitive, color):
         self.ctx.select_font_face('monospace', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_NORMAL)

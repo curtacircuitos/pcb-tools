@@ -76,6 +76,12 @@ class AMPrimitive(object):
         Convert to a primitive, as defines the primitives module (for drawing)
         """
         raise NotImplementedError('Subclass must implement `to-primitive`')
+    
+    @property
+    def _level_polarity(self):
+        if self.exposure == 'off':
+            return 'clear'
+        return 'dark'
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
@@ -209,7 +215,7 @@ class AMCirclePrimitive(AMPrimitive):
         return '{code},{exposure},{diameter},{x},{y}*'.format(**data)
 
     def to_primitive(self, units):
-        return Circle((self.position), self.diameter, units=units)
+        return Circle((self.position), self.diameter, units=units, level_polarity=self._level_polarity)
 
 
 class AMVectorLinePrimitive(AMPrimitive):
@@ -302,7 +308,7 @@ class AMVectorLinePrimitive(AMPrimitive):
         return fmtstr.format(**data)
     
     def to_primitive(self, units):
-        return Line(self.start, self.end, Rectangle(None, self.width, self.width), units=units)
+        return Line(self.start, self.end, Rectangle(None, self.width, self.width), units=units, level_polarity=self._level_polarity)
 
 
 class AMOutlinePrimitive(AMPrimitive):
@@ -419,7 +425,7 @@ class AMOutlinePrimitive(AMPrimitive):
         if lines[0].start != lines[-1].end:
             raise ValueError('Outline must be closed')
         
-        return Outline(lines, units=units)
+        return Outline(lines, units=units, level_polarity=self._level_polarity)
 
 
 class AMPolygonPrimitive(AMPrimitive):
@@ -517,7 +523,7 @@ class AMPolygonPrimitive(AMPrimitive):
         return fmt.format(**data)
     
     def to_primitive(self, units):
-        return Polygon(self.position, self.vertices, self.diameter / 2.0, rotation=math.radians(self.rotation), units=units)
+        return Polygon(self.position, self.vertices, self.diameter / 2.0, rotation=math.radians(self.rotation), units=units, level_polarity=self._level_polarity)
 
 
 class AMMoirePrimitive(AMPrimitive):
@@ -795,7 +801,7 @@ class AMThermalPrimitive(AMPrimitive):
             
             prev_point = cur_point
             
-            outlines.append(Outline(lines, units=units))
+            outlines.append(Outline(lines, units=units, level_polarity=self._level_polarity))
 
         return outlines
 
@@ -891,7 +897,7 @@ class AMCenterLinePrimitive(AMPrimitive):
         return fmt.format(**data)
 
     def to_primitive(self, units):
-        return Rectangle(self.center, self.width, self.height, rotation=math.radians(self.rotation), units=units)
+        return Rectangle(self.center, self.width, self.height, rotation=math.radians(self.rotation), units=units, level_polarity=self._level_polarity)
 
 
 class AMLowerLeftLinePrimitive(AMPrimitive):
