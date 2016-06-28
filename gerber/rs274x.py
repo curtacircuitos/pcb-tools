@@ -536,6 +536,12 @@ class GerberParser(object):
         elif stmt.function in ('G02', 'G2', 'G03', 'G3'):
             self.interpolation = 'arc'
             self.direction = ('clockwise' if stmt.function in ('G02', 'G2') else 'counterclockwise')
+            
+        if stmt.only_function:
+            # Sometimes we get a coordinate statement
+            # that only sets the function. If so, don't
+            # try futher otherwise that might draw/flash something
+            return
 
         if stmt.op:
             self.op = stmt.op

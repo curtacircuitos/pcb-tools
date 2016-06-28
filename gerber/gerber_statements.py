@@ -1022,6 +1022,16 @@ class CoordStmt(Statement):
             coord_str += 'Op: %s' % op
 
         return '<Coordinate Statement: %s>' % coord_str
+    
+    @property
+    def only_function(self):
+        """
+        Returns if the statement only set the function.
+        """
+        
+        # TODO I would like to refactor this so that the function is handled separately and then
+        # TODO this isn't required
+        return self.function != None and self.op == None and self.x == None and self.y == None and self.i == None and self.j == None
 
 
 class ApertureStmt(Statement):
