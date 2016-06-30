@@ -897,7 +897,28 @@ class AMCenterLinePrimitive(AMPrimitive):
         return fmt.format(**data)
 
     def to_primitive(self, units):
-        return Rectangle(self.center, self.width, self.height, rotation=math.radians(self.rotation), units=units, level_polarity=self._level_polarity)
+        
+        x = self.center[0]
+        y = self.center[1]
+        half_width = self.width / 2.0
+        half_height = self.height / 2.0
+        
+        points = []
+        points.append((x - half_width, y + half_height))
+        points.append((x - half_width, y - half_height))
+        points.append((x + half_width, y - half_height))
+        points.append((x + half_width, y + half_height))
+        
+        aperture = Circle((0, 0), 0)
+        
+        lines = []
+        prev_point = rotate_point(points[3], self.rotation, self.center)
+        for point in points:
+            cur_point = rotate_point(point, self.rotation, self.center)
+            
+            lines.append(Line(prev_point, cur_point, aperture))
+            
+        return Outline(lines, units=units, level_polarity=self._level_polarity)
 
 
 class AMLowerLeftLinePrimitive(AMPrimitive):
