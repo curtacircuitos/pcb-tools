@@ -308,7 +308,20 @@ class AMVectorLinePrimitive(AMPrimitive):
         return fmtstr.format(**data)
     
     def to_primitive(self, units):
-        return Line(self.start, self.end, Rectangle(None, self.width, self.width), units=units, level_polarity=self._level_polarity)
+        
+        line = Line(self.start, self.end, Rectangle(None, self.width, self.width))
+        vertices = line.vertices
+        
+        aperture = Circle((0, 0), 0)
+        
+        lines = []
+        prev_point = rotate_point(vertices[-1], self.rotation, (0, 0))
+        for point in vertices:
+            cur_point = rotate_point(point, self.rotation, (0, 0))
+            
+            lines.append(Line(prev_point, cur_point, aperture))
+            
+        return Outline(lines, units=units, level_polarity=self._level_polarity)
 
 
 class AMOutlinePrimitive(AMPrimitive):
