@@ -136,6 +136,9 @@ class GerberContext(object):
             return
         color = (self.color if primitive.level_polarity == 'dark'
                  else self.background_color)
+        
+        self._pre_render_primitive(primitive)
+        
         if isinstance(primitive, Line):
             self._render_line(primitive, color)
         elif isinstance(primitive, Arc):
@@ -160,8 +163,22 @@ class GerberContext(object):
             self._render_region(primitive, color)
         elif isinstance(primitive, TestRecord):
             self._render_test_record(primitive, color)
-        else:
-            return
+        
+        self._post_render_primitive(primitive)
+        
+    def _pre_render_primitive(self, primitive):
+        """
+        Called before rendering a primitive. Use the callback to perform some action before rendering
+        a primitive, for example adding a comment.
+        """
+        return
+    
+    def _post_render_primitive(self, primitive):
+        """
+        Called after rendering a primitive. Use the callback to perform some action after rendering
+        a primitive
+        """
+        return
 
     def _render_line(self, primitive, color):
         pass

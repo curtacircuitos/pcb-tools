@@ -90,6 +90,17 @@ class Rs274xContext(GerberContext):
         self._quadrant_mode = None
         self._dcode = None
         
+        # Primarily for testing and comarison to files, should we write
+        # flashes as a single statement or a move plus flash? Set to true
+        # to do in a single statement. Normally this can be false
+        self.condensed_flash = True
+        
+        # When closing a region, force a D02 staement to close a region.
+        # This is normally not necessary because regions are closed with a G37
+        # staement, but this will add an extra statement for doubly close
+        # the region
+        self.explicit_region_move_end = False
+        
         self._next_dcode = 10
         self._rects = {}
         self._circles = {}
@@ -153,6 +164,11 @@ class Rs274xContext(GerberContext):
             if aper.d != self._dcode:
                 self.body.append(ApertureStmt(aper.d))
                 self._dcode = aper.d
+                
+    def _pre_render_primitive(self, primitive):
+        
+        if hasattr(primitive, 'comment'):
+            self.body.append(CommentStmt(primitive.comment))
         
     def _render_line(self, line, color):
         
@@ -233,6 +249,8 @@ class Rs274xContext(GerberContext):
             else:
                 self._render_arc(p, color)
                 
+        if self.explicit_region_move_end:
+            self.body.append(CoordStmt.move(None, None))
 
         self.body.append(RegionModeStmt.off())
         
@@ -243,11 +261,18 @@ class Rs274xContext(GerberContext):
             
     def _render_flash(self, primitive, aperture):
         
+        self._render_level_polarity(primitive)
+        
         if aperture.d != self._dcode:
             self.body.append(ApertureStmt(aperture.d))
             self._dcode = aperture.d
         
-        self.body.append(CoordStmt.flash( self._simplify_point(primitive.position)))
+        if self.condensed_flash:
+            self.body.append(CoordStmt.flash(self._simplify_point(primitive.position)))
+        else:
+            self.body.append(CoordStmt.move(None, self._simplify_point(primitive.position)))
+            self.body.append(CoordStmt.flash(None))
+            
         self._pos = primitive.position
             
     def _get_circle(self, diameter, dcode = None):

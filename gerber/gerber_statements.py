@@ -886,7 +886,10 @@ class CoordStmt(Statement):
     
     @classmethod
     def move(cls, func, point):
-        return cls(func, point[0], point[1], None, None, CoordStmt.OP_MOVE, None)
+        if point:
+            return cls(func, point[0], point[1], None, None, CoordStmt.OP_MOVE, None)
+        # No point specified, so just write the function. This is normally for ending a region (D02*)
+        return cls(func, None, None, None, None, CoordStmt.OP_MOVE, None)
     
     @classmethod
     def line(cls, func, point):
@@ -902,7 +905,10 @@ class CoordStmt(Statement):
     
     @classmethod
     def flash(cls, point):
-        return cls(None, point[0], point[1], None, None, CoordStmt.OP_FLASH, None)
+        if point:
+            return cls(None, point[0], point[1], None, None, CoordStmt.OP_FLASH, None)
+        else:
+            return cls(None, None, None, None, None, CoordStmt.OP_FLASH, None)
 
     def __init__(self, function, x, y, i, j, op, settings):
         """ Initialize CoordStmt class
