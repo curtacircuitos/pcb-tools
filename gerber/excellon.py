@@ -665,18 +665,20 @@ class ExcellonParser(object):
                     if y is not None:
                         self.pos[1] += y
                         
-                if self.state == 'DRILL':
+                if self.state == 'LINEAR' and self.drill_down:
+                    if not self.active_tool:
+                        self.active_tool = self._get_tool(1)
+                        
+                    self.hits.append(DrillSlot(self.active_tool, start, tuple(self.pos), DrillSlot.TYPE_ROUT))
+                        
+                elif self.state == 'DRILL' or self.state == 'HEADER':
+                    # Yes, drills in the header doesn't follow the specification, but it there are many
+                    # files like this
                     if not self.active_tool:
                         self.active_tool = self._get_tool(1)
                     
                     self.hits.append(DrillHit(self.active_tool, tuple(self.pos)))
                     self.active_tool._hit()
-                    
-                elif self.state == 'LINEAR' and self.drill_down:
-                    if not self.active_tool:
-                        self.active_tool = self._get_tool(1)
-                        
-                    self.hits.append(DrillSlot(self.active_tool, start, tuple(self.pos), DrillSlot.TYPE_ROUT))
                     
         else:
             self.statements.append(UnknownStmt.from_excellon(line))
