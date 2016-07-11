@@ -639,7 +639,7 @@ class ExcellonParser(object):
                     if y is not None:
                         self.pos[1] += y
                 
-                if self.state == 'DRILL':
+                if self.state == 'DRILL' or self.state == 'HEADER':
                     if not self.active_tool:
                         self.active_tool = self._get_tool(1)
                         
