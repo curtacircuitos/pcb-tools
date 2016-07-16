@@ -80,6 +80,16 @@ def loads(data, settings = None, tools = None):
 
 
 class DrillHit(object):
+    """Drill feature that is a single drill hole.
+    
+    Attributes
+    ----------
+    tool : ExcellonTool
+        Tool to drill the hole. Defines the size of the hole that is generated.
+    position : tuple(float, float)
+        Center position of the drill.
+    
+    """
     def __init__(self, tool, position):
         self.tool = tool
         self.position = position
