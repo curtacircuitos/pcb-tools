@@ -113,6 +113,9 @@ class DrillHit(object):
     
     def offset(self, x_offset, y_offset):
         self.position = tuple(map(operator.add, self.position, (x_offset, y_offset)))
+        
+    def __str__(self):
+        return 'Hit (%f, %f) {%s}' % (self.position[0], self.position[1], self.tool)
             
 class DrillSlot(object):
     """

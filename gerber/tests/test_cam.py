@@ -113,10 +113,19 @@ def test_zeros():
 def test_filesettings_validation():
     """ Test FileSettings constructor argument validation
     """
+    
+    # absolute-ish is not a valid notation
     assert_raises(ValueError, FileSettings, 'absolute-ish', 'inch', None, (2, 5), None)
+    
+    # degrees kelvin isn't a valid unit for a CAM file
     assert_raises(ValueError, FileSettings, 'absolute', 'degrees kelvin', None, (2, 5), None)
+    
     assert_raises(ValueError, FileSettings, 'absolute', 'inch', 'leading', (2, 5), 'leading')
-    assert_raises(ValueError, FileSettings, 'absolute', 'inch', 'following', (2, 5), None)
+    
+    # Technnically this should be an error, but Eangle files often do this incorrectly so we
+    # allow it
+    # assert_raises(ValueError, FileSettings, 'absolute', 'inch', 'following', (2, 5), None)
+    
     assert_raises(ValueError, FileSettings, 'absolute', 'inch', None, (2, 5), 'following')
     assert_raises(ValueError, FileSettings, 'absolute', 'inch', None, (2, 5, 6), None)
 

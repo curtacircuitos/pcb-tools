@@ -1112,7 +1112,7 @@ class Drill(Primitive):
         self.position = position
         self.diameter = diameter
         self.hit = hit
-        self._to_convert = ['position', 'diameter']
+        self._to_convert = ['position', 'diameter', 'hit']
         
     @property 
     def flashed(self):
@@ -1133,6 +1133,9 @@ class Drill(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
         
+    def __str__(self):
+        return '<Drill %f (%f, %f) [%s]>' % (self.diameter, self.position[0], self.position[1], self.hit)
+        
         
 class Slot(Primitive):
     """ A drilled slot
@@ -1145,7 +1148,7 @@ class Slot(Primitive):
         self.end = end
         self.diameter = diameter
         self.hit = hit
-        self._to_convert = ['start', 'end', 'diameter']
+        self._to_convert = ['start', 'end', 'diameter', 'hit']
         
     @property 
     def flashed(self):

@@ -78,8 +78,9 @@ def test_conversion():
     for m_tool, i_tool in zip(iter(ncdrill.tools.values()), iter(ncdrill_inch.tools.values())):
         assert_equal(i_tool, m_tool)
 
-    for m, i in zip(ncdrill.primitives,inch_primitives):
-        assert_equal(m, i)
+    for m, i in zip(ncdrill.primitives, inch_primitives):
+        assert_equal(m.position, i.position, '%s not equal to %s' % (m, i))
+        assert_equal(m.diameter, i.diameter, '%s not equal to %s' % (m, i))
 
 
 def test_parser_hole_count():

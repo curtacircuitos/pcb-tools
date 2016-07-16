@@ -150,7 +150,7 @@ def test_arc_radius():
             ((0, 1), (1, 0), (0, 0), 1),]
 
     for start, end, center, radius in cases:
-        a = Arc(start, end, center, 'clockwise', 0)
+        a = Arc(start, end, center, 'clockwise', 0, 'single-quadrant')
         assert_equal(a.radius, radius)
 
 def test_arc_sweep_angle():
@@ -163,7 +163,7 @@ def test_arc_sweep_angle():
 
     for start, end, center, direction, sweep in cases:
         c = Circle((0,0), 1)
-        a = Arc(start, end, center, direction, c)
+        a = Arc(start, end, center, direction, c, 'single-quadrant')
         assert_equal(a.sweep_angle, sweep)
 
 def test_arc_bounds():
@@ -175,12 +175,12 @@ def test_arc_bounds():
              ]
     for start, end, center, direction, bounds in cases:
         c = Circle((0,0), 1)
-        a = Arc(start, end, center, direction, c)
+        a = Arc(start, end, center, direction, c, 'single-quadrant')
         assert_equal(a.bounding_box, bounds)
 
 def test_arc_conversion():
     c = Circle((0, 0), 25.4, units='metric')
-    a = Arc((2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0),'clockwise', c, units='metric')
+    a = Arc((2.54, 25.4), (254.0, 2540.0), (25400.0, 254000.0),'clockwise', c, 'single-quadrant', units='metric')
 
     #No effect
     a.to_metric()
@@ -203,7 +203,7 @@ def test_arc_conversion():
     assert_equal(a.aperture.diameter, 1.0)
 
     c = Circle((0, 0), 1.0, units='inch')
-    a = Arc((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0),'clockwise', c, units='inch')
+    a = Arc((0.1, 1.0), (10.0, 100.0), (1000.0, 10000.0),'clockwise', c, 'single-quadrant', units='inch')
     a.to_metric()
     assert_equal(a.start, (2.54, 25.4))
     assert_equal(a.end, (254.0, 2540.0))
@@ -212,7 +212,7 @@ def test_arc_conversion():
 
 def test_arc_offset():
     c = Circle((0, 0), 1)
-    a = Arc((0, 0), (1, 1), (2, 2), 'clockwise', c)
+    a = Arc((0, 0), (1, 1), (2, 2), 'clockwise', c, 'single-quadrant')
     a.offset(1, 0)
     assert_equal(a.start,(1., 0.))
     assert_equal(a.end, (2., 1.))
@@ -703,29 +703,30 @@ def test_obround_offset():
 def test_polygon_ctor():
     """ Test polygon creation
     """
-    test_cases = (((0,0), 3, 5),
-                  ((0, 0), 5, 6),
-                  ((1,1), 7, 7))
-    for pos, sides, radius in test_cases:
-        p = Polygon(pos, sides, radius)
+    test_cases = (((0,0), 3, 5, 0),
+                  ((0, 0), 5, 6, 0),
+                  ((1,1), 7, 7, 45))
+    for pos, sides, radius, hole_radius in test_cases:
+        p = Polygon(pos, sides, radius, hole_radius)
         assert_equal(p.position, pos)
         assert_equal(p.sides, sides)
         assert_equal(p.radius, radius)
+        assert_equal(p.hole_radius, hole_radius)
 
 def test_polygon_bounds():
     """ Test polygon bounding box calculation
     """
-    p = Polygon((2,2), 3, 2)
+    p = Polygon((2,2), 3, 2, 0)
     xbounds, ybounds = p.bounding_box
     assert_array_almost_equal(xbounds, (0, 4))
     assert_array_almost_equal(ybounds, (0, 4))
-    p = Polygon((2,2),3, 4)
+    p = Polygon((2,2), 3, 4, 0)
     xbounds, ybounds = p.bounding_box
     assert_array_almost_equal(xbounds, (-2, 6))
     assert_array_almost_equal(ybounds, (-2, 6))
 
 def test_polygon_conversion():
-    p = Polygon((2.54, 25.4), 3, 254.0, units='metric')
+    p = Polygon((2.54, 25.4), 3, 254.0, 0, units='metric')
     
     #No effect
     p.to_metric()
@@ -741,7 +742,7 @@ def test_polygon_conversion():
     assert_equal(p.position, (0.1, 1.0))
     assert_equal(p.radius, 10.0)
 
-    p = Polygon((0.1, 1.0), 3, 10.0, units='inch')
+    p = Polygon((0.1, 1.0), 3, 10.0, 0, units='inch')
     
      #No effect
     p.to_inch()
@@ -758,7 +759,7 @@ def test_polygon_conversion():
     assert_equal(p.radius, 254.0)
 
 def test_polygon_offset():
-    p = Polygon((0, 0), 5, 10)
+    p = Polygon((0, 0), 5, 10, 0)
     p.offset(1, 0)
     assert_equal(p.position,(1., 0.))
     p.offset(0, 1)
@@ -997,7 +998,7 @@ def test_drill_ctor():
     """
     test_cases = (((0, 0), 2), ((1, 1), 3), ((2, 2), 5))
     for position, diameter in test_cases:
-        d = Drill(position, diameter)
+        d = Drill(position, diameter, None)
         assert_equal(d.position, position)
         assert_equal(d.diameter, diameter)
         assert_equal(d.radius, diameter/2.)
@@ -1005,21 +1006,21 @@ def test_drill_ctor():
 def test_drill_ctor_validation():
     """ Test drill argument validation
     """
-    assert_raises(TypeError, Drill, 3, 5)
-    assert_raises(TypeError, Drill, (3,4,5), 5)
+    assert_raises(TypeError, Drill, 3, 5, None)
+    assert_raises(TypeError, Drill, (3,4,5), 5, None)
 
 def test_drill_bounds():
-    d = Drill((0, 0), 2)
+    d = Drill((0, 0), 2, None)
     xbounds, ybounds = d.bounding_box
     assert_array_almost_equal(xbounds, (-1, 1))
     assert_array_almost_equal(ybounds, (-1, 1))
-    d = Drill((1, 2), 2)
+    d = Drill((1, 2), 2, None)
     xbounds, ybounds = d.bounding_box
     assert_array_almost_equal(xbounds, (0, 2))
     assert_array_almost_equal(ybounds, (1, 3))
 
 def test_drill_conversion():
-    d = Drill((2.54, 25.4), 254., units='metric')
+    d = Drill((2.54, 25.4), 254., None, units='metric')
     
     #No effect
     d.to_metric()
@@ -1036,7 +1037,7 @@ def test_drill_conversion():
     assert_equal(d.diameter, 10.0)
     
 
-    d = Drill((0.1, 1.0), 10., units='inch')
+    d = Drill((0.1, 1.0), 10., None, units='inch')
     
     #No effect
     d.to_inch()
@@ -1053,15 +1054,15 @@ def test_drill_conversion():
     assert_equal(d.diameter, 254.0)
 
 def test_drill_offset():
-    d = Drill((0, 0), 1.)
+    d = Drill((0, 0), 1., None)
     d.offset(1, 0)
     assert_equal(d.position,(1., 0.))
     d.offset(0, 1)
     assert_equal(d.position,(1., 1.))
 
 def test_drill_equality():
-    d = Drill((2.54, 25.4), 254.)
-    d1 = Drill((2.54, 25.4), 254.)
+    d = Drill((2.54, 25.4), 254., None)
+    d1 = Drill((2.54, 25.4), 254., None)
     assert_equal(d, d1)
-    d1 = Drill((2.54, 25.4), 254.2)
+    d1 = Drill((2.54, 25.4), 254.2, None)
     assert_not_equal(d, d1)

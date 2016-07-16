@@ -33,3 +33,18 @@ Source code for this example can be found [here](examples/cairo_example.py).
 Documentation:
 --------------
 [PCB Tools Documentation](http://pcb-tools.readthedocs.org/en/latest/)
+
+
+Development and Testing:
+------------------------
+
+Dependencies for developing and testing pcb-tools are listed in test-requirements.txt. Use of a virtual environment is strongly recommended.
+
+    $ virtualenv venv
+    $ source venv/bin/activate
+    (venv)$ pip install -r test-requirements.txt
+    (venv)$ pip install -e .
+
+We use nose to run pcb-tools's suite of unittests and doctests.
+
+    (venv)$ nosetests

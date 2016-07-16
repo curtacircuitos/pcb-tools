@@ -146,7 +146,9 @@ def test_AMOutlinePrimitive_factory():
 
 def test_AMOUtlinePrimitive_dump():
     o = AMOutlinePrimitive(4, 'on', (0, 0), [(3, 3), (3, 0), (0, 0)], 0)
-    assert_equal(o.to_gerber(), '4,1,3,0,0,3,3,3,0,0,0,0*')
+    # New lines don't matter for Gerber, but we insert them to make it easier to remove
+    # For test purposes we can ignore them
+    assert_equal(o.to_gerber().replace('\n', ''), '4,1,3,0,0,3,3,3,0,0,0,0*')
 
 def test_AMOutlinePrimitive_conversion():
     o = AMOutlinePrimitive(4, 'on', (0, 0), [(25.4, 25.4), (25.4, 0), (0, 0)], 0)
@@ -229,30 +231,31 @@ def test_AMMoirePrimitive_conversion():
     assert_equal(m.crosshair_length, 25.4)
 
 def test_AMThermalPrimitive_validation():
-    assert_raises(ValueError, AMThermalPrimitive, 8, (0.0, 0.0), 7, 5, 0.2)
-    assert_raises(TypeError, AMThermalPrimitive, 7, (0.0, '0'), 7, 5, 0.2)
+    assert_raises(ValueError, AMThermalPrimitive, 8, (0.0, 0.0), 7, 5, 0.2, 0.0)
+    assert_raises(TypeError, AMThermalPrimitive, 7, (0.0, '0'), 7, 5, 0.2, 0.0)
 
 def test_AMThermalPrimitive_factory():
-    t = AMThermalPrimitive.from_gerber('7,0,0,7,6,0.2*')
+    t = AMThermalPrimitive.from_gerber('7,0,0,7,6,0.2,45*')
     assert_equal(t.code, 7)
     assert_equal(t.position, (0, 0))
     assert_equal(t.outer_diameter, 7)
     assert_equal(t.inner_diameter, 6)
     assert_equal(t.gap, 0.2)
+    assert_equal(t.rotation, 45)
 
 def test_AMThermalPrimitive_dump():
-    t = AMThermalPrimitive.from_gerber('7,0,0,7,6,0.2*')
-    assert_equal(t.to_gerber(), '7,0,0,7.0,6.0,0.2*')
+    t = AMThermalPrimitive.from_gerber('7,0,0,7,6,0.2,30*')
+    assert_equal(t.to_gerber(), '7,0,0,7.0,6.0,0.2,30.0*')
 
 def test_AMThermalPrimitive_conversion():
-    t = AMThermalPrimitive(7, (25.4, 25.4), 25.4, 25.4, 25.4)
+    t = AMThermalPrimitive(7, (25.4, 25.4), 25.4, 25.4, 25.4, 0.0)
     t.to_inch()
     assert_equal(t.position, (1., 1.))
     assert_equal(t.outer_diameter, 1.)
     assert_equal(t.inner_diameter, 1.)
     assert_equal(t.gap, 1.)
 
-    t = AMThermalPrimitive(7, (1, 1), 1, 1, 1)
+    t = AMThermalPrimitive(7, (1, 1), 1, 1, 1, 0)
     t.to_metric()
     assert_equal(t.position, (25.4, 25.4))
     assert_equal(t.outer_diameter, 25.4)
