@@ -18,14 +18,18 @@
 class ParseError(Exception):
     pass
 
+
 class GerberParseError(ParseError):
     pass
+
 
 class ExcellonParseError(ParseError):
     pass
 
+
 class ExcellonFileError(IOError):
     pass
+
 
 class GerberFileError(IOError):
     pass

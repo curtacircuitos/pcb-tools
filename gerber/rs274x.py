@@ -114,16 +114,13 @@ class GerberFile(CamFile):
     def bounds(self):
         min_x = min_y = 1000000
         max_x = max_y = -1000000
-
         for stmt in [stmt for stmt in self.statements if isinstance(stmt, CoordStmt)]:
             if stmt.x is not None:
                 min_x = min(stmt.x, min_x)
                 max_x = max(stmt.x, max_x)
-
             if stmt.y is not None:
                 min_y = min(stmt.y, min_y)
                 max_y = max(stmt.y, max_y)
-
         return ((min_x, max_x), (min_y, max_y))
     
     @property

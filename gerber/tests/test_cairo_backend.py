@@ -2,13 +2,12 @@
 # -*- coding: utf-8 -*-
 
 # Author: Garret Fick <garret@ficksworkshop.com>
-import os
 import io
+import os
 
 from ..render.cairo_backend import GerberCairoContext
 from ..rs274x import read, GerberFile
 from .tests import *
-
 
 
 TWO_BOXES_FILE = os.path.join(os.path.dirname(__file__),
