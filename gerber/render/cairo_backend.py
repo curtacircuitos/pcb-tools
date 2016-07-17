@@ -292,8 +292,7 @@ class GerberCairoContext(GerberContext):
             self.ctx.paint()
 
     def dump(self, filename):
-        is_svg = filename.lower().endswith(".svg")
-        if is_svg:
+        if filename and filename.lower().endswith(".svg"):
             self.surface.finish()
             self.surface_buffer.flush()
             with open(filename, "w") as f:
@@ -301,7 +300,7 @@ class GerberCairoContext(GerberContext):
                 f.write(self.surface_buffer.read())
                 f.flush()
         else:
-            self.surface.write_to_png(filename)
+            return self.surface.write_to_png(filename)
 
     def dump_svg_str(self):
         self.surface.finish()

@@ -9,10 +9,18 @@ from operator import add
 
 def test_primitive_smoketest():
     p = Primitive()
-    assert_raises(NotImplementedError, p.bounding_box)
+    try:
+        p.bounding_box
+        assert_false(True, 'should have thrown the exception')
+    except NotImplementedError: 
+        pass
     p.to_metric()
     p.to_inch()
-    p.offset(1, 1)
+    try:
+        p.offset(1, 1)
+        assert_false(True, 'should have thrown the exception')
+    except NotImplementedError:
+        pass
 
 def test_line_angle():
     """ Test Line primitive angle calculation
