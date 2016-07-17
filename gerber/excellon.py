@@ -26,16 +26,18 @@ This module provides Excellon file classes and parsing utilities
 import math
 import operator
 
+from .cam import CamFile, FileSettings
+from .excellon_statements import *
+from .excellon_tool import ExcellonToolDefinitionParser
+from .primitives import Drill, Slot
+from .utils import inch, metric
+
+
 try:
     from cStringIO import StringIO
 except(ImportError):
     from io import StringIO
 
-from .excellon_statements import *
-from .excellon_tool import ExcellonToolDefinitionParser
-from .cam import CamFile, FileSettings
-from .primitives import Drill, Slot
-from .utils import inch, metric
 
 
 def read(filename):
@@ -402,13 +404,13 @@ class ExcellonParser(object):
 
     def parse_raw(self, data, filename=None):
         for line in StringIO(data):
-            self._parse(line.strip())
+            self._parse_line(line.strip())
         for stmt in self.statements:
             stmt.units = self.units
         return ExcellonFile(self.statements, self.tools, self.hits,
                             self._settings(), filename)
 
-    def _parse(self, line):
+    def _parse_line(self, line):
         # skip empty lines
         if not line.strip():
             return
@@ -599,7 +601,7 @@ class ExcellonParser(object):
         elif line[0] == 'T' and self.state != 'HEADER':
             stmt = ToolSelectionStmt.from_excellon(line)
             self.statements.append(stmt)
-            
+
             # T0 is used as END marker, just ignore
             if stmt.tool != 0:
                 tool = self._get_tool(stmt.tool)

@@ -27,6 +27,7 @@ Rendering Examples:
 -------------------
 ###Top Composite rendering
 ![Composite Top Image](examples/cairo_example.png)
+
 Source code for this example can be found [here](examples/cairo_example.py).
 
 

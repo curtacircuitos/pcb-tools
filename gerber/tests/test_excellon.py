@@ -99,60 +99,60 @@ def test_parser_hole_sizes():
 
 def test_parse_whitespace():
     p = ExcellonParser(FileSettings())
-    assert_equal(p._parse('         '), None)
+    assert_equal(p._parse_line('         '), None)
 
 
 def test_parse_comment():
     p = ExcellonParser(FileSettings())
-    p._parse(';A comment')
+    p._parse_line(';A comment')
     assert_equal(p.statements[0].comment, 'A comment')
 
 
 def test_parse_format_comment():
     p = ExcellonParser(FileSettings())
-    p._parse('; FILE_FORMAT=9:9 ')
+    p._parse_line('; FILE_FORMAT=9:9 ')
     assert_equal(p.format, (9, 9))
 
 
 def test_parse_header():
     p = ExcellonParser(FileSettings())
-    p._parse('M48   ')
+    p._parse_line('M48   ')
     assert_equal(p.state, 'HEADER')
-    p._parse('M95   ')
+    p._parse_line('M95   ')
     assert_equal(p.state, 'DRILL')
 
 
 def test_parse_rout():
     p = ExcellonParser(FileSettings())
-    p._parse('G00  ')
+    p._parse_line('G00  ')
     assert_equal(p.state, 'ROUT')
-    p._parse('G05 ')
+    p._parse_line('G05 ')
     assert_equal(p.state, 'DRILL')
 
 
 def test_parse_version():
     p = ExcellonParser(FileSettings())
-    p._parse('VER,1  ')
+    p._parse_line('VER,1  ')
     assert_equal(p.statements[0].version, 1)
-    p._parse('VER,2  ')
+    p._parse_line('VER,2  ')
     assert_equal(p.statements[1].version, 2)
 
 
 def test_parse_format():
     p = ExcellonParser(FileSettings())
-    p._parse('FMAT,1  ')
+    p._parse_line('FMAT,1  ')
     assert_equal(p.statements[0].format, 1)
-    p._parse('FMAT,2  ')
+    p._parse_line('FMAT,2  ')
     assert_equal(p.statements[1].format, 2)
 
 
 def test_parse_units():
     settings = FileSettings(units='inch', zeros='trailing')
     p = ExcellonParser(settings)
-    p._parse(';METRIC,LZ')
+    p._parse_line(';METRIC,LZ')
     assert_equal(p.units, 'inch')
     assert_equal(p.zeros, 'trailing')
-    p._parse('METRIC,LZ')
+    p._parse_line('METRIC,LZ')
     assert_equal(p.units, 'metric')
     assert_equal(p.zeros, 'leading')
 
@@ -161,9 +161,9 @@ def test_parse_incremental_mode():
     settings = FileSettings(units='inch', zeros='trailing')
     p = ExcellonParser(settings)
     assert_equal(p.notation, 'absolute')
-    p._parse('ICI,ON  ')
+    p._parse_line('ICI,ON  ')
     assert_equal(p.notation, 'incremental')
-    p._parse('ICI,OFF  ')
+    p._parse_line('ICI,OFF  ')
     assert_equal(p.notation, 'absolute')
 
 
@@ -171,29 +171,29 @@ def test_parse_absolute_mode():
     settings = FileSettings(units='inch', zeros='trailing')
     p = ExcellonParser(settings)
     assert_equal(p.notation, 'absolute')
-    p._parse('ICI,ON  ')
+    p._parse_line('ICI,ON  ')
     assert_equal(p.notation, 'incremental')
-    p._parse('G90  ')
+    p._parse_line('G90  ')
     assert_equal(p.notation, 'absolute')
 
 
 def test_parse_repeat_hole():
     p = ExcellonParser(FileSettings())
     p.active_tool = ExcellonTool(FileSettings(), number=8)
-    p._parse('R03X1.5Y1.5')
+    p._parse_line('R03X1.5Y1.5')
     assert_equal(p.statements[0].count, 3)
 
 
 def test_parse_incremental_position():
     p = ExcellonParser(FileSettings(notation='incremental'))
-    p._parse('X01Y01')
-    p._parse('X01Y01')
+    p._parse_line('X01Y01')
+    p._parse_line('X01Y01')
     assert_equal(p.pos, [2.,2.])
 
 
 def test_parse_unknown():
     p = ExcellonParser(FileSettings())
-    p._parse('Not A Valid Statement')
+    p._parse_line('Not A Valid Statement')
     assert_equal(p.statements[0].stmt, 'Not A Valid Statement')
 
 

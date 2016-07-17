@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
+from ..exceptions import ParseError
 from ..common import read, loads
 from ..excellon import ExcellonFile
 from ..rs274x import GerberFile
@@ -31,12 +32,12 @@ def test_load_from_string():
         top_copper = loads(f.read())
     assert_true(isinstance(ncdrill, ExcellonFile))
     assert_true(isinstance(top_copper, GerberFile))
-    
+
 
 def test_file_type_validation():
     """ Test file format validation
     """
-    assert_raises(TypeError, read, 'LICENSE')
+    assert_raises(ParseError, read, 'LICENSE')
 
 
 
