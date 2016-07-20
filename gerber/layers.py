@@ -21,7 +21,7 @@ from collections import namedtuple
 
 from .excellon import ExcellonFile
 from .ipc356 import IPC_D_356
-from .render.render import Renderable
+
 
 Hint = namedtuple('Hint', 'layer ext name')
 
@@ -109,7 +109,7 @@ def sort_layers(layers):
     return output
 
 
-class PCBLayer(Renderable):
+class PCBLayer(object):
     """ Base class for PCB Layers
 
     Parameters
@@ -207,7 +207,7 @@ class InternalLayer(PCBLayer):
         return (self.order <= other.order)
 
 
-class LayerSet(Renderable):
+class LayerSet(object):
     def __init__(self, name, layers, **kwargs):
         super(LayerSet, self).__init__(**kwargs)
         self.name = name
