@@ -19,6 +19,7 @@ try:
     import cairo
 except ImportError:
     import cairocffi as cairo
+    
 from operator import mul, div
 import math
 import tempfile
@@ -47,7 +48,7 @@ class GerberCairoContext(GerberContext):
     def set_bounds(self, bounds, new_surface=False):
         origin_in_inch = (bounds[0][0], bounds[1][0])
         size_in_inch = (abs(bounds[0][1] - bounds[0][0]), abs(bounds[1][1] - bounds[1][0]))
-        size_in_pixels = map(mul, size_in_inch, self.scale)
+        size_in_pixels = tuple(map(mul, size_in_inch, self.scale))
         self.origin_in_inch = origin_in_inch if self.origin_in_inch is None else self.origin_in_inch
         self.size_in_inch = size_in_inch if self.size_in_inch is None else self.size_in_inch
         if (self.surface is None) or new_surface:
