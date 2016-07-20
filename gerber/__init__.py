@@ -24,3 +24,4 @@ files in python.
 """
 
 from .common import read, loads
+from .pcb import PCB

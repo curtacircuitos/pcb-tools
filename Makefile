@@ -31,4 +31,5 @@ doc-clean:
 .PHONY: examples
 examples:
 	PYTHONPATH=. $(PYTHON) examples/cairo_example.py
+	PYTHONPATH=. $(PYTHON) examples/pcb_example.py
 
