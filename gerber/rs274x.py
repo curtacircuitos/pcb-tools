@@ -482,15 +482,33 @@ class GerberParser(object):
         aperture = None
         if shape == 'C':
             diameter = modifiers[0][0]
-            aperture = Circle(position=None, diameter=diameter, units=self.settings.units)
+            
+            if len(modifiers[0]) >= 2:
+                hole_diameter = modifiers[0][1]
+            else:
+                hole_diameter = 0
+                
+            aperture = Circle(position=None, diameter=diameter, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'R':
             width = modifiers[0][0]
             height = modifiers[0][1]
-            aperture = Rectangle(position=None, width=width, height=height, units=self.settings.units)
+            
+            if len(modifiers[0]) >= 3:
+                hole_diameter = modifiers[0][2]
+            else:
+                hole_diameter = 0
+                
+            aperture = Rectangle(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'O':
             width = modifiers[0][0]
             height = modifiers[0][1]
-            aperture = Obround(position=None, width=width, height=height, units=self.settings.units)
+            
+            if len(modifiers[0]) >= 3:
+                hole_diameter = modifiers[0][2]
+            else:
+                hole_diameter = 0
+                
+            aperture = Obround(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'P':
             outer_diameter = modifiers[0][0]
             number_vertices = int(modifiers[0][1])

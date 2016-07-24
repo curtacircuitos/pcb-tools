@@ -151,7 +151,7 @@ class Rs274xContext(GerberContext):
         # Select the right aperture if not already selected
         if aperture:
             if isinstance(aperture, Circle):
-                aper = self._get_circle(aperture.diameter)
+                aper = self._get_circle(aperture.diameter, aperture.hole_diameter)
             elif isinstance(aperture, Rectangle):
                 aper = self._get_rectangle(aperture.width, aperture.height)
             elif isinstance(aperture, Obround):
@@ -275,10 +275,10 @@ class Rs274xContext(GerberContext):
             
         self._pos = primitive.position
             
-    def _get_circle(self, diameter, dcode = None):
+    def _get_circle(self, diameter, hole_diameter, dcode = None):
         '''Define a circlar aperture'''
         
-        aper = self._circles.get(diameter, None)
+        aper = self._circles.get((diameter, hole_diameter), None)
 
         if not aper:
             if not dcode:
@@ -287,15 +287,15 @@ class Rs274xContext(GerberContext):
             else:
                 self._next_dcode = max(dcode + 1, self._next_dcode)
                 
-            aper = ADParamStmt.circle(dcode, diameter)
-            self._circles[diameter] = aper
+            aper = ADParamStmt.circle(dcode, diameter, hole_diameter)
+            self._circles[(diameter, hole_diameter)] = aper
             self.header.append(aper)
 
         return aper
         
     def _render_circle(self, circle, color):
 
-        aper = self._get_circle(circle.diameter)
+        aper = self._get_circle(circle.diameter, circle.hole_diameter)
         self._render_flash(circle, aper)
 
     def _get_rectangle(self, width, height, dcode = None):

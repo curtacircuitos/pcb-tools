@@ -236,6 +236,12 @@ def test_circle_radius():
     c = Circle((1, 1), 2)
     assert_equal(c.radius, 1)
 
+def test_circle_hole_radius():
+    """ Test Circle primitive hole radius calculation
+    """
+    c = Circle((1, 1), 4, 2)
+    assert_equal(c.hole_radius, 1)
+
 def test_circle_bounds():
     """ Test Circle bounding box calculation
     """
@@ -243,35 +249,81 @@ def test_circle_bounds():
     assert_equal(c.bounding_box, ((0, 2), (0, 2)))
 
 def test_circle_conversion():
+    """Circle conversion of units"""
+    # Circle initially metric, no hole
     c = Circle((2.54, 25.4), 254.0, units='metric')
 
     c.to_metric()   #shouldn't do antyhing
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
+    assert_equal(c.hole_diameter, 0.)
 
     c.to_inch()
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
+    assert_equal(c.hole_diameter, 0)
 
     #no effect
     c.to_inch()
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
+    assert_equal(c.hole_diameter, 0)
+    
+    # Circle initially metric, with hole
+    c = Circle((2.54, 25.4), 254.0, 127.0, units='metric')
 
+    c.to_metric()   #shouldn't do antyhing
+    assert_equal(c.position, (2.54, 25.4))
+    assert_equal(c.diameter, 254.)
+    assert_equal(c.hole_diameter, 127.)
+
+    c.to_inch()
+    assert_equal(c.position, (0.1, 1.))
+    assert_equal(c.diameter, 10.)
+    assert_equal(c.hole_diameter, 5.)
+
+    #no effect
+    c.to_inch()
+    assert_equal(c.position, (0.1, 1.))
+    assert_equal(c.diameter, 10.)
+    assert_equal(c.hole_diameter, 5.)
+    
+    # Circle initially inch, no hole
     c = Circle((0.1, 1.0), 10.0, units='inch')
     #No effect
     c.to_inch()
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
+    assert_equal(c.hole_diameter, 0)
 
     c.to_metric()
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
+    assert_equal(c.hole_diameter, 0)
 
     #no effect
     c.to_metric()
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
+    assert_equal(c.hole_diameter, 0)
+
+    c = Circle((0.1, 1.0), 10.0, 5.0, units='inch')
+    #No effect
+    c.to_inch()
+    assert_equal(c.position, (0.1, 1.))
+    assert_equal(c.diameter, 10.)
+    assert_equal(c.hole_diameter, 5.)
+
+    c.to_metric()
+    assert_equal(c.position, (2.54, 25.4))
+    assert_equal(c.diameter, 254.)
+    assert_equal(c.hole_diameter, 127.)
+
+    #no effect
+    c.to_metric()
+    assert_equal(c.position, (2.54, 25.4))
+    assert_equal(c.diameter, 254.)
+    assert_equal(c.hole_diameter, 127.)
 
 def test_circle_offset():
     c = Circle((0, 0), 1)
@@ -355,6 +407,15 @@ def test_rectangle_ctor():
         assert_equal(r.position, pos)
         assert_equal(r.width, width)
         assert_equal(r.height, height)
+        
+def test_rectangle_hole_radius():
+    """ Test rectangle hole diameter calculation
+    """
+    r = Rectangle((0,0), 2, 2)
+    assert_equal(0, r.hole_radius)
+    
+    r = Rectangle((0,0), 2, 2, 1)
+    assert_equal(0.5, r.hole_radius)
 
 def test_rectangle_bounds():
     """ Test rectangle bounding box calculation
@@ -369,6 +430,9 @@ def test_rectangle_bounds():
     assert_array_almost_equal(ybounds, (-math.sqrt(2), math.sqrt(2)))
 
 def test_rectangle_conversion():
+    """Test converting rectangles between units"""
+    
+    # Initially metric no hole
     r = Rectangle((2.54, 25.4), 254.0, 2540.0, units='metric')
 
     r.to_metric()
@@ -385,7 +449,29 @@ def test_rectangle_conversion():
     assert_equal(r.position, (0.1, 1.0))
     assert_equal(r.width, 10.0)
     assert_equal(r.height, 100.0)
+    
+    # Initially metric with hole
+    r = Rectangle((2.54, 25.4), 254.0, 2540.0, 127.0, units='metric')
 
+    r.to_metric()
+    assert_equal(r.position, (2.54,25.4))
+    assert_equal(r.width, 254.0)
+    assert_equal(r.height, 2540.0)
+    assert_equal(r.hole_diameter, 127.0)
+
+    r.to_inch()
+    assert_equal(r.position, (0.1, 1.0))
+    assert_equal(r.width, 10.0)
+    assert_equal(r.height, 100.0)
+    assert_equal(r.hole_diameter, 5.0)
+
+    r.to_inch()
+    assert_equal(r.position, (0.1, 1.0))
+    assert_equal(r.width, 10.0)
+    assert_equal(r.height, 100.0)
+    assert_equal(r.hole_diameter, 5.0)
+
+    # Initially inch, no hole
     r = Rectangle((0.1, 1.0), 10.0, 100.0, units='inch')
     r.to_inch()
     assert_equal(r.position, (0.1, 1.0))
@@ -401,6 +487,26 @@ def test_rectangle_conversion():
     assert_equal(r.position, (2.54,25.4))
     assert_equal(r.width, 254.0)
     assert_equal(r.height, 2540.0)
+    
+    # Initially inch with hole
+    r = Rectangle((0.1, 1.0), 10.0, 100.0, 5.0, units='inch')
+    r.to_inch()
+    assert_equal(r.position, (0.1, 1.0))
+    assert_equal(r.width, 10.0)
+    assert_equal(r.height, 100.0)
+    assert_equal(r.hole_diameter, 5.0)
+
+    r.to_metric()
+    assert_equal(r.position, (2.54,25.4))
+    assert_equal(r.width, 254.0)
+    assert_equal(r.height, 2540.0)
+    assert_equal(r.hole_diameter, 127.0)
+
+    r.to_metric()
+    assert_equal(r.position, (2.54,25.4))
+    assert_equal(r.width, 254.0)
+    assert_equal(r.height, 2540.0)
+    assert_equal(r.hole_diameter, 127.0)
 
 def test_rectangle_offset():
     r = Rectangle((0, 0), 1, 2)

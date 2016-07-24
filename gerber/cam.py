@@ -260,7 +260,7 @@ class CamFile(object):
             If provided, save the rendered image to `filename`
         """
 
-        ctx.set_bounds(self.bounds)
+        ctx.set_bounds(self.bounding_box)
         ctx._paint_background()
 
         if invert:

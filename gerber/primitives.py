@@ -370,12 +370,13 @@ class Arc(Primitive):
 class Circle(Primitive):
     """
     """
-    def __init__(self, position, diameter, **kwargs):
+    def __init__(self, position, diameter, hole_diameter = 0, **kwargs):
         super(Circle, self).__init__(**kwargs)
         validate_coordinates(position)
         self.position = position
         self.diameter = diameter
-        self._to_convert = ['position', 'diameter']
+        self.hole_diameter = hole_diameter
+        self._to_convert = ['position', 'diameter', 'hole_diameter']
 
     @property 
     def flashed(self):
@@ -384,6 +385,10 @@ class Circle(Primitive):
     @property
     def radius(self):
         return self.diameter / 2.
+    
+    @property
+    def hole_radius(self):
+        return self.hole_diameter / 2.
 
     @property
     def bounding_box(self):
@@ -402,7 +407,7 @@ class Circle(Primitive):
         if not isinstance(other, Circle):
             return False
         
-        if self.diameter != other.diameter:
+        if self.diameter != other.diameter or self.hole_diameter != other.hole_diameter:
             return False
         
         equiv_position = tuple(map(add, other.position, offset))
@@ -456,13 +461,14 @@ class Rectangle(Primitive):
     Only aperture macro generated Rectangle objects can be rotated. If you aren't in a AMGroup,
     then you don't need to worry about rotation
     """
-    def __init__(self, position, width, height, **kwargs):
+    def __init__(self, position, width, height, hole_diameter=0, **kwargs):
         super(Rectangle, self).__init__(**kwargs)
         validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
-        self._to_convert = ['position', 'width', 'height']
+        self.hole_diameter = hole_diameter
+        self._to_convert = ['position', 'width', 'height', 'hole_diameter']
         
     @property 
     def flashed(self):
@@ -477,6 +483,11 @@ class Rectangle(Primitive):
     def upper_right(self):
         return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
+        
+    @property
+    def hole_radius(self):
+        """The radius of the hole. If there is no hole, returns 0"""
+        return self.hole_diameter / 2.
 
     @property
     def bounding_box(self):
@@ -499,12 +510,12 @@ class Rectangle(Primitive):
                 math.sin(math.radians(self.rotation)) * self.width)
         
     def equivalent(self, other, offset):
-        '''Is this the same as the other rect, ignoring the offiset?'''
+        """Is this the same as the other rect, ignoring the offset?"""
 
         if not isinstance(other, Rectangle):
             return False
         
-        if self.width != other.width or self.height != other.height or self.rotation != other.rotation:
+        if self.width != other.width or self.height != other.height or self.rotation != other.rotation or self.hole_diameter != other.hole_diameter:
             return False
         
         equiv_position = tuple(map(add, other.position, offset))
@@ -655,13 +666,14 @@ class RoundRectangle(Primitive):
 class Obround(Primitive):
     """
     """
-    def __init__(self, position, width, height, **kwargs):
+    def __init__(self, position, width, height, hole_diameter=0, **kwargs):
         super(Obround, self).__init__(**kwargs)
         validate_coordinates(position)
         self.position = position
         self.width = width
         self.height = height
-        self._to_convert = ['position', 'width', 'height']
+        self.hole_diameter = hole_diameter
+        self._to_convert = ['position', 'width', 'height', 'hole_diameter']
         
     @property 
     def flashed(self):
@@ -676,6 +688,11 @@ class Obround(Primitive):
     def upper_right(self):
         return (self.position[0] + (self._abs_width / 2.),
                 self.position[1] + (self._abs_height / 2.))
+        
+    @property
+    def hole_radius(self):
+        """The radius of the hole. If there is no hole, returns 0"""
+        return self.hole_diameter / 2.
 
     @property
     def orientation(self):

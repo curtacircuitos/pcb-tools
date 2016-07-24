@@ -20,13 +20,14 @@ try:
 except ImportError:
     import cairocffi as cairo
     
-from operator import mul, div
 import math
+from operator import mul, div
 import tempfile
 
+from ..primitives import *
 from .render import GerberContext, RenderSettings
 from .theme import THEMES
-from ..primitives import *
+
 
 try:
     from cStringIO import StringIO
@@ -219,15 +220,30 @@ class GerberCairoContext(GerberContext):
         center = tuple(map(mul, circle.position, self.scale))
         if not self.invert:
             ctx = self.ctx
-            ctx.set_source_rgba(*color, alpha=self.alpha)
+            ctx.set_source_rgba(color[0], color[1], color[2], alpha=self.alpha)
             ctx.set_operator(cairo.OPERATOR_OVER if circle.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
         else:
             ctx = self.mask_ctx
             ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
             ctx.set_operator(cairo.OPERATOR_CLEAR)
+            
+        if circle.hole_diameter > 0:
+            ctx.push_group()
+
         ctx.set_line_width(0)
         ctx.arc(center[0], center[1], radius=circle.radius * self.scale[0], angle1=0, angle2=2 * math.pi)
         ctx.fill()
+        
+        if circle.hole_diameter > 0:
+            # Render the center clear
+
+            ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)        
+            ctx.arc(center[0], center[1], radius=circle.hole_radius * self.scale[0], angle1=0, angle2=2 * math.pi)
+            ctx.fill()
+            
+            ctx.pop_group_to_source()
+            ctx.paint_with_alpha(1)
 
     def _render_rectangle(self, rectangle, color):
         ll = map(mul, rectangle.lower_left, self.scale)
@@ -253,48 +269,95 @@ class GerberCairoContext(GerberContext):
             ll[1] = ll[1] - center[1]
             matrix.rotate(rectangle.rotation)
             ctx.transform(matrix)
-     
+            
+        if rectangle.hole_diameter > 0:
+            ctx.push_group()
+
         ctx.set_line_width(0)
         ctx.rectangle(ll[0], ll[1], width, height)
         ctx.fill()
+        
+        if rectangle.hole_diameter > 0:
+            # Render the center clear
+            ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+            center = map(mul, rectangle.position, self.scale)
+            ctx.arc(center[0], center[1], radius=rectangle.hole_radius * self.scale[0], angle1=0, angle2=2 * math.pi)
+            ctx.fill()
+            
+            ctx.pop_group_to_source()
+            ctx.paint_with_alpha(1)
         
         if rectangle.rotation != 0:
             ctx.restore()
 
     def _render_obround(self, obround, color):
+        
+        if not self.invert:
+            ctx = self.ctx
+            ctx.set_source_rgba(color[0], color[1], color[2], alpha=self.alpha)
+            ctx.set_operator(cairo.OPERATOR_OVER if obround.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
+        else:
+            ctx = self.mask_ctx
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+            
+        if obround.hole_diameter > 0:
+            ctx.push_group()
+
         self._render_circle(obround.subshapes['circle1'], color)
         self._render_circle(obround.subshapes['circle2'], color)
         self._render_rectangle(obround.subshapes['rectangle'], color)
         
+        if obround.hole_diameter > 0:
+            # Render the center clear
+            ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+            center = map(mul, obround.position, self.scale)
+            ctx.arc(center[0], center[1], radius=obround.hole_radius * self.scale[0], angle1=0, angle2=2 * math.pi)
+            ctx.fill()
+            
+            ctx.pop_group_to_source()
+            ctx.paint_with_alpha(1)
+
     def _render_polygon(self, polygon, color):
+        
+        # TODO Ths does not handle rotation of a polygon
+        if not self.invert:
+            ctx = self.ctx
+            ctx.set_source_rgba(color[0], color[1], color[2], alpha=self.alpha)
+            ctx.set_operator(cairo.OPERATOR_OVER if polygon.level_polarity == "dark" else cairo.OPERATOR_CLEAR)
+        else:
+            ctx = self.mask_ctx
+            ctx.set_source_rgba(0.0, 0.0, 0.0, 1.0)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)
+            
         if polygon.hole_radius > 0:
-            self.ctx.push_group()
+            ctx.push_group()
         
         vertices = polygon.vertices 
-        
-        self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
-        self.ctx.set_operator(cairo.OPERATOR_OVER if (polygon.level_polarity == "dark" and not self.invert) else cairo.OPERATOR_CLEAR)
-        self.ctx.set_line_width(0)
-        self.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+
+        ctx.set_line_width(0)
+        ctx.set_line_cap(cairo.LINE_CAP_ROUND)
         
         # Start from before the end so it is easy to iterate and make sure it is closed
-        self.ctx.move_to(*map(mul, vertices[-1], self.scale))
+        ctx.move_to(*map(mul, vertices[-1], self.scale))
         for v in vertices:
-            self.ctx.line_to(*map(mul, v, self.scale))
+            ctx.line_to(*map(mul, v, self.scale))
 
-        self.ctx.fill()
+        ctx.fill()
         
         if polygon.hole_radius > 0:
             # Render the center clear
             center = tuple(map(mul, polygon.position, self.scale))
-            self.ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
-            self.ctx.set_operator(cairo.OPERATOR_CLEAR)        
-            self.ctx.set_line_width(0)
-            self.ctx.arc(center[0], center[1], polygon.hole_radius * self.scale[0], 0, 2 * math.pi)
-            self.ctx.fill()
+            ctx.set_source_rgba(color[0], color[1], color[2], self.alpha)
+            ctx.set_operator(cairo.OPERATOR_CLEAR)        
+            ctx.set_line_width(0)
+            ctx.arc(center[0], center[1], polygon.hole_radius * self.scale[0], 0, 2 * math.pi)
+            ctx.fill()
             
-            self.ctx.pop_group_to_source()
-            self.ctx.paint_with_alpha(1)
+            ctx.pop_group_to_source()
+            ctx.paint_with_alpha(1)
 
     def _render_drill(self, circle, color):
         self._render_circle(circle, color)
