@@ -256,18 +256,18 @@ def test_circle_conversion():
     c.to_metric()   #shouldn't do antyhing
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
-    assert_equal(c.hole_diameter, 0.)
+    assert_equal(c.hole_diameter, None)
 
     c.to_inch()
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
-    assert_equal(c.hole_diameter, 0)
+    assert_equal(c.hole_diameter, None)
 
     #no effect
     c.to_inch()
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
-    assert_equal(c.hole_diameter, 0)
+    assert_equal(c.hole_diameter, None)
     
     # Circle initially metric, with hole
     c = Circle((2.54, 25.4), 254.0, 127.0, units='metric')
@@ -294,18 +294,18 @@ def test_circle_conversion():
     c.to_inch()
     assert_equal(c.position, (0.1, 1.))
     assert_equal(c.diameter, 10.)
-    assert_equal(c.hole_diameter, 0)
+    assert_equal(c.hole_diameter, None)
 
     c.to_metric()
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
-    assert_equal(c.hole_diameter, 0)
+    assert_equal(c.hole_diameter, None)
 
     #no effect
     c.to_metric()
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
-    assert_equal(c.hole_diameter, 0)
+    assert_equal(c.hole_diameter, None)
 
     c = Circle((0.1, 1.0), 10.0, 5.0, units='inch')
     #No effect
@@ -820,12 +820,12 @@ def test_polygon_ctor():
     test_cases = (((0,0), 3, 5, 0),
                   ((0, 0), 5, 6, 0),
                   ((1,1), 7, 7, 45))
-    for pos, sides, radius, hole_radius in test_cases:
-        p = Polygon(pos, sides, radius, hole_radius)
+    for pos, sides, radius, hole_diameter in test_cases:
+        p = Polygon(pos, sides, radius, hole_diameter)
         assert_equal(p.position, pos)
         assert_equal(p.sides, sides)
         assert_equal(p.radius, radius)
-        assert_equal(p.hole_radius, hole_radius)
+        assert_equal(p.hole_diameter, hole_diameter)
 
 def test_polygon_bounds():
     """ Test polygon bounding box calculation

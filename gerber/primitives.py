@@ -370,7 +370,7 @@ class Arc(Primitive):
 class Circle(Primitive):
     """
     """
-    def __init__(self, position, diameter, hole_diameter = 0, **kwargs):
+    def __init__(self, position, diameter, hole_diameter = None, **kwargs):
         super(Circle, self).__init__(**kwargs)
         validate_coordinates(position)
         self.position = position
@@ -388,7 +388,9 @@ class Circle(Primitive):
     
     @property
     def hole_radius(self):
-        return self.hole_diameter / 2.
+        if self.hole_diameter != None:
+            return self.hole_diameter / 2.
+        return None
 
     @property
     def bounding_box(self):
@@ -486,8 +488,10 @@ class Rectangle(Primitive):
         
     @property
     def hole_radius(self):
-        """The radius of the hole. If there is no hole, returns 0"""
-        return self.hole_diameter / 2.
+        """The radius of the hole. If there is no hole, returns None"""
+        if self.hole_diameter != None:
+            return self.hole_diameter / 2.
+        return None
 
     @property
     def bounding_box(self):
@@ -691,8 +695,10 @@ class Obround(Primitive):
         
     @property
     def hole_radius(self):
-        """The radius of the hole. If there is no hole, returns 0"""
-        return self.hole_diameter / 2.
+        """The radius of the hole. If there is no hole, returns None"""
+        if self.hole_diameter != None:
+            return self.hole_diameter / 2.
+        return None
 
     @property
     def orientation(self):
@@ -740,14 +746,14 @@ class Polygon(Primitive):
     """
     Polygon flash defined by a set number of sides.
     """
-    def __init__(self, position, sides, radius, hole_radius, **kwargs):
+    def __init__(self, position, sides, radius, hole_diameter, **kwargs):
         super(Polygon, self).__init__(**kwargs)
         validate_coordinates(position)
         self.position = position
         self.sides = sides
         self.radius = radius
-        self.hole_radius = hole_radius
-        self._to_convert = ['position', 'radius']
+        self.hole_diameter = hole_diameter
+        self._to_convert = ['position', 'radius', 'hole_diameter']
         
     @property 
     def flashed(self):
@@ -756,6 +762,12 @@ class Polygon(Primitive):
     @property
     def diameter(self):
         return self.radius * 2
+    
+    @property
+    def hole_radius(self):
+        if self.hole_diameter != None:
+            return self.hole_diameter / 2.
+        return None
 
     @property
     def bounding_box(self):

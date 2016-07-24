@@ -281,7 +281,10 @@ class ADParamStmt(ParamStmt):
     @classmethod
     def circle(cls, dcode, diameter, hole_diameter):
         '''Create a circular aperture definition statement'''
-        return cls('AD', dcode, 'C', ([diameter, hole_diameter],))
+        
+        if hole_diameter != None:
+            return cls('AD', dcode, 'C', ([diameter, hole_diameter],))
+        return cls('AD', dcode, 'C', ([diameter],))
     
     @classmethod
     def obround(cls, dcode, width, height):

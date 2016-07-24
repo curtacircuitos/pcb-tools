@@ -1,9 +1,17 @@
+"""Renders an in-memory Gerber file to statements which can be written to a string
+"""
+from copy import deepcopy
 
+try:
+    from cStringIO import StringIO
+except(ImportError):
+    from io import StringIO
+    
 from .render import GerberContext
 from ..am_statements import *
 from ..gerber_statements import *
 from ..primitives import AMGroup, Arc, Circle, Line, Obround, Outline, Polygon, Rectangle
-from copy import deepcopy
+
 
 class AMGroupContext(object):
     '''A special renderer to generate aperature macros from an AMGroup'''
@@ -467,4 +475,13 @@ class Rs274xContext(GerberContext):
 
     def _render_inverted_layer(self):
         pass
+    
+    def dump(self):
+        """Write the rendered file to a StringIO steam"""
+        statements = map(lambda stmt: stmt.to_gerber(self.settings), self.statements)
+        stream = StringIO()
+        for statement in statements:
+            stream.write(statement + '\n')
+        
+        return stream
         

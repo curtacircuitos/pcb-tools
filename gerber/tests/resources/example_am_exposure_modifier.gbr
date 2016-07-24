@@ -1,0 +1,16 @@
+G04 Umaco example for exposure modifier and clearing area*
+%FSLAX26Y26*%
+%MOIN*%
+%AMSQUAREWITHHOLE*
+21,0.1,1,1,0,0,0*
+1,0,0.5,0,0*%
+%ADD10SQUAREWITHHOLE*%
+%ADD11C,1*%
+G01*
+%LPD*%
+D11*
+X-1000000Y-250000D02*
+X1000000Y250000D01*
+D10*
+X0Y0D03*
+M02*

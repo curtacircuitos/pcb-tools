@@ -486,7 +486,7 @@ class GerberParser(object):
             if len(modifiers[0]) >= 2:
                 hole_diameter = modifiers[0][1]
             else:
-                hole_diameter = 0
+                hole_diameter = None
                 
             aperture = Circle(position=None, diameter=diameter, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'R':
@@ -496,7 +496,7 @@ class GerberParser(object):
             if len(modifiers[0]) >= 3:
                 hole_diameter = modifiers[0][2]
             else:
-                hole_diameter = 0
+                hole_diameter = None
                 
             aperture = Rectangle(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'O':
@@ -506,7 +506,7 @@ class GerberParser(object):
             if len(modifiers[0]) >= 3:
                 hole_diameter = modifiers[0][2]
             else:
-                hole_diameter = 0
+                hole_diameter = None
                 
             aperture = Obround(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'P':
@@ -520,8 +520,8 @@ class GerberParser(object):
             if len(modifiers[0]) > 3:
                 hole_diameter = modifiers[0][3]
             else:
-                hole_diameter = 0
-            aperture = Polygon(position=None, sides=number_vertices, radius=outer_diameter/2.0, hole_radius=hole_diameter/2.0, rotation=rotation)
+                hole_diameter = None
+            aperture = Polygon(position=None, sides=number_vertices, radius=outer_diameter/2.0, hole_diameter=hole_diameter, rotation=rotation)
         else:
             aperture = self.macros[shape].build(modifiers)
 
