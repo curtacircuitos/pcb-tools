@@ -16,11 +16,13 @@
 # limitations under the License.
 
 
+from itertools import combinations
 import math
 from operator import add
-from itertools import combinations
 
 from .utils import validate_coordinates, inch, metric, convex_hull, rotate_point, nearly_equal
+
+
 
 
 class Primitive(object):
@@ -722,6 +724,7 @@ class Rectangle(Primitive):
         return (math.cos(math.radians(self.rotation)) * self.height +
                 math.sin(math.radians(self.rotation)) * self.width)
 
+    @property
     def axis_aligned_height(self):
         return (self._cos_theta * self.height + self._sin_theta * self.width)
     

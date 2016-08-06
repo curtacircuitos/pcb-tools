@@ -10,15 +10,13 @@ from .tests import *
 
 def test_primitive_smoketest():
     p = Primitive()
-<<<<<<< HEAD
     try:
         p.bounding_box
         assert_false(True, 'should have thrown the exception')
     except NotImplementedError: 
         pass
-=======
     #assert_raises(NotImplementedError, p.bounding_box)
->>>>>>> 5476da8... Fix a bunch of rendering bugs.
+
     p.to_metric()
     p.to_inch()
     try:

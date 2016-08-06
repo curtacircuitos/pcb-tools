@@ -182,6 +182,8 @@ def _test_render(gerber_path, png_expected_path, create_output_path = None):
     with open(png_expected_path, 'rb') as expected_file:
         expected_bytes = expected_file.read()
     
-    assert_equal(expected_bytes, actual_bytes)
-    
+    # Don't directly use assert_equal otherwise any failure pollutes the test results
+    equal = (expected_bytes == actual_bytes)
+    assert_true(equal)
+      
     return gerber

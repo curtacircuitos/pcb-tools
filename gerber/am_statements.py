@@ -1015,11 +1015,10 @@ class AMLowerLeftLinePrimitive(AMPrimitive):
     def to_primitive(self, units):
         # TODO I think I have merged this wrong
         # Offset the primitive from macro position
-        position = tuple([a + b for a , b in zip (position, self.lower_left)])
         position = tuple([pos + offset for pos, offset in
-                          zip(position, (self.width/2, self.height/2))])
+                          zip(self.lower_left, (self.width/2, self.height/2))])
         # Return a renderable primitive
-        return Rectangle(self.position, self.width, self.height,
+        return Rectangle(position, self.width, self.height,
                          level_polarity=self._level_polarity, units=units)
 
     def to_gerber(self, settings=None):

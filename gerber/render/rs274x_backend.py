@@ -476,6 +476,14 @@ class Rs274xContext(GerberContext):
     def _render_inverted_layer(self):
         pass
     
+    def _new_render_layer(self):
+        # TODO Might need to implement this
+        pass
+    
+    def _flatten(self):
+        # TODO Might need to implement this
+        pass
+    
     def dump(self):
         """Write the rendered file to a StringIO steam"""
         statements = map(lambda stmt: stmt.to_gerber(self.settings), self.statements)

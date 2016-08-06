@@ -21,7 +21,7 @@ except ImportError:
     import cairocffi as cairo
     
 import math
-from operator import mul, di
+from operator import mul, div
 
 import tempfile
 
