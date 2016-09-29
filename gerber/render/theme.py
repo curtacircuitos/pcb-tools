@@ -53,7 +53,7 @@ class Theme(object):
         return getattr(self, key)
 
     def get(self, key, noneval=None):
-        val = getattr(self, key)
+        val = getattr(self, key, None)
         return val if val is not None else noneval
 
 

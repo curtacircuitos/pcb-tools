@@ -29,46 +29,46 @@ Hint = namedtuple('Hint', 'layer ext name')
 hints = [
     Hint(layer='top',
          ext=['gtl', 'cmp', 'top', ],
-         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', ]
+         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', 'F.Cu', ]
          ),
     Hint(layer='bottom',
          ext=['gbl', 'sld', 'bot', 'sol', 'bottom', ],
-         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', ]
+         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', 'B.Cu', ]
          ),
     Hint(layer='internal',
          ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1',
               'g2', 'g3', 'g4', 'g5', 'g6', ],
          name=['art', 'internal', 'pgp', 'pwr', 'gp1', 'gp2', 'gp3', 'gp4',
-               'gt5', 'gp6', 'gnd', 'ground', ]
+               'gt5', 'gp6', 'gnd', 'ground', 'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu']
          ),
     Hint(layer='topsilk',
          ext=['gto', 'sst', 'plc', 'ts', 'skt', 'topsilk', ],
-         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', ]
+         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS']
          ),
     Hint(layer='bottomsilk',
-         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk', ],
+         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk', 'B.SilkS'],
          name=['bsilk', 'ssb', 'botsilk', ]
          ),
     Hint(layer='topmask',
          ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', ],
          name=['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
-               'mst', ]
+               'mst', 'F.Mask',]
          ),
     Hint(layer='bottommask',
          ext=['gbs', 'sts', 'bmk', 'smb', 'br', 'bottommask', ],
-         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', ]
+         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', 'B.Mask',]
          ),
     Hint(layer='toppaste',
          ext=['gtp', 'tm', 'toppaste', ],
-         name=['sp01', 'toppaste', 'pst']
+         name=['sp01', 'toppaste', 'pst', 'F.Paste']
          ),
     Hint(layer='bottompaste',
          ext=['gbp', 'bm', 'bottompaste', ],
-         name=['sp02', 'botpaste', 'psb']
+         name=['sp02', 'botpaste', 'psb', 'B.Paste', ]
          ),
     Hint(layer='outline',
          ext=['gko', 'outline', ],
-         name=['BDR', 'border', 'out', ]
+         name=['BDR', 'border', 'out', 'Edge.Cuts', ]
          ),
     Hint(layer='ipc_netlist',
          ext=['ipc'],
