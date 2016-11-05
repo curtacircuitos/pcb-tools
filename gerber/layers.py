@@ -46,8 +46,8 @@ hints = [
          name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS']
          ),
     Hint(layer='bottomsilk',
-         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk', 'B.SilkS'],
-         name=['bsilk', 'ssb', 'botsilk', ]
+         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk',],
+         name=['bsilk', 'ssb', 'botsilk', 'B.SilkS']
          ),
     Hint(layer='topmask',
          ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', ],
