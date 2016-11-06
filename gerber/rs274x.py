@@ -50,7 +50,7 @@ def read(filename):
     return GerberParser().parse(filename)
 
 
-def loads(data):
+def loads(data, filename=None):
     """ Generate a GerberFile object from rs274x data in memory
 
     Parameters
@@ -58,12 +58,15 @@ def loads(data):
     data : string
         string containing gerber file contents
 
+    filename : string, optional
+        string containing the filename of the data source
+
     Returns
     -------
     file : :class:`gerber.rs274x.GerberFile`
         A GerberFile created from the specified file.
     """
-    return GerberParser().parse_raw(data)
+    return GerberParser().parse_raw(data, filename)
 
 
 class GerberFile(CamFile):
@@ -531,6 +534,7 @@ class GerberParser(object):
         else:
             aperture = self.macros[shape].build(modifiers)
 
+        aperture.units = self.settings.units
         self.apertures[d] = aperture
 
     def _evaluate_mode(self, stmt):
@@ -648,7 +652,6 @@ class GerberParser(object):
 
         elif self.op == "D03" or self.op == "D3":
             primitive = copy.deepcopy(self.apertures[self.aperture])
-
 
             if primitive is not None:
 

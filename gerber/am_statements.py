@@ -20,8 +20,6 @@ from math import asin
 import math
 
 from .primitives import *
-from .primitives import Circle, Line, Outline, Polygon, Rectangle
-from .utils import validate_coordinates, inch, metric
 from .utils import validate_coordinates, inch, metric, rotate_point
 
 
@@ -432,8 +430,7 @@ class AMOutlinePrimitive(AMPrimitive):
             points=",\n".join(["%.6g,%.6g" % point for point in self.points]),
             rotation=str(self.rotation)
         )
-        # TODO I removed a closing asterix - not sure if this works for items with multiple statements
-        return "{code},{exposure},{n_points},{start_point},{points},\n{rotation}*".format(**data)
+        return "{code},{exposure},{n_points},{start_point},{points},{rotation}*".format(**data)
 
     def to_primitive(self, units):
         """
@@ -647,6 +644,7 @@ class AMMoirePrimitive(AMPrimitive):
         self.crosshair_thickness = metric(self.crosshair_thickness)
         self.crosshair_length = metric(self.crosshair_length)
 
+
     def to_gerber(self, settings=None):
         data = dict(
             code=self.code,
@@ -744,10 +742,10 @@ class AMThermalPrimitive(AMPrimitive):
         data = dict(
             code=self.code,
             position="%.4g,%.4g" % self.position,
-            outer_diameter = self.outer_diameter,
-            inner_diameter = self.inner_diameter,
-            gap = self.gap,
-            rotation = self.rotation
+            outer_diameter=self.outer_diameter,
+            inner_diameter=self.inner_diameter,
+            gap=self.gap,
+            rotation=self.rotation
         )
         fmt = "{code},{position},{outer_diameter},{inner_diameter},{gap},{rotation}*"
         return fmt.format(**data)
@@ -913,9 +911,9 @@ class AMCenterLinePrimitive(AMPrimitive):
     def to_gerber(self, settings=None):
         data = dict(
             code=self.code,
-            exposure='1' if self.exposure == 'on' else '0',
-            width=self.width,
-            height=self.height,
+            exposure = '1' if self.exposure == 'on' else '0',
+            width = self.width,
+            height = self.height,
             center="%.4g,%.4g" % self.center,
             rotation=self.rotation
         )
@@ -999,7 +997,7 @@ class AMLowerLeftLinePrimitive(AMPrimitive):
     def __init__(self, code, exposure, width, height, lower_left, rotation):
         if code != 22:
             raise ValueError('LowerLeftLinePrimitive code is 22')
-        super(AMLowerLeftLinePrimitive, self).__init__(code, exposure)
+        super (AMLowerLeftLinePrimitive, self).__init__(code, exposure)
         self.width = width
         self.height = height
         validate_coordinates(lower_left)
@@ -1016,21 +1014,12 @@ class AMLowerLeftLinePrimitive(AMPrimitive):
         self.width = metric(self.width)
         self.height = metric(self.height)
 
-    def to_primitive(self, units):
-        # TODO I think I have merged this wrong
-        # Offset the primitive from macro position
-        position = tuple([pos + offset for pos, offset in
-                          zip(self.lower_left, (self.width/2, self.height/2))])
-        # Return a renderable primitive
-        return Rectangle(position, self.width, self.height,
-                         level_polarity=self._level_polarity, units=units)
-
     def to_gerber(self, settings=None):
         data = dict(
             code=self.code,
-            exposure='1' if self.exposure == 'on' else '0',
-            width=self.width,
-            height=self.height,
+            exposure = '1' if self.exposure == 'on' else '0',
+            width = self.width,
+            height = self.height,
             lower_left="%.4g,%.4g" % self.lower_left,
             rotation=self.rotation
         )
@@ -1039,7 +1028,6 @@ class AMLowerLeftLinePrimitive(AMPrimitive):
 
 
 class AMUnsupportPrimitive(AMPrimitive):
-
     @classmethod
     def from_gerber(cls, primitive):
         return cls(primitive)
@@ -1056,6 +1044,3 @@ class AMUnsupportPrimitive(AMPrimitive):
 
     def to_gerber(self, settings=None):
         return self.primitive
-
-    def to_primitive(self, units):
-        return None

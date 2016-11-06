@@ -6,7 +6,7 @@ pcb-tools
 
 Tools to handle Gerber and Excellon files in Python.
 
-Useage Example:
+Usage Example:
 ---------------
     import gerber
     from gerber.render import GerberCairoContext
@@ -27,9 +27,17 @@ Rendering Examples:
 -------------------
 ###Top Composite rendering
 ![Composite Top Image](examples/cairo_example.png)
+![Composite Bottom Image](examples/cairo_bottom.png)
 
 Source code for this example can be found [here](examples/cairo_example.py).
 
+
+Install from source:
+```
+$ git clone https://github.com/curtacircuitos/pcb-tools.git
+$ cd pcb-tools
+$ python setup.py install
+```
 
 Documentation:
 --------------

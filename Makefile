@@ -20,6 +20,10 @@ test-coverage:
 	rm -rf coverage .coverage
 	$(NOSETESTS) -s -v --with-coverage --cover-package=gerber
 
+.PHONY: install
+install:
+	PYTHONPATH=. $(PYTHON) setup.py install
+
 .PHONY: doc-html
 doc-html:
 	(cd $(DOC_ROOT); make html)

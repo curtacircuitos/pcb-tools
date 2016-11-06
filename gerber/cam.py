@@ -168,7 +168,7 @@ class FileSettings(object):
                 self.zero_suppression == other.zero_suppression and
                 self.format == other.format and
                 self.angle_units == other.angle_units)
-        
+
     def __str__(self):
         return ('<Settings: %s %s %s %s %s>' %
                 (self.units, self.notation, self.zero_suppression, self.format, self.angle_units))
@@ -256,7 +256,7 @@ class CamFile(object):
     def to_metric(self):
         pass
 
-    def render(self, ctx, invert=False, filename=None):
+    def render(self, ctx=None, invert=False, filename=None):
         """ Generate image of layer.
 
         Parameters
@@ -267,7 +267,10 @@ class CamFile(object):
         filename : string <optional>
             If provided, save the rendered image to `filename`
         """
-        ctx.set_bounds(self.bounds)
+        if ctx is None:
+            from .render import GerberCairoContext
+            ctx = GerberCairoContext()
+        ctx.set_bounds(self.bounding_box)
         ctx._paint_background()
         ctx.invert = invert
         ctx._new_render_layer()

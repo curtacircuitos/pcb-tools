@@ -19,8 +19,9 @@ import os
 import re
 from collections import namedtuple
 
+from . import common
 from .excellon import ExcellonFile
-from .ipc356 import IPC_D_356
+from .ipc356 import IPCNetlist
 
 
 Hint = namedtuple('Hint', 'layer ext name')
@@ -28,52 +29,64 @@ Hint = namedtuple('Hint', 'layer ext name')
 hints = [
     Hint(layer='top',
          ext=['gtl', 'cmp', 'top', ],
-         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', ]
+         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', 'F.Cu', ]
          ),
     Hint(layer='bottom',
          ext=['gbl', 'sld', 'bot', 'sol', 'bottom', ],
-         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', ]
+         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', 'B.Cu', ]
          ),
     Hint(layer='internal',
          ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1',
               'g2', 'g3', 'g4', 'g5', 'g6', ],
          name=['art', 'internal', 'pgp', 'pwr', 'gp1', 'gp2', 'gp3', 'gp4',
-               'gt5', 'gp6', 'gnd', 'ground', ]
+               'gt5', 'gp6', 'gnd', 'ground', 'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu']
          ),
     Hint(layer='topsilk',
          ext=['gto', 'sst', 'plc', 'ts', 'skt', 'topsilk', ],
-         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', ]
+         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS']
          ),
     Hint(layer='bottomsilk',
-         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk', ],
-         name=['bsilk', 'ssb', 'botsilk', ]
+         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk',],
+         name=['bsilk', 'ssb', 'botsilk', 'B.SilkS']
          ),
     Hint(layer='topmask',
          ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', ],
          name=['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
-               'mst', ]
+               'mst', 'F.Mask',]
          ),
     Hint(layer='bottommask',
          ext=['gbs', 'sts', 'bmk', 'smb', 'br', 'bottommask', ],
-         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', ]
+         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', 'B.Mask',]
          ),
     Hint(layer='toppaste',
          ext=['gtp', 'tm', 'toppaste', ],
-         name=['sp01', 'toppaste', 'pst']
+         name=['sp01', 'toppaste', 'pst', 'F.Paste']
          ),
     Hint(layer='bottompaste',
          ext=['gbp', 'bm', 'bottompaste', ],
-         name=['sp02', 'botpaste', 'psb']
+         name=['sp02', 'botpaste', 'psb', 'B.Paste', ]
          ),
     Hint(layer='outline',
          ext=['gko', 'outline', ],
-         name=['BDR', 'border', 'out', ]
+         name=['BDR', 'border', 'out', 'Edge.Cuts', ]
          ),
     Hint(layer='ipc_netlist',
          ext=['ipc'],
          name=[],
          ),
+    Hint(layer='drawing',
+         ext=['fab'],
+         name=['assembly drawing', 'assembly', 'fabrication', 'fab drawing']
+         ),
 ]
+
+
+def load_layer(filename):
+    return PCBLayer.from_cam(common.read(filename))
+
+
+def load_layer_data(data, filename=None):
+    return PCBLayer.from_cam(common.loads(data, filename))
 
 
 def guess_layer_class(filename):
@@ -89,10 +102,12 @@ def guess_layer_class(filename):
     return 'unknown'
 
 
-def sort_layers(layers):
+def sort_layers(layers, from_top=True):
     layer_order = ['outline', 'toppaste', 'topsilk', 'topmask', 'top',
                    'internal', 'bottom', 'bottommask', 'bottomsilk',
-                   'bottompaste', 'drill', ]
+                   'bottompaste']
+    append_after = ['drill', 'drawing']
+
     output = []
     drill_layers = [layer for layer in layers if layer.layer_class == 'drill']
     internal_layers = list(sorted([layer for layer in layers
@@ -107,6 +122,13 @@ def sort_layers(layers):
             for layer in layers:
                 if layer.layer_class == layer_class:
                     output.append(layer)
+    if not from_top:
+        output = list(reversed(output))
+
+    for layer_class in append_after:
+        for layer in layers:
+            if layer.layer_class == layer_class:
+                output.append(layer)
     return output
 
 
@@ -126,14 +148,14 @@ class PCBLayer(object):
 
     """
     @classmethod
-    def from_gerber(cls, camfile):
+    def from_cam(cls, camfile):
         filename = camfile.filename
         layer_class = guess_layer_class(filename)
         if isinstance(camfile, ExcellonFile) or (layer_class == 'drill'):
-            return DrillLayer.from_gerber(camfile)
+            return DrillLayer.from_cam(camfile)
         elif layer_class == 'internal':
-            return InternalLayer.from_gerber(camfile)
-        if isinstance(camfile, IPC_D_356):
+            return InternalLayer.from_cam(camfile)
+        if isinstance(camfile, IPCNetlist):
             layer_class = 'ipc_netlist'
         return cls(filename, layer_class, camfile)
 
@@ -155,9 +177,10 @@ class PCBLayer(object):
     def __repr__(self):
         return '<PCBLayer: {}>'.format(self.layer_class)
 
+
 class DrillLayer(PCBLayer):
     @classmethod
-    def from_gerber(cls, camfile):
+    def from_cam(cls, camfile):
         return cls(camfile.filename, camfile)
 
     def __init__(self, filename=None, cam_source=None, layers=None, **kwargs):
@@ -168,11 +191,11 @@ class DrillLayer(PCBLayer):
 class InternalLayer(PCBLayer):
 
     @classmethod
-    def from_gerber(cls, camfile):
+    def from_cam(cls, camfile):
         filename = camfile.filename
         try:
             order = int(re.search(r'\d+', filename).group())
-        except:
+        except AttributeError:
             order = 0
         return cls(filename, camfile, order)
 
@@ -209,23 +232,3 @@ class InternalLayer(PCBLayer):
         if not hasattr(other, 'order'):
             raise TypeError()
         return (self.order <= other.order)
-
-
-class LayerSet(object):
-
-    def __init__(self, name, layers, **kwargs):
-        super(LayerSet, self).__init__(**kwargs)
-        self.name = name
-        self.layers = list(layers)
-
-    def __len__(self):
-        return len(self.layers)
-
-    def __getitem__(self, item):
-        return self.layers[item]
-
-    def to_render(self):
-        return self.layers
-
-    def apply_theme(self, theme):
-        pass

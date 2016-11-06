@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Copyright 2015 Hamilton Kibbe <ham@hamiltonkib.be>
+# Copyright 2016 Hamilton Kibbe <ham@hamiltonkib.be>
 
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,10 +31,22 @@ GERBER_FOLDER = os.path.abspath(os.path.join(os.path.dirname(__file__), 'gerbers
 # Create a new drawing context
 ctx = GerberCairoContext()
 
-# Create a new PCB
+# Create a new PCB instance
 pcb = PCB.from_directory(GERBER_FOLDER)
 
-# Render PCB
-ctx.render_layers(pcb.top_layers, os.path.join(os.path.dirname(__file__), 'pcb_top.png',), theme.THEMES['OSH Park'])
-ctx.render_layers(pcb.bottom_layers, os.path.join(os.path.dirname(__file__), 'pcb_bottom.png'), theme.THEMES['OSH Park'])
+# Render PCB top view
+ctx.render_layers(pcb.top_layers,
+                  os.path.join(os.path.dirname(__file__), 'pcb_top.png',),
+                  theme.THEMES['OSH Park'])
+
+# Render PCB bottom view
+ctx.render_layers(pcb.bottom_layers,
+                  os.path.join(os.path.dirname(__file__), 'pcb_bottom.png'),
+                  theme.THEMES['OSH Park'])
+
+# Render copper layers only
+ctx.render_layers(pcb.copper_layers + pcb.drill_layers,
+                  os.path.join(os.path.dirname(__file__),
+                               'pcb_transparent_copper.png'),
+                  theme.THEMES['Transparent Copper'])
 

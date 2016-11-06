@@ -26,6 +26,7 @@ def test_primitive_smoketest():
     #    pass
 
 
+
 def test_line_angle():
     """ Test Line primitive angle calculation
     """
@@ -347,7 +348,6 @@ def test_circle_conversion():
     assert_equal(c.position, (2.54, 25.4))
     assert_equal(c.diameter, 254.)
     assert_equal(c.hole_diameter, 127.)
-
 
 
 def test_circle_offset():
@@ -887,7 +887,6 @@ def test_polygon_ctor():
         assert_equal(p.hole_diameter, hole_diameter)
 
 
-
 def test_polygon_bounds():
     """ Test polygon bounding box calculation
     """
@@ -1209,6 +1208,7 @@ def test_drill_ctor_validation():
     assert_raises(TypeError, Drill, (3,4,5), 5, None)
 
 
+
 def test_drill_bounds():
     d = Drill((0, 0), 2, None)
     xbounds, ybounds = d.bounding_box
@@ -1223,7 +1223,7 @@ def test_drill_bounds():
 def test_drill_conversion():
     d = Drill((2.54, 25.4), 254., None, units='metric')
 
-    # No effect
+    #No effect
     d.to_metric()
     assert_equal(d.position, (2.54, 25.4))
     assert_equal(d.diameter, 254.0)
@@ -1232,7 +1232,7 @@ def test_drill_conversion():
     assert_equal(d.position, (0.1, 1.0))
     assert_equal(d.diameter, 10.0)
 
-    # No effect
+    #No effect
     d.to_inch()
     assert_equal(d.position, (0.1, 1.0))
     assert_equal(d.diameter, 10.0)

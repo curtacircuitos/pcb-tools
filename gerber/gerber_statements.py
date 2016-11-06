@@ -435,7 +435,8 @@ class AMParamStmt(ParamStmt):
                 self.primitives.append(
                     AMThermalPrimitive.from_gerber(primitive))
             else:
-                self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
+                self.primitives.append(
+                    AMUnsupportPrimitive.from_gerber(primitive))
 
         return AMGroup(self.primitives, stmt=self, units=self.units)
 
@@ -452,7 +453,7 @@ class AMParamStmt(ParamStmt):
                 primitive.to_metric()
 
     def to_gerber(self, settings=None):
-        return '%AM{0}*{1}*%'.format(self.name, self.macro)
+        return '%AM{0}*{1}%'.format(self.name, "".join([primitive.to_gerber() for primitive in self.primitives]))
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, self.macro)

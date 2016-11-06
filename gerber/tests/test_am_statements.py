@@ -166,6 +166,7 @@ def test_AMOUtlinePrimitive_dump():
 
 
 
+
 def test_AMOutlinePrimitive_conversion():
     o = AMOutlinePrimitive(
         4, 'on', (0, 0), [(25.4, 25.4), (25.4, 0), (0, 0)], 0)
@@ -261,6 +262,7 @@ def test_AMThermalPrimitive_validation():
 
 
 
+
 def test_AMThermalPrimitive_factory():
     t = AMThermalPrimitive.from_gerber('7,0,0,7,6,0.2,45*')
     assert_equal(t.code, 7)
@@ -272,9 +274,11 @@ def test_AMThermalPrimitive_factory():
 
 
 
+
 def test_AMThermalPrimitive_dump():
     t = AMThermalPrimitive.from_gerber('7,0,0,7,6,0.2,30*')
     assert_equal(t.to_gerber(), '7,0,0,7.0,6.0,0.2,30.0*')
+
 
 
 

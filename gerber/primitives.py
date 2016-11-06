@@ -16,11 +16,11 @@
 # limitations under the License.
 
 
-
 import math
 from operator import add
 from itertools import combinations
-from .utils import validate_coordinates, inch, metric, convex_hull, rotate_point, nearly_equal
+from .utils import validate_coordinates, inch, metric, convex_hull
+from .utils import rotate_point, nearly_equal
 
 
 
@@ -52,7 +52,6 @@ class Primitive(object):
         self.level_polarity = level_polarity
         self.net_name = net_name
         self._to_convert = list()
-        self.id = id
         self._memoized = list()
         self._units = units
         self._rotation = rotation
@@ -560,7 +559,6 @@ class Circle(Primitive):
 class Ellipse(Primitive):
     """
     """
-
     def __init__(self, position, width, height, **kwargs):
         super(Ellipse, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -685,8 +683,8 @@ class Rectangle(Primitive):
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.),
-                self.position[1] + (self._abs_height / 2.))
+        return (self.position[0] + (self.axis_aligned_width / 2.),
+                self.position[1] + (self.axis_aligned_height / 2.))
 
     @property
     def lower_left(self):
@@ -720,11 +718,6 @@ class Rectangle(Primitive):
     @property
     def axis_aligned_width(self):
         return (self._cos_theta * self.width + self._sin_theta * self.height)
-
-    @property
-    def _abs_height(self):
-        return (math.cos(math.radians(self.rotation)) * self.height +
-                math.sin(math.radians(self.rotation)) * self.width)
 
     @property
     def axis_aligned_height(self):
@@ -823,15 +816,14 @@ class Diamond(Primitive):
 class ChamferRectangle(Primitive):
     """
     """
-
-    def __init__(self, position, width, height, chamfer, corners, **kwargs):
+    def __init__(self, position, width, height, chamfer, corners=None, **kwargs):
         super(ChamferRectangle, self).__init__(**kwargs)
         validate_coordinates(position)
         self._position = position
         self._width = width
         self._height = height
         self._chamfer = chamfer
-        self._corners = corners
+        self._corners = corners if corners is not None else [True] * 4
         self._to_convert = ['position', 'width', 'height', 'chamfer']
 
     @property
@@ -895,7 +887,37 @@ class ChamferRectangle(Primitive):
 
     @property
     def vertices(self):
-        # TODO
+        if self._vertices is None:
+            vertices = []
+            delta_w = self.width / 2.
+            delta_h = self.height / 2.
+            # order is UR, UL, LL, LR
+            rect_corners = [
+                ((self.position[0] + delta_w), (self.position[1] + delta_h)),
+                ((self.position[0] - delta_w), (self.position[1] + delta_h)),
+                ((self.position[0] - delta_w), (self.position[1] - delta_h)),
+                ((self.position[0] + delta_w), (self.position[1] - delta_h))
+            ]
+            for idx, corner, chamfered in enumerate((rect_corners, self.corners)):
+                x, y = corner
+                if chamfered:
+                    if idx == 0:
+                        vertices.append((x - self.chamfer, y))
+                        vertices.append((x, y - self.chamfer))
+                    elif idx == 1:
+                        vertices.append((x + self.chamfer, y))
+                        vertices.append((x, y - self.chamfer))
+                    elif idx == 2:
+                        vertices.append((x + self.chamfer, y))
+                        vertices.append((x, y + self.chamfer))
+                    elif idx == 3:
+                        vertices.append((x - self.chamfer, y))
+                        vertices.append((x, y + self.chamfer))
+                else:
+                    vertices.append(corner)
+            self._vertices = [((x * self._cos_theta - y * self._sin_theta),
+                               (x * self._sin_theta + y * self._cos_theta))
+                              for x, y in vertices]
         return self._vertices
 
     @property
@@ -1027,11 +1049,6 @@ class Obround(Primitive):
     def width(self, value):
         self._changed()
         self._width = value
-
-    @property
-    def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.),
-                self.position[1] + (self._abs_height / 2.))
 
     @property
     def height(self):
@@ -1633,3 +1650,4 @@ class TestRecord(Primitive):
         self.position = position
         self.net_name = net_name
         self.layer = layer
+        self._to_convert = ['position']
