@@ -1,0 +1,23 @@
+G04 ex1: non overlapping*
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,1.00000*%
+G01*
+%LPD*%
+G36*
+X0Y50000D02*
+Y100000D01*
+X100000D01*
+Y0D01*
+X0D01*
+Y50000D01*
+G04 first fully coincident linear segment*
+X-10000D01*
+X-50000Y10000D01*
+X-90000Y50000D01*
+X-50000Y90000D01*
+X-10000Y50000D01*
+G04 second fully coincident linear segment*
+X0D01*
+G37*
+M02*

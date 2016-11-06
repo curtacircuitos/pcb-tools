@@ -3,31 +3,62 @@
 
 # Author: Hamilton Kibbe <ham@hamiltonkib.be>
 
-from .tests import assert_equal, assert_raises
+from .tests import assert_equal, assert_not_equal, assert_raises
 from ..excellon_statements import *
 from ..cam import FileSettings
 
 
-def test_excellontool_factory():
-    """ Test ExcellonTool factory method
+def test_excellon_statement_implementation():
+    stmt = ExcellonStatement()
+    assert_raises(NotImplementedError, stmt.from_excellon, None)
+    assert_raises(NotImplementedError, stmt.to_excellon)
+
+
+def test_excellontstmt():
+    """ Smoke test ExcellonStatement
     """
-    exc_line = 'T8F00S00C0.12500'
+    stmt = ExcellonStatement()
+    stmt.to_inch()
+    stmt.to_metric()
+    stmt.offset()
+
+
+def test_excellontool_factory():
+    """ Test ExcellonTool factory methods
+    """
+    exc_line = 'T8F01B02S00003H04Z05C0.12500'
     settings = FileSettings(format=(2, 5), zero_suppression='trailing',
-                units='inch', notation='absolute')
+                            units='inch', notation='absolute')
     tool = ExcellonTool.from_excellon(exc_line, settings)
+    assert_equal(tool.number, 8)
     assert_equal(tool.diameter, 0.125)
-    assert_equal(tool.feed_rate, 0)
-    assert_equal(tool.rpm, 0)
+    assert_equal(tool.feed_rate, 1)
+    assert_equal(tool.retract_rate, 2)
+    assert_equal(tool.rpm, 3)
+    assert_equal(tool.max_hit_count, 4)
+    assert_equal(tool.depth_offset, 5)
+
+    stmt = {'number': 8, 'feed_rate': 1, 'retract_rate': 2, 'rpm': 3,
+            'diameter': 0.125, 'max_hit_count': 4, 'depth_offset': 5}
+    tool = ExcellonTool.from_dict(settings, stmt)
+    assert_equal(tool.number, 8)
+    assert_equal(tool.diameter, 0.125)
+    assert_equal(tool.feed_rate, 1)
+    assert_equal(tool.retract_rate, 2)
+    assert_equal(tool.rpm, 3)
+    assert_equal(tool.max_hit_count, 4)
+    assert_equal(tool.depth_offset, 5)
 
 
 def test_excellontool_dump():
     """ Test ExcellonTool to_excellon()
     """
-    exc_lines = ['T1F00S00C0.01200', 'T2F00S00C0.01500', 'T3F00S00C0.01968',
-                 'T4F00S00C0.02800', 'T5F00S00C0.03300', 'T6F00S00C0.03800',
-                 'T7F00S00C0.04300', 'T8F00S00C0.12500', 'T9F00S00C0.13000', ]
+    exc_lines = ['T01F0S0C0.01200', 'T02F0S0C0.01500', 'T03F0S0C0.01968',
+                 'T04F0S0C0.02800', 'T05F0S0C0.03300', 'T06F0S0C0.03800',
+                 'T07F0S0C0.04300', 'T08F0S0C0.12500', 'T09F0S0C0.13000',
+                 'T08B01F02H03S00003C0.12500Z04', 'T01F0S300.999C0.01200']
     settings = FileSettings(format=(2, 5), zero_suppression='trailing',
-                units='inch', notation='absolute')
+                            units='inch', notation='absolute')
     for line in exc_lines:
         tool = ExcellonTool.from_excellon(line, settings)
         assert_equal(tool.to_excellon(), line)
@@ -35,7 +66,7 @@ def test_excellontool_dump():
 
 def test_excellontool_order():
     settings = FileSettings(format=(2, 5), zero_suppression='trailing',
-                units='inch', notation='absolute')
+                            units='inch', notation='absolute')
     line = 'T8F00S00C0.12500'
     tool1 = ExcellonTool.from_excellon(line, settings)
     line = 'T8C0.12500F00S00'
@@ -43,6 +74,47 @@ def test_excellontool_order():
     assert_equal(tool1.diameter, tool2.diameter)
     assert_equal(tool1.feed_rate, tool2.feed_rate)
     assert_equal(tool1.rpm, tool2.rpm)
+
+
+def test_excellontool_conversion():
+    tool = ExcellonTool.from_dict(FileSettings(units='metric'),
+                                  {'number': 8, 'diameter': 25.4})
+    tool.to_inch()
+    assert_equal(tool.diameter, 1.)
+    tool = ExcellonTool.from_dict(FileSettings(units='inch'),
+                                  {'number': 8, 'diameter': 1.})
+    tool.to_metric()
+    assert_equal(tool.diameter, 25.4)
+
+    # Shouldn't change units if we're already using target units
+    tool = ExcellonTool.from_dict(FileSettings(units='inch'),
+                                  {'number': 8, 'diameter': 25.4})
+    tool.to_inch()
+    assert_equal(tool.diameter, 25.4)
+    tool = ExcellonTool.from_dict(FileSettings(units='metric'),
+                                  {'number': 8, 'diameter': 1.})
+    tool.to_metric()
+    assert_equal(tool.diameter, 1.)
+
+
+def test_excellontool_repr():
+    tool = ExcellonTool.from_dict(FileSettings(),
+                                  {'number': 8, 'diameter': 0.125})
+    assert_equal(str(tool), '<ExcellonTool 08: 0.125in. dia.>')
+    tool = ExcellonTool.from_dict(FileSettings(units='metric'),
+                                  {'number': 8, 'diameter': 0.125})
+    assert_equal(str(tool), '<ExcellonTool 08: 0.125mm dia.>')
+
+
+def test_excellontool_equality():
+    t = ExcellonTool.from_dict(
+        FileSettings(), {'number': 8, 'diameter': 0.125})
+    t1 = ExcellonTool.from_dict(
+        FileSettings(), {'number': 8, 'diameter': 0.125})
+    assert_equal(t, t1)
+    t1 = ExcellonTool.from_dict(FileSettings(units='metric'),
+                                {'number': 8, 'diameter': 0.125})
+    assert_not_equal(t, t1)
 
 
 def test_toolselection_factory():
@@ -54,6 +126,9 @@ def test_toolselection_factory():
     stmt = ToolSelectionStmt.from_excellon('T0223')
     assert_equal(stmt.tool, 2)
     assert_equal(stmt.compensation_index, 23)
+    stmt = ToolSelectionStmt.from_excellon('T042')
+    assert_equal(stmt.tool, 42)
+    assert_equal(stmt.compensation_index, None)
 
 
 def test_toolselection_dump():
@@ -65,32 +140,202 @@ def test_toolselection_dump():
         assert_equal(stmt.to_excellon(), line)
 
 
+def test_z_axis_infeed_rate_factory():
+    """ Test ZAxisInfeedRateStmt factory method
+    """
+    stmt = ZAxisInfeedRateStmt.from_excellon('F01')
+    assert_equal(stmt.rate, 1)
+    stmt = ZAxisInfeedRateStmt.from_excellon('F2')
+    assert_equal(stmt.rate, 2)
+    stmt = ZAxisInfeedRateStmt.from_excellon('F03')
+    assert_equal(stmt.rate, 3)
+
+
+def test_z_axis_infeed_rate_dump():
+    """ Test ZAxisInfeedRateStmt to_excellon()
+    """
+    inputs = [
+        ('F01', 'F01'),
+        ('F2', 'F02'),
+        ('F00003', 'F03')
+    ]
+    for input_rate, expected_output in inputs:
+        stmt = ZAxisInfeedRateStmt.from_excellon(input_rate)
+        assert_equal(stmt.to_excellon(), expected_output)
+
+
 def test_coordinatestmt_factory():
     """ Test CoordinateStmt factory method
     """
+    settings = FileSettings(format=(2, 5), zero_suppression='trailing',
+                            units='inch', notation='absolute')
+
     line = 'X0278207Y0065293'
-    stmt = CoordinateStmt.from_excellon(line)
+    stmt = CoordinateStmt.from_excellon(line, settings)
     assert_equal(stmt.x, 2.78207)
     assert_equal(stmt.y, 0.65293)
 
-    line = 'X02945'
-    stmt = CoordinateStmt.from_excellon(line)
-    assert_equal(stmt.x, 2.945)
+    # line = 'X02945'
+    # stmt = CoordinateStmt.from_excellon(line)
+    # assert_equal(stmt.x, 2.945)
 
-    line = 'Y00575'
-    stmt = CoordinateStmt.from_excellon(line)
-    assert_equal(stmt.y, 0.575)
+    # line = 'Y00575'
+    # stmt = CoordinateStmt.from_excellon(line)
+    # assert_equal(stmt.y, 0.575)
+
+    settings = FileSettings(format=(2, 4), zero_suppression='leading',
+                            units='inch', notation='absolute')
+
+    line = 'X9660Y4639'
+    stmt = CoordinateStmt.from_excellon(line, settings)
+    assert_equal(stmt.x, 0.9660)
+    assert_equal(stmt.y, 0.4639)
+    assert_equal(stmt.to_excellon(settings), "X9660Y4639")
+    assert_equal(stmt.units, 'inch')
+
+    settings.units = 'metric'
+    stmt = CoordinateStmt.from_excellon(line, settings)
+    assert_equal(stmt.units, 'metric')
 
 
 def test_coordinatestmt_dump():
     """ Test CoordinateStmt to_excellon()
     """
-    lines = ['X0278207Y0065293', 'X0243795', 'Y0082528', 'Y0086028',
-             'X0251295Y0081528', 'X02525Y0078', 'X0255Y00575', 'Y0052',
-             'X02675', 'Y00575', 'X02425', 'Y0052', 'X023', ]
+    lines = ['X278207Y65293', 'X243795', 'Y82528', 'Y86028',
+             'X251295Y81528', 'X2525Y78', 'X255Y575', 'Y52',
+             'X2675', 'Y575', 'X2425', 'Y52', 'X23', ]
+    settings = FileSettings(format=(2, 4), zero_suppression='leading',
+                            units='inch', notation='absolute')
     for line in lines:
-        stmt = CoordinateStmt.from_excellon(line)
-        assert_equal(stmt.to_excellon(), line)
+        stmt = CoordinateStmt.from_excellon(line, settings)
+        assert_equal(stmt.to_excellon(settings), line)
+
+
+def test_coordinatestmt_conversion():
+
+    settings = FileSettings()
+    settings.units = 'metric'
+    stmt = CoordinateStmt.from_excellon('X254Y254', settings)
+
+    # No effect
+    stmt.to_metric()
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 25.4)
+
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 1.)
+
+    # No effect
+    stmt.to_inch()
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 1.)
+
+    settings.units = 'inch'
+    stmt = CoordinateStmt.from_excellon('X01Y01', settings)
+
+    # No effect
+    stmt.to_inch()
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 1.)
+
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 25.4)
+
+    # No effect
+    stmt.to_metric()
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 25.4)
+
+
+def test_coordinatestmt_offset():
+    stmt = CoordinateStmt.from_excellon('X01Y01', FileSettings())
+    stmt.offset()
+    assert_equal(stmt.x, 1)
+    assert_equal(stmt.y, 1)
+    stmt.offset(1, 0)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 1.)
+    stmt.offset(0, 1)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 2.)
+
+
+def test_coordinatestmt_string():
+    settings = FileSettings(format=(2, 4), zero_suppression='leading',
+                            units='inch', notation='absolute')
+    stmt = CoordinateStmt.from_excellon('X9660Y4639', settings)
+    assert_equal(str(stmt), '<Coordinate Statement: X: 0.966 Y: 0.4639 >')
+
+
+def test_repeathole_stmt_factory():
+    stmt = RepeatHoleStmt.from_excellon('R0004X015Y32',
+                                        FileSettings(zeros='leading',
+                                                     units='inch'))
+    assert_equal(stmt.count, 4)
+    assert_equal(stmt.xdelta, 1.5)
+    assert_equal(stmt.ydelta, 32)
+    assert_equal(stmt.units, 'inch')
+
+    stmt = RepeatHoleStmt.from_excellon('R0004X015Y32',
+                                        FileSettings(zeros='leading',
+                                                     units='metric'))
+    assert_equal(stmt.units, 'metric')
+
+
+def test_repeatholestmt_dump():
+    line = 'R4X015Y32'
+    stmt = RepeatHoleStmt.from_excellon(line, FileSettings())
+    assert_equal(stmt.to_excellon(FileSettings()), line)
+
+
+def test_repeatholestmt_conversion():
+    line = 'R4X0254Y254'
+    settings = FileSettings()
+    settings.units = 'metric'
+    stmt = RepeatHoleStmt.from_excellon(line, settings)
+
+    # No effect
+    stmt.to_metric()
+    assert_equal(stmt.xdelta, 2.54)
+    assert_equal(stmt.ydelta, 25.4)
+
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.xdelta, 0.1)
+    assert_equal(stmt.ydelta, 1.)
+
+    # no effect
+    stmt.to_inch()
+    assert_equal(stmt.xdelta, 0.1)
+    assert_equal(stmt.ydelta, 1.)
+
+    line = 'R4X01Y1'
+    settings.units = 'inch'
+    stmt = RepeatHoleStmt.from_excellon(line, settings)
+
+    # no effect
+    stmt.to_inch()
+    assert_equal(stmt.xdelta, 1.)
+    assert_equal(stmt.ydelta, 10.)
+
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.xdelta, 25.4)
+    assert_equal(stmt.ydelta, 254.)
+
+    # No effect
+    stmt.to_metric()
+    assert_equal(stmt.xdelta, 25.4)
+    assert_equal(stmt.ydelta, 254.)
+
+
+def test_repeathole_str():
+    stmt = RepeatHoleStmt.from_excellon('R4X015Y32', FileSettings())
+    assert_equal(str(stmt), '<Repeat Hole: 4 times, offset X: 1.5 Y: 32>')
 
 
 def test_commentstmt_factory():
@@ -118,18 +363,147 @@ def test_commentstmt_dump():
         assert_equal(stmt.to_excellon(), line)
 
 
+def test_header_begin_stmt():
+    stmt = HeaderBeginStmt()
+    assert_equal(stmt.to_excellon(None), 'M48')
+
+
+def test_header_end_stmt():
+    stmt = HeaderEndStmt()
+    assert_equal(stmt.to_excellon(None), 'M95')
+
+
+def test_rewindstop_stmt():
+    stmt = RewindStopStmt()
+    assert_equal(stmt.to_excellon(None), '%')
+
+
+def test_z_axis_rout_position_stmt():
+    stmt = ZAxisRoutPositionStmt()
+    assert_equal(stmt.to_excellon(None), 'M15')
+
+
+def test_retract_with_clamping_stmt():
+    stmt = RetractWithClampingStmt()
+    assert_equal(stmt.to_excellon(None), 'M16')
+
+
+def test_retract_without_clamping_stmt():
+    stmt = RetractWithoutClampingStmt()
+    assert_equal(stmt.to_excellon(None), 'M17')
+
+
+def test_cutter_compensation_off_stmt():
+    stmt = CutterCompensationOffStmt()
+    assert_equal(stmt.to_excellon(None), 'G40')
+
+
+def test_cutter_compensation_left_stmt():
+    stmt = CutterCompensationLeftStmt()
+    assert_equal(stmt.to_excellon(None), 'G41')
+
+
+def test_cutter_compensation_right_stmt():
+    stmt = CutterCompensationRightStmt()
+    assert_equal(stmt.to_excellon(None), 'G42')
+
+
+def test_endofprogramstmt_factory():
+    settings = FileSettings(units='inch')
+    stmt = EndOfProgramStmt.from_excellon('M30X01Y02', settings)
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 2.)
+    assert_equal(stmt.units, 'inch')
+    settings.units = 'metric'
+    stmt = EndOfProgramStmt.from_excellon('M30X01', settings)
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, None)
+    assert_equal(stmt.units, 'metric')
+    stmt = EndOfProgramStmt.from_excellon('M30Y02', FileSettings())
+    assert_equal(stmt.x, None)
+    assert_equal(stmt.y, 2.)
+
+
+def test_endofprogramStmt_dump():
+    lines = ['M30X01Y02', ]
+    for line in lines:
+        stmt = EndOfProgramStmt.from_excellon(line, FileSettings())
+        assert_equal(stmt.to_excellon(FileSettings()), line)
+
+
+def test_endofprogramstmt_conversion():
+    settings = FileSettings()
+    settings.units = 'metric'
+    stmt = EndOfProgramStmt.from_excellon('M30X0254Y254', settings)
+    # No effect
+    stmt.to_metric()
+    assert_equal(stmt.x, 2.54)
+    assert_equal(stmt.y, 25.4)
+
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.x, 0.1)
+    assert_equal(stmt.y, 1.0)
+
+    # No effect
+    stmt.to_inch()
+    assert_equal(stmt.x, 0.1)
+    assert_equal(stmt.y, 1.0)
+
+    settings.units = 'inch'
+    stmt = EndOfProgramStmt.from_excellon('M30X01Y1', settings)
+
+    # No effect
+    stmt.to_inch()
+    assert_equal(stmt.x, 1.)
+    assert_equal(stmt.y, 10.0)
+
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 254.)
+
+    # No effect
+    stmt.to_metric()
+    assert_equal(stmt.x, 25.4)
+    assert_equal(stmt.y, 254.)
+
+
+def test_endofprogramstmt_offset():
+    stmt = EndOfProgramStmt(1, 1)
+    stmt.offset()
+    assert_equal(stmt.x, 1)
+    assert_equal(stmt.y, 1)
+    stmt.offset(1, 0)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 1.)
+    stmt.offset(0, 1)
+    assert_equal(stmt.x, 2.)
+    assert_equal(stmt.y, 2.)
+
+
 def test_unitstmt_factory():
     """ Test UnitStmt factory method
     """
     line = 'INCH,LZ'
     stmt = UnitStmt.from_excellon(line)
     assert_equal(stmt.units, 'inch')
-    assert_equal(stmt.zero_suppression, 'trailing')
+    assert_equal(stmt.zeros, 'leading')
+
+    line = 'INCH,TZ'
+    stmt = UnitStmt.from_excellon(line)
+    assert_equal(stmt.units, 'inch')
+    assert_equal(stmt.zeros, 'trailing')
+
+    line = 'METRIC,LZ'
+    stmt = UnitStmt.from_excellon(line)
+    assert_equal(stmt.units, 'metric')
+    assert_equal(stmt.zeros, 'leading')
 
     line = 'METRIC,TZ'
     stmt = UnitStmt.from_excellon(line)
     assert_equal(stmt.units, 'metric')
-    assert_equal(stmt.zero_suppression, 'leading')
+    assert_equal(stmt.zeros, 'trailing')
 
 
 def test_unitstmt_dump():
@@ -139,6 +513,16 @@ def test_unitstmt_dump():
     for line in lines:
         stmt = UnitStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
+
+
+def test_unitstmt_conversion():
+    stmt = UnitStmt.from_excellon('METRIC,TZ')
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+
+    stmt = UnitStmt.from_excellon('INCH,TZ')
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
 
 
 def test_incrementalmode_factory():
@@ -187,6 +571,7 @@ def test_versionstmt_dump():
     for line in lines:
         stmt = VersionStmt.from_excellon(line)
         assert_equal(stmt.to_excellon(), line)
+
 
 def test_versionstmt_validation():
     """ Test VersionStmt input validation
@@ -268,3 +653,48 @@ def test_measmodestmt_validation():
     """
     assert_raises(ValueError, MeasuringModeStmt.from_excellon, 'M70')
     assert_raises(ValueError, MeasuringModeStmt, 'millimeters')
+
+
+def test_measmodestmt_conversion():
+    line = 'M72'
+    stmt = MeasuringModeStmt.from_excellon(line)
+    assert_equal(stmt.units, 'inch')
+    stmt.to_metric()
+    assert_equal(stmt.units, 'metric')
+
+    line = 'M71'
+    stmt = MeasuringModeStmt.from_excellon(line)
+    assert_equal(stmt.units, 'metric')
+    stmt.to_inch()
+    assert_equal(stmt.units, 'inch')
+
+
+def test_routemode_stmt():
+    stmt = RouteModeStmt()
+    assert_equal(stmt.to_excellon(FileSettings()), 'G00')
+
+
+def test_linearmode_stmt():
+    stmt = LinearModeStmt()
+    assert_equal(stmt.to_excellon(FileSettings()), 'G01')
+
+
+def test_drillmode_stmt():
+    stmt = DrillModeStmt()
+    assert_equal(stmt.to_excellon(FileSettings()), 'G05')
+
+
+def test_absolutemode_stmt():
+    stmt = AbsoluteModeStmt()
+    assert_equal(stmt.to_excellon(FileSettings()), 'G90')
+
+
+def test_unknownstmt():
+    stmt = UnknownStmt('TEST')
+    assert_equal(stmt.stmt, 'TEST')
+    assert_equal(str(stmt), '<Unknown Statement: TEST>')
+
+
+def test_unknownstmt_dump():
+    stmt = UnknownStmt('TEST')
+    assert_equal(stmt.to_excellon(FileSettings()), 'TEST')

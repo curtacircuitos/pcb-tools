@@ -23,12 +23,13 @@ Rendering
 Render Gerber and Excellon files to a variety of formats. The render module
 currently supports SVG rendering using the `svgwrite` library.
 """
-from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
-                                 CoordStmt, ApertureStmt, RegionModeStmt,
-                                 QuadrantModeStmt,
-)
+
 
 from ..primitives import *
+from ..gerber_statements import (CommentStmt, UnknownStmt, EofStmt, ParamStmt,
+                                 CoordStmt, ApertureStmt, RegionModeStmt,
+                                 QuadrantModeStmt,)
+
 
 class GerberContext(object):
     """ Gerber rendering context base class
@@ -41,7 +42,7 @@ class GerberContext(object):
     Attributes
     ----------
     units : string
-        Measurement units
+        Measurement units. 'inch' or 'metric'
 
     color : tuple (<float>, <float>, <float>)
         Color used for rendering as a tuple of normalized (red, green, blue) values.
@@ -56,79 +57,89 @@ class GerberContext(object):
     alpha : float
         Rendering opacity. Between 0.0 (transparent) and 1.0 (opaque.)
     """
+
     def __init__(self, units='inch'):
-        self.units = units
-        self.color = (0.7215, 0.451, 0.200)
-        self.drill_color = (0.25, 0.25, 0.25)
-        self.background_color = (0.0, 0.0, 0.0)
-        self.alpha = 1.0
+        self._units = units
+        self._color = (0.7215, 0.451, 0.200)
+        self._background_color = (0.0, 0.0, 0.0)
+        self._alpha = 1.0
+        self._invert = False
+        self.ctx = None
 
-    def set_units(self, units):
-        """ Set context measurement units
+    @property
+    def units(self):
+        return self._units
 
-        Parameters
-        ----------
-        unit : string
-            Measurement units. may be 'inch' or 'metric'
-
-        Raises
-        ------
-        ValueError
-            If `unit` is not 'inch' or 'metric'
-        """
+    @units.setter
+    def units(self, units):
         if units not in ('inch', 'metric'):
             raise ValueError('Units may be "inch" or "metric"')
-        self.units = units
+        self._units = units
 
-    def set_color(self, color):
-        """ Set rendering color.
+    @property
+    def color(self):
+        return self._color
 
-        Parameters
-        ----------
-        color : tuple (<float>, <float>, <float>)
-            Color as a tuple of (red, green, blue) values. Each channel is
-            represented as a float value in (0, 1)
-        """
-        self.color = color
+    @color.setter
+    def color(self, color):
+        if len(color) != 3:
+            raise TypeError('Color must be a tuple of R, G, and B values')
+        for c in color:
+            if c < 0 or c > 1:
+                raise ValueError('Channel values must be between 0.0 and 1.0')
+        self._color = color
 
-    def set_drill_color(self, color):
-        """ Set color used for rendering drill hits.
+    @property
+    def drill_color(self):
+        return self._drill_color
 
-        Parameters
-        ----------
-        color : tuple (<float>, <float>, <float>)
-            Color as a tuple of (red, green, blue) values. Each channel is
-            represented as a float value in (0, 1)
-        """
-        self.drill_color = color
+    @drill_color.setter
+    def drill_color(self, color):
+        if len(color) != 3:
+            raise TypeError('Drill color must be a tuple of R, G, and B values')
+        for c in color:
+            if c < 0 or c > 1:
+                raise ValueError('Channel values must be between 0.0 and 1.0')
+        self._drill_color = color
 
-    def set_background_color(self, color):
-        """ Set rendering background color
+    @property
+    def background_color(self):
+        return self._background_color
 
-        Parameters
-        ----------
-        color : tuple (<float>, <float>, <float>)
-            Color as a tuple of (red, green, blue) values. Each channel is
-            represented as a float value in (0, 1)
-        """
-        self.background_color = color
+    @background_color.setter
+    def background_color(self, color):
+        if len(color) != 3:
+            raise TypeError('Background color must be a tuple of R, G, and B values')
+        for c in color:
+            if c < 0 or c > 1:
+                raise ValueError('Channel values must be between 0.0 and 1.0')
+        self._background_color = color
 
-    def set_alpha(self, alpha):
-        """ Set layer rendering opacity
+    @property
+    def alpha(self):
+        return self._alpha
 
-        .. note::
-            Not all backends/rendering devices support this parameter.
+    @alpha.setter
+    def alpha(self, alpha):
+        if alpha < 0 or alpha > 1:
+            raise ValueError('Alpha must be between 0.0 and 1.0')
+        self._alpha = alpha
 
-        Parameters
-        ----------
-        alpha : float
-            Rendering opacity. must be between 0.0 (transparent) and 1.0 (opaque)
-        """
-        self.alpha = alpha
+    @property
+    def invert(self):
+        return self._invert
+
+    @invert.setter
+    def invert(self, invert):
+        self._invert = invert
 
     def render(self, primitive):
-        color = (self.color if primitive.level_polarity == 'dark'
-                 else self.background_color)
+        if not primitive:
+            return
+        
+        self._pre_render_primitive(primitive)
+        
+        color = self.color
         if isinstance(primitive, Line):
             self._render_line(primitive, color)
         elif isinstance(primitive, Arc):
@@ -142,11 +153,35 @@ class GerberContext(object):
         elif isinstance(primitive, Obround):
             self._render_obround(primitive, color)
         elif isinstance(primitive, Polygon):
-            self._render_polygon(Polygon, color)
+            self._render_polygon(primitive, color)
         elif isinstance(primitive, Drill):
-            self._render_drill(primitive, self.drill_color)
-        else:
-            return
+            self._render_drill(primitive, self.color)
+        elif isinstance(primitive, Slot):
+            self._render_slot(primitive, self.color)
+        elif isinstance(primitive, AMGroup):
+            self._render_amgroup(primitive, color)
+        elif isinstance(primitive, Outline):
+            self._render_region(primitive, color)
+        elif isinstance(primitive, TestRecord):
+            self._render_test_record(primitive, color)
+        
+        self._post_render_primitive(primitive)
+        
+    def _pre_render_primitive(self, primitive):
+        """
+        Called before rendering a primitive. Use the callback to perform some action before rendering
+        a primitive, for example adding a comment.
+        """
+        return
+    
+    def _post_render_primitive(self, primitive):
+        """
+        Called after rendering a primitive. Use the callback to perform some action after rendering
+        a primitive
+        """
+        return
+
+
 
     def _render_line(self, primitive, color):
         pass
@@ -171,4 +206,21 @@ class GerberContext(object):
 
     def _render_drill(self, primitive, color):
         pass
+    
+    def _render_slot(self, primitive, color):
+        pass
+    
+    def _render_amgroup(self, primitive, color):
+        pass
 
+    def _render_test_record(self, primitive, color):
+        pass
+
+
+class RenderSettings(object):
+
+    def __init__(self, color=(0.0, 0.0, 0.0), alpha=1.0, invert=False, mirror=False):
+        self.color = color
+        self.alpha = alpha
+        self.invert = invert
+        self.mirror = mirror

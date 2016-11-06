@@ -1,0 +1,10 @@
+G04 Flashes of circular apertures*
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10C,0.5*%
+%ADD11C,0.5X0.25*%
+D10*
+X000000Y000000D03*
+D11*
+X010000D03*
+M02*

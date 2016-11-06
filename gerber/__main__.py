@@ -16,24 +16,24 @@
 # the License.
 
 if __name__ == '__main__':
-    from .common import read
-    from .render import GerberSvgContext
+    from gerber.common import read
+    from gerber.render import GerberCairoContext
     import sys
 
     if len(sys.argv) < 2:
-        print >> sys.stderr, "Usage: python -m gerber <filename> <filename>..."
+        sys.stderr.write("Usage: python -m gerber <filename> <filename>...\n")
         sys.exit(1)
 
-    ctx = GerberSvgContext()
-    ctx.set_alpha(0.95)
+    ctx = GerberCairoContext()
+    ctx.alpha = 0.95
     for filename in sys.argv[1:]:
-        print "parsing %s" % filename
+        print("parsing %s" % filename)
         if 'GTO' in filename or 'GBO' in filename:
-            ctx.set_color((1, 1, 1))
-            ctx.set_alpha(0.8)
+            ctx.color = (1, 1, 1)
+            ctx.alpha = 0.8
         elif 'GTS' in filename or 'GBS' in filename:
-            ctx.set_color((0.2, 0.2, 0.75))
-            ctx.set_alpha(0.8)
+            ctx.color = (0.2, 0.2, 0.75)
+            ctx.alpha = 0.8
         gerberfile = read(filename)
         gerberfile.render(ctx)
 

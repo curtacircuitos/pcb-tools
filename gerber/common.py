@@ -15,6 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from . import rs274x
+from . import excellon
+from . import ipc356
+from .exceptions import ParseError
+from .utils import detect_file_format
+
 
 def read(filename):
     """ Read a gerber or excellon file and return a representative object.
@@ -30,13 +36,39 @@ def read(filename):
         CncFile object representing the file, either GerberFile or
         ExcellonFile. Returns None if file is not an Excellon or Gerber file.
     """
-    import rs274x
-    import excellon
-    from utils import detect_file_format
-    fmt = detect_file_format(filename)
+    with open(filename, 'rU') as f:
+        data = f.read()
+    fmt = detect_file_format(data)
     if fmt == 'rs274x':
         return rs274x.read(filename)
     elif fmt == 'excellon':
         return excellon.read(filename)
+    elif fmt == 'ipc_d_356':
+        return ipc356.read(filename)
     else:
-        return None
+        raise ParseError('Unable to detect file format')
+
+
+def loads(data):
+    """ Read gerber or excellon file contents from a string and return a
+    representative object.
+
+    Parameters
+    ----------
+    data : string
+        gerber or excellon file contents as a string.
+
+    Returns
+    -------
+    file : CncFile subclass
+        CncFile object representing the file, either GerberFile or
+        ExcellonFile. Returns None if file is not an Excellon or Gerber file.
+    """
+
+    fmt = detect_file_format(data)
+    if fmt == 'rs274x':
+        return rs274x.loads(data)
+    elif fmt == 'excellon':
+        return excellon.loads(data)
+    else:
+        raise TypeError('Unable to detect file format')

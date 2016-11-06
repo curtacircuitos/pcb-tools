@@ -24,5 +24,4 @@ SVG is the only supported format.
 """
 
 
-from svgwrite_backend import GerberSvgContext
-from cairo_backend import GerberCairoContext
+from .cairo_backend import GerberCairoContext

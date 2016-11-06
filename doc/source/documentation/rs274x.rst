@@ -33,5 +33,5 @@ The :mod:`rs274x` module defines the following classes:
 .. autoclass:: gerber.rs274x.GerberFile
     :members:
 
-.. autoclass:: gerber.rs274x.GerberParser                                 
+.. autoclass:: gerber.rs274x.GerberParser
     :members:
