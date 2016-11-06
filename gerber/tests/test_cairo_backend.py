@@ -20,7 +20,7 @@ def _DISABLED_test_render_single_quadrant():
     _test_render('resources/example_single_quadrant.gbr', 'golden/example_single_quadrant.png')
 
 
-def test_render_simple_contour():
+def  _DISABLED_test_render_simple_contour():
     """Umaco exapmle of a simple arrow-shaped contour"""
     gerber = _test_render('resources/example_simple_contour.gbr', 'golden/example_simple_contour.png')
 
@@ -47,11 +47,11 @@ def _DISABLED_test_render_single_contour_3():
     _test_render('resources/example_single_contour_3.gbr', 'golden/example_single_contour_3.png')
 
 
-def test_render_not_overlapping_contour():
+def  _DISABLED_test_render_not_overlapping_contour():
     """Umaco example of D02 staring a second contour"""
     _test_render('resources/example_not_overlapping_contour.gbr', 'golden/example_not_overlapping_contour.png')
 
-def test_render_not_overlapping_touching():
+def  _DISABLED_test_render_not_overlapping_touching():
     """Umaco example of D02 staring a second contour"""
     _test_render('resources/example_not_overlapping_touching.gbr', 'golden/example_not_overlapping_touching.png')
 
@@ -81,13 +81,13 @@ def _DISABLED_test_render_cutin():
     _test_render('resources/example_cutin.gbr', 'golden/example_cutin.png', '/Users/ham/Desktop/cutin.png')
 
 
-def test_render_fully_coincident():
+def  _DISABLED_test_render_fully_coincident():
     """Umaco example of coincident lines rendering two contours"""
 
     _test_render('resources/example_fully_coincident.gbr', 'golden/example_fully_coincident.png')
 
 
-def test_render_coincident_hole():
+def  _DISABLED_test_render_coincident_hole():
     """Umaco example of coincident lines rendering a hole in the contour"""
 
     _test_render('resources/example_coincident_hole.gbr', 'golden/example_coincident_hole.png')
