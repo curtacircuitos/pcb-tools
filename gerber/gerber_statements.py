@@ -95,10 +95,10 @@ class ParamStmt(Statement):
 class FSParamStmt(ParamStmt):
     """ FS - Gerber Format Specification Statement
     """
-    
+
     @classmethod
     def from_settings(cls, settings):
-        
+
         return cls('FS', settings.zero_suppression, settings.notation, settings.format)
 
     @classmethod
@@ -173,7 +173,7 @@ class FSParamStmt(ParamStmt):
 class MOParamStmt(ParamStmt):
     """ MO - Gerber Mode (measurement units) Statement.
     """
-    
+
     @classmethod
     def from_units(cls, units):
         return cls(None, units)
@@ -235,7 +235,7 @@ class LPParamStmt(ParamStmt):
         param = stmt_dict['param']
         lp = 'clear' if stmt_dict.get('lp') == 'C' else 'dark'
         return cls(param, lp)
-    
+
     @classmethod
     def from_region(cls, region):
         #todo what is the first param?
@@ -272,34 +272,34 @@ class LPParamStmt(ParamStmt):
 class ADParamStmt(ParamStmt):
     """ AD - Gerber Aperture Definition Statement
     """
-    
+
     @classmethod
     def rect(cls, dcode, width, height):
         '''Create a rectangular aperture definition statement'''
         return cls('AD', dcode, 'R', ([width, height],))
-    
+
     @classmethod
     def circle(cls, dcode, diameter, hole_diameter):
         '''Create a circular aperture definition statement'''
-        
+
         if hole_diameter != None:
             return cls('AD', dcode, 'C', ([diameter, hole_diameter],))
         return cls('AD', dcode, 'C', ([diameter],))
-    
+
     @classmethod
     def obround(cls, dcode, width, height):
         '''Create an obround aperture definition statement'''
         return cls('AD', dcode, 'O', ([width, height],))
-    
+
     @classmethod
     def polygon(cls, dcode, diameter, num_vertices, rotation, hole_diameter):
         '''Create a polygon aperture definition statement'''
         return cls('AD', dcode, 'P', ([diameter, num_vertices, rotation, hole_diameter],))
-    
+
     @classmethod
     def macro(cls, dcode, name):
         return cls('AD', dcode, name, '')
-    
+
     @classmethod
     def from_dict(cls, stmt_dict):
         param = stmt_dict.get('param')
@@ -436,7 +436,7 @@ class AMParamStmt(ParamStmt):
                     AMThermalPrimitive.from_gerber(primitive))
             else:
                 self.primitives.append(AMUnsupportPrimitive.from_gerber(primitive))
-                
+
         return AMGroup(self.primitives, stmt=self, units=self.units)
 
     def to_inch(self):
@@ -452,7 +452,7 @@ class AMParamStmt(ParamStmt):
                 primitive.to_metric()
 
     def to_gerber(self, settings=None):
-        return '%AM{0}*{1}%'.format(self.name, "".join([primitive.to_gerber() for primitive in self.primitives]))
+        return '%AM{0}*{1}*%'.format(self.name, self.macro)
 
     def __str__(self):
         return '<Aperture Macro %s: %s>' % (self.name, self.macro)
@@ -864,10 +864,10 @@ class CoordStmt(Statement):
     """ Coordinate Data Block
     """
 
-    OP_DRAW = 'D01'    
+    OP_DRAW = 'D01'
     OP_MOVE = 'D02'
     OP_FLASH = 'D03'
-    
+
     FUNC_LINEAR = 'G01'
     FUNC_ARC_CW = 'G02'
     FUNC_ARC_CCW = 'G03'
@@ -894,26 +894,26 @@ class CoordStmt(Statement):
             j = parse_gerber_value(stmt_dict.get('j'), settings.format,
                                    settings.zero_suppression)
         return cls(function, x, y, i, j, op, settings)
-    
+
     @classmethod
     def move(cls, func, point):
         if point:
             return cls(func, point[0], point[1], None, None, CoordStmt.OP_MOVE, None)
         # No point specified, so just write the function. This is normally for ending a region (D02*)
         return cls(func, None, None, None, None, CoordStmt.OP_MOVE, None)
-    
+
     @classmethod
     def line(cls, func, point):
         return cls(func, point[0], point[1], None, None, CoordStmt.OP_DRAW, None)
-    
+
     @classmethod
     def mode(cls, func):
         return cls(func, None, None, None, None, None, None)
-    
+
     @classmethod
     def arc(cls, func, point, center):
         return cls(func, point[0], point[1], center[0], center[1], CoordStmt.OP_DRAW, None)
-    
+
     @classmethod
     def flash(cls, point):
         if point:
@@ -1043,13 +1043,13 @@ class CoordStmt(Statement):
             coord_str += 'Op: %s' % op
 
         return '<Coordinate Statement: %s>' % coord_str
-    
+
     @property
     def only_function(self):
         """
         Returns if the statement only set the function.
         """
-        
+
         # TODO I would like to refactor this so that the function is handled separately and then
         # TODO this isn't required
         return self.function != None and self.op == None and self.x == None and self.y == None and self.i == None and self.j == None
@@ -1104,11 +1104,11 @@ class EofStmt(Statement):
 
 
 class QuadrantModeStmt(Statement):
-    
+
     @classmethod
     def single(cls):
         return cls('single-quadrant')
-    
+
     @classmethod
     def multi(cls):
         return cls('multi-quadrant')
@@ -1140,11 +1140,11 @@ class RegionModeStmt(Statement):
         if 'G36' not in line and 'G37' not in line:
             raise ValueError('%s is not a valid region mode statement' % line)
         return (cls('on') if line[:3] == 'G36' else cls('off'))
-    
+
     @classmethod
     def on(cls):
         return cls('on')
-    
+
     @classmethod
     def off(cls):
         return cls('off')

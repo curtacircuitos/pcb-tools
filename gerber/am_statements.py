@@ -75,7 +75,7 @@ class AMPrimitive(object):
 
     def to_metric(self):
         raise NotImplementedError('Subclass must implement `to-metric`')
-    
+
     @property
     def _level_polarity(self):
         if self.exposure == 'off':
@@ -190,9 +190,9 @@ class AMCirclePrimitive(AMPrimitive):
         diameter = float(modifiers[2])
         position = (float(modifiers[3]), float(modifiers[4]))
         return cls(code, exposure, diameter, position)
-    
+
     @classmethod
-    def from_primitive(cls, primitive):    
+    def from_primitive(cls, primitive):
         return cls(1, 'on', primitive.diameter, primitive.position)
 
     def __init__(self, code, exposure, diameter, position):
@@ -262,11 +262,11 @@ class AMVectorLinePrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
-    
+
     @classmethod
     def from_primitive(cls, primitive):
         return cls(2, 'on', primitive.aperture.width, primitive.start, primitive.end, 0)
-    
+
     @classmethod
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(',')
@@ -310,27 +310,27 @@ class AMVectorLinePrimitive(AMPrimitive):
                     endy=self.end[1],
                     rotation=self.rotation)
         return fmtstr.format(**data)
-    
+
     def to_primitive(self, units):
         """
         Convert this to a primitive. We use the Outline to represent this (instead of Line)
         because the behaviour of the end caps is different for aperture macros compared to Lines
         when rotated.
         """
-        
+
         # Use a line to generate our vertices easily
         line = Line(self.start, self.end, Rectangle(None, self.width, self.width))
         vertices = line.vertices
-        
+
         aperture = Circle((0, 0), 0)
-        
+
         lines = []
         prev_point = rotate_point(vertices[-1], self.rotation, (0, 0))
         for point in vertices:
             cur_point = rotate_point(point, self.rotation, (0, 0))
-            
+
             lines.append(Line(prev_point, cur_point, aperture))
-            
+
         return Outline(lines, units=units, level_polarity=self._level_polarity)
 
 
@@ -372,19 +372,19 @@ class AMOutlinePrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
-    
+
     @classmethod
     def from_primitive(cls, primitive):
-        
+
         start_point = (round(primitive.primitives[0].start[0], 6), round(primitive.primitives[0].start[1], 6))
         points = []
         for prim in primitive.primitives:
             points.append((round(prim.end[0], 6), round(prim.end[1], 6)))
-            
+
         rotation = 0.0
-        
+
         return cls(4, 'on', start_point, points, rotation)
-    
+
     @classmethod
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")
@@ -434,25 +434,25 @@ class AMOutlinePrimitive(AMPrimitive):
         )
         # TODO I removed a closing asterix - not sure if this works for items with multiple statements
         return "{code},{exposure},{n_points},{start_point},{points},\n{rotation}*".format(**data)
-    
+
     def to_primitive(self, units):
         """
         Convert this to a drawable primitive. This uses the Outline instead of Line
         primitive to handle differences in end caps when rotated.
         """
-        
+
         lines = []
         prev_point = rotate_point(self.start_point, self.rotation)
         for point in self.points:
             cur_point = rotate_point(point, self.rotation)
-            
+
             lines.append(Line(prev_point, cur_point, Circle((0,0), 0)))
-            
+
             prev_point = cur_point
-            
+
         if lines[0].start != lines[-1].end:
             raise ValueError('Outline must be closed')
-        
+
         return Outline(lines, units=units, level_polarity=self._level_polarity)
 
 
@@ -495,11 +495,11 @@ class AMPolygonPrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
-    
+
     @classmethod
     def from_primitive(cls, primitive):
         return cls(5, 'on', primitive.sides, primitive.position, primitive.diameter, primitive.rotation)
-    
+
     @classmethod
     def from_gerber(cls, primitive):
         modifiers = primitive.strip(' *').split(",")
@@ -548,7 +548,7 @@ class AMPolygonPrimitive(AMPrimitive):
         )
         fmt = "{code},{exposure},{vertices},{position},{diameter},{rotation}*"
         return fmt.format(**data)
-    
+
     def to_primitive(self, units):
         return Polygon(self.position, self.vertices, self.diameter / 2.0, 0, rotation=math.radians(self.rotation), units=units, level_polarity=self._level_polarity)
 
@@ -663,7 +663,8 @@ class AMMoirePrimitive(AMPrimitive):
         return fmt.format(**data)
 
     def to_primitive(self, units):
-        raise NotImplementedError()
+        #raise NotImplementedError()
+        return None
 
 
 class AMThermalPrimitive(AMPrimitive):
@@ -750,70 +751,70 @@ class AMThermalPrimitive(AMPrimitive):
         )
         fmt = "{code},{position},{outer_diameter},{inner_diameter},{gap},{rotation}*"
         return fmt.format(**data)
-    
+
     def _approximate_arc_cw(self, start_angle, end_angle, radius, center):
         """
         Get an arc as a series of points
-        
+
         Parameters
         ----------
         start_angle : The start angle in radians
         end_angle : The end angle in radians
         radius`: Radius of the arc
         center : The center point of the arc (x, y) tuple
-        
+
         Returns
         -------
         array of point tuples
         """
-        
+
         # The total sweep
         sweep_angle = end_angle - start_angle
         num_steps = 10
-            
+
         angle_step = sweep_angle / num_steps
-            
+
         radius = radius
         center = center
-        
+
         points = []
-    
+
         for i in range(num_steps + 1):
             current_angle = start_angle + (angle_step * i)
-            
+
             nextx = (center[0] + math.cos(current_angle) * radius)
             nexty = (center[1] + math.sin(current_angle) * radius)
-            
+
             points.append((nextx, nexty))
-    
+
         return points
 
     def to_primitive(self, units):
-                
+
         # We start with calculating the top right section, then duplicate it
-        
+
         inner_radius = self.inner_diameter / 2.0
         outer_radius = self.outer_diameter / 2.0
-        
+
         # Calculate the start angle relative to the horizontal axis
         inner_offset_angle = asin(self.gap / 2.0 / inner_radius)
         outer_offset_angle = asin(self.gap / 2.0 / outer_radius)
-        
+
         rotation_rad = math.radians(self.rotation)
         inner_start_angle = inner_offset_angle + rotation_rad
         inner_end_angle =  math.pi / 2 - inner_offset_angle + rotation_rad
-        
+
         outer_start_angle = outer_offset_angle + rotation_rad
         outer_end_angle = math.pi / 2 - outer_offset_angle + rotation_rad
-        
+
         outlines = []
         aperture = Circle((0, 0), 0)
-        
+
         points = (self._approximate_arc_cw(inner_start_angle, inner_end_angle, inner_radius, self.position)
                 + list(reversed(self._approximate_arc_cw(outer_start_angle, outer_end_angle, outer_radius, self.position))))
         # Add in the last point since outlines should be closed
         points.append(points[0])
-        
+
         # There are four outlines at rotated sections
         for rotation in [0, 90.0, 180.0, 270.0]:
 
@@ -821,11 +822,11 @@ class AMThermalPrimitive(AMPrimitive):
             prev_point = rotate_point(points[0], rotation, self.position)
             for point in points[1:]:
                 cur_point = rotate_point(point, rotation, self.position)
-                
+
                 lines.append(Line(prev_point, cur_point, aperture))
-            
+
             prev_point = cur_point
-            
+
             outlines.append(Outline(lines, units=units, level_polarity=self._level_polarity))
 
         return outlines
@@ -869,7 +870,7 @@ class AMCenterLinePrimitive(AMPrimitive):
     ------
     ValueError, TypeError
     """
-    
+
     @classmethod
     def from_primitive(cls, primitive):
         width = primitive.width
@@ -922,27 +923,27 @@ class AMCenterLinePrimitive(AMPrimitive):
         return fmt.format(**data)
 
     def to_primitive(self, units):
-        
+
         x = self.center[0]
         y = self.center[1]
         half_width = self.width / 2.0
         half_height = self.height / 2.0
-        
+
         points = []
         points.append((x - half_width, y + half_height))
         points.append((x - half_width, y - half_height))
         points.append((x + half_width, y - half_height))
         points.append((x + half_width, y + half_height))
-        
+
         aperture = Circle((0, 0), 0)
-        
+
         lines = []
         prev_point = rotate_point(points[3], self.rotation, self.center)
         for point in points:
             cur_point = rotate_point(point, self.rotation, self.center)
-            
+
             lines.append(Line(prev_point, cur_point, aperture))
-            
+
         return Outline(lines, units=units, level_polarity=self._level_polarity)
 
 

@@ -23,21 +23,21 @@ def test_render_single_quadrant():
 def test_render_simple_contour():
     """Umaco exapmle of a simple arrow-shaped contour"""
     gerber = _test_render('resources/example_simple_contour.gbr', 'golden/example_simple_contour.png')
-    
+
     # Check the resulting dimensions
     assert_tuple_equal(((2.0, 11.0), (1.0, 9.0)), gerber.bounding_box)
 
-    
+
 def test_render_single_contour_1():
     """Umaco example of a single contour
-    
+
     The resulting image for this test is used by other tests because they must generate the same output."""
     _test_render('resources/example_single_contour_1.gbr', 'golden/example_single_contour.png')
 
 
 def test_render_single_contour_2():
     """Umaco exapmle of a single contour, alternate contour end order
-    
+
     The resulting image for this test is used by other tests because they must generate the same output."""
     _test_render('resources/example_single_contour_2.gbr', 'golden/example_single_contour.png')
 
@@ -45,12 +45,11 @@ def test_render_single_contour_2():
 def test_render_single_contour_3():
     """Umaco exapmle of a single contour with extra line"""
     _test_render('resources/example_single_contour_3.gbr', 'golden/example_single_contour_3.png')
-    
-    
+
+
 def test_render_not_overlapping_contour():
     """Umaco example of D02 staring a second contour"""
     _test_render('resources/example_not_overlapping_contour.gbr', 'golden/example_not_overlapping_contour.png')
-    
 
 def test_render_not_overlapping_touching():
     """Umaco example of D02 staring a second contour"""
@@ -69,7 +68,7 @@ def test_render_overlapping_contour():
 
 def _DISABLED_test_render_level_holes():
     """Umaco example of using multiple levels to create multiple holes"""
-    
+
     # TODO This is clearly rendering wrong. I'm temporarily checking this in because there are more
     # rendering fixes in the related repository that may resolve these.
     _test_render('resources/example_level_holes.gbr', 'golden/example_overlapping_contour.png')
@@ -98,7 +97,7 @@ def test_render_cutin_multiple():
     """Umaco example of a region with multiple cutins"""
 
     _test_render('resources/example_cutin_multiple.gbr', 'golden/example_cutin_multiple.png')
-    
+
 
 def test_flash_circle():
     """Umaco example a simple circular flash with and without a hole"""
@@ -143,7 +142,7 @@ def _resolve_path(path):
 
 def _test_render(gerber_path, png_expected_path, create_output_path = None):
     """Render the gerber file and compare to the expected PNG output.
-    
+
     Parameters
     ----------
     gerber_path : string
@@ -152,14 +151,14 @@ def _test_render(gerber_path, png_expected_path, create_output_path = None):
         Path to the PNG file to compare to
     create_output : string|None
         If not None, write the generated PNG to the specified path.
-        This is primarily to help with 
+        This is primarily to help with
     """
-    
+
     gerber_path = _resolve_path(gerber_path)
     png_expected_path = _resolve_path(png_expected_path)
     if create_output_path:
         create_output_path = _resolve_path(create_output_path)
-    
+
     gerber = read(gerber_path)
 
     # Create PNG image to the memory stream
@@ -167,7 +166,7 @@ def _test_render(gerber_path, png_expected_path, create_output_path = None):
     gerber.render(ctx)
 
     actual_bytes = ctx.dump(None)
-    
+
     # If we want to write the file bytes, do it now. This happens
     if create_output_path:
         with open(create_output_path, 'wb') as out_file:
@@ -176,14 +175,14 @@ def _test_render(gerber_path, png_expected_path, create_output_path = None):
         # So if we are creating the output, we make the test fail on purpose so you
         # won't forget to disable this
         assert_false(True, 'Test created the output %s. This needs to be disabled to make sure the test behaves correctly' % (create_output_path,))
-    
+
     # Read the expected PNG file
-    
+
     with open(png_expected_path, 'rb') as expected_file:
         expected_bytes = expected_file.read()
-    
+
     # Don't directly use assert_equal otherwise any failure pollutes the test results
     equal = (expected_bytes == actual_bytes)
     assert_true(equal)
-      
+
     return gerber

@@ -38,4 +38,4 @@ def test_load_from_string():
 def test_file_type_validation():
     """ Test file format validation
     """
-    assert_raises(ParseError, read, 'LICENSE')
+    assert_raises(ParseError, read, __file__)
