@@ -30,10 +30,7 @@ from .render import GerberContext, RenderSettings
 from .theme import THEMES
 from ..primitives import *
 
-try:
-    from cStringIO import StringIO
-except (ImportError):
-    from io import StringIO
+from io import BytesIO
 
 
 class GerberCairoContext(GerberContext):
@@ -133,9 +130,9 @@ class GerberCairoContext(GerberContext):
             return self.surface.write_to_png(filename)
 
     def dump_str(self):
-        """ Return a string containing the rendered image.
+        """ Return a byte-string containing the rendered image.
         """
-        fobj = StringIO()
+        fobj = BytesIO()
         self.surface.write_to_png(fobj)
         return fobj.getvalue()
 
