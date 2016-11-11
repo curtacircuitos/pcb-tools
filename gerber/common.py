@@ -33,42 +33,39 @@ def read(filename):
     Returns
     -------
     file : CncFile subclass
-        CncFile object representing the file, either GerberFile or
-        ExcellonFile. Returns None if file is not an Excellon or Gerber file.
+        CncFile object representing the file, either GerberFile, ExcellonFile,
+        or IPCNetlist. Returns None if file is not of the proper type.
     """
     with open(filename, 'rU') as f:
         data = f.read()
-    fmt = detect_file_format(data)
-    if fmt == 'rs274x':
-        return rs274x.read(filename)
-    elif fmt == 'excellon':
-        return excellon.read(filename)
-    elif fmt == 'ipc_d_356':
-        return ipc356.read(filename)
-    else:
-        raise ParseError('Unable to detect file format')
+    return loads(data, filename)
 
 
-def loads(data):
+def loads(data, filename=None):
     """ Read gerber or excellon file contents from a string and return a
     representative object.
 
     Parameters
     ----------
     data : string
-        gerber or excellon file contents as a string.
+        Source file contents as a string.
+
+    filename : string, optional
+        String containing the filename of the data source.
 
     Returns
     -------
     file : CncFile subclass
-        CncFile object representing the file, either GerberFile or
-        ExcellonFile. Returns None if file is not an Excellon or Gerber file.
+        CncFile object representing the data, either GerberFile, ExcellonFile,
+        or IPCNetlist. Returns None if data is not of the proper type.
     """
 
     fmt = detect_file_format(data)
     if fmt == 'rs274x':
-        return rs274x.loads(data)
+        return rs274x.loads(data, filename=filename)
     elif fmt == 'excellon':
-        return excellon.loads(data)
+        return excellon.loads(data, filename=filename)
+    elif fmt == 'ipc_d_356':
+        return ipc356.loads(data, filename=filename)
     else:
-        raise TypeError('Unable to detect file format')
+        raise ParseError('Unable to detect file format')

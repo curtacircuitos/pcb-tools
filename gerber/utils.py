@@ -291,22 +291,22 @@ def rotate_point(point, angle, center=(0.0, 0.0)):
         `point` rotated about `center` by `angle` degrees.
     """
     angle = radians(angle)
-    
+
     cos_angle = cos(angle)
     sin_angle = sin(angle)
-    
+
     return (
             cos_angle * (point[0] - center[0]) - sin_angle * (point[1] - center[1]) + center[0],
             sin_angle * (point[0] - center[0]) + cos_angle * (point[1] - center[1]) + center[1])
 
 def nearly_equal(point1, point2, ndigits = 6):
     '''Are the points nearly equal'''
-    
+
     return round(point1[0] - point2[0], ndigits) == 0 and round(point1[1] - point2[1], ndigits) == 0
 
 
 def sq_distance(point1, point2):
-    
+
     diff1 = point1[0] - point2[0]
     diff2 = point1[1] - point2[1]
     return diff1 * diff1 + diff2 * diff2

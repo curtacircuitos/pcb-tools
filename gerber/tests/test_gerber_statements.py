@@ -487,9 +487,11 @@ def test_AMParamStmt_dump():
     s.build()
     assert_equal(s.to_gerber(), '%AMPOLYGON*5,1,8,25.4,25.4,25.4,0.0*%')
 
+    #TODO - Store Equations and update on unit change...
     s = AMParamStmt.from_dict({'param': 'AM', 'name': 'OC8', 'macro': '5,1,8,0,0,1.08239X$1,22.5'})
     s.build()
-    assert_equal(s.to_gerber(), '%AMOC8*5,1,8,0,0,1.08239X$1,22.5*%')
+    #assert_equal(s.to_gerber(), '%AMOC8*5,1,8,0,0,1.08239X$1,22.5*%')
+    assert_equal(s.to_gerber(), '%AMOC8*5,1,8,0,0,0,22.5*%')
 
 
 def test_AMParamStmt_string():

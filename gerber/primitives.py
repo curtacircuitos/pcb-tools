@@ -16,11 +16,11 @@
 # limitations under the License.
 
 
-
 import math
 from operator import add
 from itertools import combinations
-from .utils import validate_coordinates, inch, metric, convex_hull, rotate_point, nearly_equal
+from .utils import validate_coordinates, inch, metric, convex_hull
+from .utils import rotate_point, nearly_equal
 
 
 
@@ -52,7 +52,6 @@ class Primitive(object):
         self.level_polarity = level_polarity
         self.net_name = net_name
         self._to_convert = list()
-        self.id = id
         self._memoized = list()
         self._units = units
         self._rotation = rotation
@@ -61,17 +60,17 @@ class Primitive(object):
         self._bounding_box = None
         self._vertices = None
         self._segments = None
-        
+
     @property
     def flashed(self):
         '''Is this a flashed primitive'''
-        
+
         raise NotImplementedError('Is flashed must be '
                                   'implemented in subclass')
 
     def __eq__(self, other):
         return self.__dict__ == other.__dict__
-    
+
     @property
     def units(self):
         return self._units
@@ -114,14 +113,14 @@ class Primitive(object):
         """
         raise NotImplementedError('Bounding box calculation must be '
                                   'implemented in subclass')
-        
+
     @property
     def bounding_box_no_aperture(self):
         """ Calculate bouxing box without considering the aperture
-        
+
         for most objects, this is the same as the bounding_box, but is different for
         Lines and Arcs (which are not flashed)
-        
+
         Return ((min x, max x), (min y, max y))
         """
         return self.bounding_box
@@ -186,7 +185,7 @@ class Primitive(object):
             self.position = tuple([coord + offset for coord, offset
                                    in zip(self.position,
                                           (x_offset, y_offset))])
-            
+
     def to_statement(self):
         pass
 
@@ -214,8 +213,8 @@ class Line(Primitive):
         self._end = end
         self.aperture = aperture
         self._to_convert = ['start', 'end', 'aperture']
-    
-    @property 
+
+    @property
     def flashed(self):
         return False
 
@@ -298,12 +297,12 @@ class Line(Primitive):
                             in zip(self.start, (x_offset, y_offset))])
         self.end = tuple([coord + offset for coord, offset
                           in zip(self.end, (x_offset, y_offset))])
-        
+
     def equivalent(self, other, offset):
-        
+
         if not isinstance(other, Line):
             return False
-        
+
         equiv_start = tuple(map(add, other.start, offset))
         equiv_end = tuple(map(add, other.end, offset))
 
@@ -313,7 +312,7 @@ class Line(Primitive):
 class Arc(Primitive):
     """
     """
-    
+
     def __init__(self, start, end, center, direction, aperture, quadrant_mode, **kwargs):
         super(Arc, self).__init__(**kwargs)
         self._start = start
@@ -324,10 +323,10 @@ class Arc(Primitive):
         self._quadrant_mode = quadrant_mode
         self._to_convert = ['start', 'end', 'center', 'aperture']
 
-    @property 
+    @property
     def flashed(self):
         return False
-    
+
     @property
     def start(self):
         return self._start
@@ -354,11 +353,11 @@ class Arc(Primitive):
     def center(self, value):
         self._changed()
         self._center = value
-        
+
     @property
     def quadrant_mode(self):
         return self._quadrant_mode
-        
+
     @quadrant_mode.setter
     def quadrant_mode(self, quadrant_mode):
         self._changed()
@@ -437,7 +436,7 @@ class Arc(Primitive):
             max_y = max(y) + self.aperture.radius
             self._bounding_box = ((min_x, max_x), (min_y, max_y))
         return self._bounding_box
-    
+
     @property
     def bounding_box_no_aperture(self):
         '''Gets the bounding box without considering the aperture'''
@@ -472,7 +471,7 @@ class Arc(Primitive):
             if theta1 <= math.pi * 1.5 and (theta0 >= math.pi * 1.5 or theta0 < theta1):
                 points.append((self.center[0], self.center[1] - self.radius ))
         x, y = zip(*points)
-            
+
         min_x = min(x)
         max_x = max(x)
         min_y = min(y)
@@ -489,7 +488,7 @@ class Arc(Primitive):
 class Circle(Primitive):
     """
     """
-    
+
     def __init__(self, position, diameter, hole_diameter = None, **kwargs):
         super(Circle, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -498,10 +497,10 @@ class Circle(Primitive):
         self.hole_diameter = hole_diameter
         self._to_convert = ['position', 'diameter', 'hole_diameter']
 
-    @property 
+    @property
     def flashed(self):
         return True
-    
+
     @property
     def position(self):
         return self._position
@@ -523,7 +522,7 @@ class Circle(Primitive):
     @property
     def radius(self):
         return self.diameter / 2.
-    
+
     @property
     def hole_radius(self):
         if self.hole_diameter != None:
@@ -539,19 +538,19 @@ class Circle(Primitive):
             max_y = self.position[1] + self.radius
             self._bounding_box = ((min_x, max_x), (min_y, max_y))
         return self._bounding_box
-    
+
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
-        
+
     def equivalent(self, other, offset):
         '''Is this the same as the other circle, ignoring the offiset?'''
 
         if not isinstance(other, Circle):
             return False
-        
+
         if self.diameter != other.diameter or self.hole_diameter != other.hole_diameter:
             return False
-        
+
         equiv_position = tuple(map(add, other.position, offset))
 
         return nearly_equal(self.position, equiv_position)
@@ -560,7 +559,6 @@ class Circle(Primitive):
 class Ellipse(Primitive):
     """
     """
-
     def __init__(self, position, width, height, **kwargs):
         super(Ellipse, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -569,7 +567,7 @@ class Ellipse(Primitive):
         self._height = height
         self._to_convert = ['position', 'width', 'height']
 
-    @property 
+    @property
     def flashed(self):
         return True
 
@@ -628,11 +626,11 @@ class Ellipse(Primitive):
 class Rectangle(Primitive):
     """
     When rotated, the rotation is about the center point.
-    
+
     Only aperture macro generated Rectangle objects can be rotated. If you aren't in a AMGroup,
     then you don't need to worry about rotation
     """
-    
+
     def __init__(self, position, width, height, hole_diameter=0, **kwargs):
         super(Rectangle, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -644,11 +642,11 @@ class Rectangle(Primitive):
         # TODO These are probably wrong when rotated
         self._lower_left = None
         self._upper_right = None
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
-    
+
     @property
     def position(self):
         return self._position
@@ -675,7 +673,7 @@ class Rectangle(Primitive):
     def height(self, value):
         self._changed()
         self._height = value
-        
+
     @property
     def hole_radius(self):
         """The radius of the hole. If there is no hole, returns None"""
@@ -685,8 +683,8 @@ class Rectangle(Primitive):
 
     @property
     def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.),
-                self.position[1] + (self._abs_height / 2.))
+        return (self.position[0] + (self.axis_aligned_width / 2.),
+                self.position[1] + (self.axis_aligned_height / 2.))
 
     @property
     def lower_left(self):
@@ -722,23 +720,18 @@ class Rectangle(Primitive):
         return (self._cos_theta * self.width + self._sin_theta * self.height)
 
     @property
-    def _abs_height(self):
-        return (math.cos(math.radians(self.rotation)) * self.height +
-                math.sin(math.radians(self.rotation)) * self.width)
-
-    @property
     def axis_aligned_height(self):
         return (self._cos_theta * self.height + self._sin_theta * self.width)
-    
+
     def equivalent(self, other, offset):
         """Is this the same as the other rect, ignoring the offset?"""
 
         if not isinstance(other, Rectangle):
             return False
-        
+
         if self.width != other.width or self.height != other.height or self.rotation != other.rotation or self.hole_diameter != other.hole_diameter:
             return False
-        
+
         equiv_position = tuple(map(add, other.position, offset))
 
         return nearly_equal(self.position, equiv_position)
@@ -755,8 +748,8 @@ class Diamond(Primitive):
         self._width = width
         self._height = height
         self._to_convert = ['position', 'width', 'height']
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
 
@@ -823,18 +816,17 @@ class Diamond(Primitive):
 class ChamferRectangle(Primitive):
     """
     """
-
-    def __init__(self, position, width, height, chamfer, corners, **kwargs):
+    def __init__(self, position, width, height, chamfer, corners=None, **kwargs):
         super(ChamferRectangle, self).__init__(**kwargs)
         validate_coordinates(position)
         self._position = position
         self._width = width
         self._height = height
         self._chamfer = chamfer
-        self._corners = corners
+        self._corners = corners if corners is not None else [True] * 4
         self._to_convert = ['position', 'width', 'height', 'chamfer']
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
 
@@ -895,7 +887,37 @@ class ChamferRectangle(Primitive):
 
     @property
     def vertices(self):
-        # TODO
+        if self._vertices is None:
+            vertices = []
+            delta_w = self.width / 2.
+            delta_h = self.height / 2.
+            # order is UR, UL, LL, LR
+            rect_corners = [
+                ((self.position[0] + delta_w), (self.position[1] + delta_h)),
+                ((self.position[0] - delta_w), (self.position[1] + delta_h)),
+                ((self.position[0] - delta_w), (self.position[1] - delta_h)),
+                ((self.position[0] + delta_w), (self.position[1] - delta_h))
+            ]
+            for idx, corner, chamfered in enumerate((rect_corners, self.corners)):
+                x, y = corner
+                if chamfered:
+                    if idx == 0:
+                        vertices.append((x - self.chamfer, y))
+                        vertices.append((x, y - self.chamfer))
+                    elif idx == 1:
+                        vertices.append((x + self.chamfer, y))
+                        vertices.append((x, y - self.chamfer))
+                    elif idx == 2:
+                        vertices.append((x + self.chamfer, y))
+                        vertices.append((x, y + self.chamfer))
+                    elif idx == 3:
+                        vertices.append((x - self.chamfer, y))
+                        vertices.append((x, y + self.chamfer))
+                else:
+                    vertices.append(corner)
+            self._vertices = [((x * self._cos_theta - y * self._sin_theta),
+                               (x * self._sin_theta + y * self._cos_theta))
+                              for x, y in vertices]
         return self._vertices
 
     @property
@@ -922,8 +944,8 @@ class RoundRectangle(Primitive):
         self._radius = radius
         self._corners = corners
         self._to_convert = ['position', 'width', 'height', 'radius']
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
 
@@ -996,7 +1018,7 @@ class RoundRectangle(Primitive):
 class Obround(Primitive):
     """
     """
-    
+
     def __init__(self, position, width, height, hole_diameter=0, **kwargs):
         super(Obround, self).__init__(**kwargs)
         validate_coordinates(position)
@@ -1005,8 +1027,8 @@ class Obround(Primitive):
         self._height = height
         self.hole_diameter = hole_diameter
         self._to_convert = ['position', 'width', 'height', 'hole_diameter']
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
 
@@ -1029,11 +1051,6 @@ class Obround(Primitive):
         self._width = value
 
     @property
-    def upper_right(self):
-        return (self.position[0] + (self._abs_width / 2.),
-                self.position[1] + (self._abs_height / 2.))
-
-    @property
     def height(self):
         return self._height
 
@@ -1047,7 +1064,7 @@ class Obround(Primitive):
         """The radius of the hole. If there is no hole, returns None"""
         if self.hole_diameter != None:
             return self.hole_diameter / 2.
-        
+
         return None
 
     @property
@@ -1107,15 +1124,15 @@ class Polygon(Primitive):
         self._radius = radius
         self.hole_diameter = hole_diameter
         self._to_convert = ['position', 'radius', 'hole_diameter']
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
-    
+
     @property
     def diameter(self):
         return self.radius * 2
-    
+
     @property
     def hole_radius(self):
         if self.hole_diameter != None:
@@ -1152,19 +1169,19 @@ class Polygon(Primitive):
 
     def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
-        
+
     @property
     def vertices(self):
-        
+
         offset = self.rotation
         da = 360.0 / self.sides
-        
+
         points = []
         for i in xrange(self.sides):
             points.append(rotate_point((self.position[0] + self.radius, self.position[1]), offset + da * i, self.position))
-        
+
         return points
-    
+
     @property
     def vertices(self):
         if self._vertices is None:
@@ -1181,11 +1198,11 @@ class Polygon(Primitive):
         """
         Is this the outline the same as the other, ignoring the position offset?
         """
-        
+
         # Quick check if it even makes sense to compare them
         if type(self) != type(other) or self.sides != other.sides or self.radius != other.radius:
             return False
-        
+
         equiv_pos = tuple(map(add, other.position, offset))
 
         return nearly_equal(self.position, equiv_pos)
@@ -1196,11 +1213,11 @@ class AMGroup(Primitive):
     """
     def __init__(self, amprimitives, stmt = None, **kwargs):
         """
-        
+
         stmt : The original statment that generated this, since it is really hard to re-generate from primitives
         """
         super(AMGroup, self).__init__(**kwargs)
-        
+
         self.primitives = []
         for amprim in amprimitives:
             prim = amprim.to_primitive(self.units)
@@ -1212,11 +1229,11 @@ class AMGroup(Primitive):
         self._position = None
         self._to_convert = ['_position', 'primitives']
         self.stmt = stmt
-        
+
     def to_inch(self):
         if self.units == 'metric':
             super(AMGroup, self).to_inch()
-            
+
             # If we also have a stmt, convert that too
             if self.stmt:
                 self.stmt.to_inch()
@@ -1225,15 +1242,15 @@ class AMGroup(Primitive):
     def to_metric(self):
         if self.units == 'inch':
             super(AMGroup, self).to_metric()
-            
+
             # If we also have a stmt, convert that too
             if self.stmt:
                 self.stmt.to_metric()
-        
+
     @property
     def flashed(self):
         return True
-    
+
     @property
     def bounding_box(self):
         # TODO Make this cached like other items
@@ -1245,49 +1262,49 @@ class AMGroup(Primitive):
         min_y = min(miny)
         max_y = max(maxy)
         return ((min_x, max_x), (min_y, max_y))
-    
+
     @property
     def position(self):
         return self._position
-    
+
     def offset(self, x_offset=0, y_offset=0):
         self._position = tuple(map(add, self._position, (x_offset, y_offset)))
-        
+
         for primitive in self.primitives:
             primitive.offset(x_offset, y_offset)
-    
+
     @position.setter
     def position(self, new_pos):
         '''
         Sets the position of the AMGroup.
         This offset all of the objects by the specified distance.
         '''
-        
+
         if self._position:
             dx = new_pos[0] - self._position[0]
             dy = new_pos[1] - self._position[1]
         else:
             dx = new_pos[0]
             dy = new_pos[1]
-        
+
         for primitive in self.primitives:
             primitive.offset(dx, dy)
-            
+
         self._position = new_pos
-        
+
     def equivalent(self, other, offset):
         '''
         Is this the macro group the same as the other, ignoring the position offset?
         '''
-        
+
         if len(self.primitives) != len(other.primitives):
             return False
-        
+
         # We know they have the same number of primitives, so now check them all
         for i in range(0, len(self.primitives)):
             if not self.primitives[i].equivalent(other.primitives[i], offset):
                 return False
-            
+
         # If we didn't find any differences, then they are the same
         return True
 
@@ -1301,11 +1318,11 @@ class Outline(Primitive):
         super(Outline, self).__init__(**kwargs)
         self.primitives = primitives
         self._to_convert = ['primitives']
-        
+
         if self.primitives[0].start != self.primitives[-1].end:
             raise ValueError('Outline must be closed')
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
 
@@ -1348,15 +1365,15 @@ class Outline(Primitive):
         '''
         Is this the outline the same as the other, ignoring the position offset?
         '''
-        
+
         # Quick check if it even makes sense to compare them
         if type(self) != type(other) or len(self.primitives) != len(other.primitives):
             return False
-        
+
         for i in range(0, len(self.primitives)):
             if not self.primitives[i].equivalent(other.primitives[i], offset):
                 return False
-        
+
         return True
 
 class Region(Primitive):
@@ -1367,8 +1384,8 @@ class Region(Primitive):
         super(Region, self).__init__(**kwargs)
         self.primitives = primitives
         self._to_convert = ['primitives']
-        
-    @property 
+
+    @property
     def flashed(self):
         return False
 
@@ -1401,10 +1418,10 @@ class RoundButterfly(Primitive):
         self.position = position
         self.diameter = diameter
         self._to_convert = ['position', 'diameter']
-        
+
         # TODO This does not reset bounding box correctly
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
 
@@ -1433,10 +1450,10 @@ class SquareButterfly(Primitive):
         self.position = position
         self.side = side
         self._to_convert = ['position', 'side']
-        
+
         # TODO This does not reset bounding box correctly
 
-    @property 
+    @property
     def flashed(self):
         return True
 
@@ -1479,10 +1496,10 @@ class Donut(Primitive):
 
         self._to_convert = ['position', 'width',
                             'height', 'inner_diameter', 'outer_diameter']
-        
+
         # TODO This does not reset bounding box correctly
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
 
@@ -1494,7 +1511,7 @@ class Donut(Primitive):
     @property
     def upper_right(self):
         return (self.position[0] + (self.width / 2.),
-                self.position[1] + (self.height / 2.)
+                self.position[1] + (self.height / 2.))
 
     @property
     def bounding_box(self):
@@ -1521,11 +1538,11 @@ class SquareRoundDonut(Primitive):
         self.inner_diameter = inner_diameter
         self.outer_diameter = outer_diameter
         self._to_convert = ['position', 'inner_diameter', 'outer_diameter']
-        
-    @property 
+
+    @property
     def flashed(self):
         return True
-    
+
     @property
     def bounding_box(self):
         if self._bounding_box is None:
@@ -1545,10 +1562,10 @@ class Drill(Primitive):
         self._diameter = diameter
         self.hit = hit
         self._to_convert = ['position', 'diameter', 'hit']
-        
+
         # TODO Ths won't handle the hit updates correctly
-        
-    @property 
+
+    @property
     def flashed(self):
         return False
 
@@ -1587,11 +1604,11 @@ class Drill(Primitive):
     def offset(self, x_offset=0, y_offset=0):
         self._changed()
         self.position = tuple(map(add, self.position, (x_offset, y_offset)))
-        
+
     def __str__(self):
         return '<Drill %f (%f, %f) [%s]>' % (self.diameter, self.position[0], self.position[1], self.hit)
-        
-        
+
+
 class Slot(Primitive):
     """ A drilled slot
     """
@@ -1604,13 +1621,13 @@ class Slot(Primitive):
         self.diameter = diameter
         self.hit = hit
         self._to_convert = ['start', 'end', 'diameter', 'hit']
-        
+
         # TODO this needs to use cached bounding box
-        
-    @property 
+
+    @property
     def flashed(self):
         return False
-    
+
     def bounding_box(self):
         if self._bounding_box is None:
             ll = tuple([c - self.outer_diameter / 2. for c in self.position])
@@ -1633,3 +1650,4 @@ class TestRecord(Primitive):
         self.position = position
         self.net_name = net_name
         self.layer = layer
+        self._to_convert = ['position']

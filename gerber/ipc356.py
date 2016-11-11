@@ -35,7 +35,7 @@ _SM_FIELD = {
 
 
 def read(filename):
-    """ Read data from filename and return an IPC_D_356
+    """ Read data from filename and return an IPCNetlist
     Parameters
         ----------
     filename : string
@@ -43,19 +43,38 @@ def read(filename):
 
     Returns
     -------
-    file : :class:`gerber.ipc356.IPC_D_356`
-        An IPC_D_356 object created from the specified file.
+    file : :class:`gerber.ipc356.IPCNetlist`
+        An IPCNetlist object created from the specified file.
 
     """
     # File object should use settings from source file by default.
-    return IPC_D_356.from_file(filename)
+    return IPCNetlist.from_file(filename)
 
 
-class IPC_D_356(CamFile):
+def loads(data, filename=None):
+    """ Generate an IPCNetlist object from IPC-D-356 data in memory
+
+    Parameters
+    ----------
+    data : string
+        string containing netlist file contents
+
+    filename : string, optional
+        string containing the filename of the data source
+
+    Returns
+    -------
+    file : :class:`gerber.ipc356.IPCNetlist`
+        An IPCNetlist created from the specified file.
+    """
+    return IPCNetlistParser().parse_raw(data, filename)
+
+
+class IPCNetlist(CamFile):
 
     @classmethod
     def from_file(cls, filename):
-        parser = IPC_D_356_Parser()
+        parser = IPCNetlistParser()
         return parser.parse(filename)
 
     def __init__(self, statements, settings, primitives=None, filename=None):
@@ -130,7 +149,7 @@ class IPC_D_356(CamFile):
             ctx.dump(filename)
 
 
-class IPC_D_356_Parser(object):
+class IPCNetlistParser(object):
     # TODO: Allow multi-line statements (e.g. Altium board edge)
 
     def __init__(self):
@@ -145,9 +164,13 @@ class IPC_D_356_Parser(object):
 
     def parse(self, filename):
         with open(filename, 'rU') as f:
-            oldline = ''
-            for line in f:
-                # Check for existing multiline data...
+            data = f.read()
+        return self.parse_raw(data, filename)
+
+    def parse_raw(self, data, filename=None):
+        oldline = ''
+        for line in data.splitlines():
+            # Check for existing multiline data...
                 if oldline != '':
                     if len(line) and line[0] == '0':
                         oldline = oldline.rstrip('\r\n') + line[3:].rstrip()
@@ -158,7 +181,7 @@ class IPC_D_356_Parser(object):
                     oldline = line
         self._parse_line(oldline)
 
-        return IPC_D_356(self.statements, self.settings, filename=filename)
+        return IPCNetlist(self.statements, self.settings, filename=filename)
 
     def _parse_line(self, line):
         if not len(line):

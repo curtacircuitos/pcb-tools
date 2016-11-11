@@ -14,7 +14,8 @@ IPC_D_356_FILE = os.path.join(os.path.dirname(__file__),
 
 def test_read():
     ipcfile = read(IPC_D_356_FILE)
-    assert(isinstance(ipcfile, IPC_D_356))
+    assert(isinstance(ipcfile, IPCNetlist))
+
 
 
 def test_parser():

@@ -50,7 +50,7 @@ def read(filename):
     return GerberParser().parse(filename)
 
 
-def loads(data):
+def loads(data, filename=None):
     """ Generate a GerberFile object from rs274x data in memory
 
     Parameters
@@ -58,12 +58,15 @@ def loads(data):
     data : string
         string containing gerber file contents
 
+    filename : string, optional
+        string containing the filename of the data source
+
     Returns
     -------
     file : :class:`gerber.rs274x.GerberFile`
         A GerberFile created from the specified file.
     """
-    return GerberParser().parse_raw(data)
+    return GerberParser().parse_raw(data, filename)
 
 
 class GerberFile(CamFile):
@@ -98,7 +101,7 @@ class GerberFile(CamFile):
 
     def __init__(self, statements, settings, primitives, apertures, filename=None):
         super(GerberFile, self).__init__(statements, settings, primitives, filename)
-        
+
         self.apertures = apertures
 
     @property
@@ -115,15 +118,18 @@ class GerberFile(CamFile):
     def bounds(self):
         min_x = min_y = 1000000
         max_x = max_y = -1000000
+
         for stmt in [stmt for stmt in self.statements if isinstance(stmt, CoordStmt)]:
             if stmt.x is not None:
                 min_x = min(stmt.x, min_x)
                 max_x = max(stmt.x, max_x)
+
             if stmt.y is not None:
                 min_y = min(stmt.y, min_y)
                 max_y = max(stmt.y, max_y)
+
         return ((min_x, max_x), (min_y, max_y))
-    
+
     @property
     def bounding_box(self):
         min_x = min_y = 1000000
@@ -258,7 +264,7 @@ class GerberParser(object):
             stmt.units = self.settings.units
 
         return GerberFile(self.statements, self.settings, self.primitives, self.apertures.values(), filename)
-    
+
     def _split_commands(self, data):
         """
         Split the data into commands. Commands end with * (and also newline to help with some badly formatted files)
@@ -267,24 +273,24 @@ class GerberParser(object):
         length = len(data)
         start = 0
         in_header = True
-        
+
         for cur in range(0, length):
 
             val = data[cur]
-            
+
             if val == '%' and start == cur:
                 in_header = True
                 continue
-                
+
             if val == '\r' or val == '\n':
                 if start != cur:
                     yield data[start:cur]
                 start = cur + 1
-                
+
             elif not in_header and val == '*':
                 yield data[start:cur + 1]
                 start = cur + 1
-                
+
             elif in_header and val == '%':
                 yield data[start:cur + 1]
                 start = cur + 1
@@ -318,13 +324,13 @@ class GerberParser(object):
             did_something = True  # make sure we do at least one loop
             while did_something and len(line) > 0:
                 did_something = False
-                
+
                 # consume empty data blocks
                 if line[0] == '*':
                     line = line[1:]
                     did_something = True
                     continue
-                
+
                 # coord
                 (coord, r) = _match_one(self.COORD_STMT, line)
                 if coord:
@@ -332,7 +338,7 @@ class GerberParser(object):
                     line = r
                     did_something = True
                     continue
-                
+
                 # aperture selection
                 (aperture, r) = _match_one(self.APERTURE_STMT, line)
                 if aperture:
@@ -485,32 +491,32 @@ class GerberParser(object):
         aperture = None
         if shape == 'C':
             diameter = modifiers[0][0]
-            
+
             if len(modifiers[0]) >= 2:
                 hole_diameter = modifiers[0][1]
             else:
                 hole_diameter = None
-                
+
             aperture = Circle(position=None, diameter=diameter, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'R':
             width = modifiers[0][0]
             height = modifiers[0][1]
-            
+
             if len(modifiers[0]) >= 3:
                 hole_diameter = modifiers[0][2]
             else:
                 hole_diameter = None
-                
+
             aperture = Rectangle(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'O':
             width = modifiers[0][0]
             height = modifiers[0][1]
-            
+
             if len(modifiers[0]) >= 3:
                 hole_diameter = modifiers[0][2]
             else:
                 hole_diameter = None
-                
+
             aperture = Obround(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
         elif shape == 'P':
             outer_diameter = modifiers[0][0]
@@ -519,7 +525,7 @@ class GerberParser(object):
                 rotation = modifiers[0][2]
             else:
                 rotation = 0
-                
+
             if len(modifiers[0]) > 3:
                 hole_diameter = modifiers[0][3]
             else:
@@ -528,6 +534,7 @@ class GerberParser(object):
         else:
             aperture = self.macros[shape].build(modifiers)
 
+        aperture.units = self.settings.units
         self.apertures[d] = aperture
 
     def _evaluate_mode(self, stmt):
@@ -636,7 +643,7 @@ class GerberParser(object):
                                                        units=self.settings.units))
 
         elif self.op == "D02" or self.op == "D2":
-            
+
             if self.region_mode == "on":
                 # D02 in the middle of a region finishes that region and starts a new one
                 if self.current_region and len(self.current_region) > 1:
@@ -645,7 +652,6 @@ class GerberParser(object):
 
         elif self.op == "D03" or self.op == "D3":
             primitive = copy.deepcopy(self.apertures[self.aperture])
-
 
             if primitive is not None:
 
@@ -663,32 +669,32 @@ class GerberParser(object):
                         if renderable is not None:
                             self.primitives.append(renderable)
         self.x, self.y = x, y
-        
+
     def _find_center(self, start, end, offsets):
         """
         In single quadrant mode, the offsets are always positive, which means there are 4 possible centers.
         The correct center is the only one that results in an arc with sweep angle of less than or equal to 90 degrees
         """
-        
+
         if self.quadrant_mode == 'single-quadrant':
-            
-            # The Gerber spec says single quadrant only has one possible center, and you can detect 
+
+            # The Gerber spec says single quadrant only has one possible center, and you can detect
             # based on the angle. But for real files, this seems to work better - there is usually
             # only one option that makes sense for the center (since the distance should be the same
             # from start and end). Find the center that makes the most sense
             sqdist_diff_min = sys.maxint
             center = None
             for factors in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
-                
+
                 test_center = (start[0] + offsets[0] * factors[0], start[1] + offsets[1] * factors[1])
-                
+
                 sqdist_start = sq_distance(start, test_center)
                 sqdist_end = sq_distance(end, test_center)
-                
+
                 if abs(sqdist_start - sqdist_end) < sqdist_diff_min:
                     center = test_center
                     sqdist_diff_min = abs(sqdist_start - sqdist_end)
-                
+
             return center
         else:
             return (start[0] + offsets[0], start[1] + offsets[1])
