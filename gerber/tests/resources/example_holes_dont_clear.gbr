@@ -1,0 +1,13 @@
+G04 Demonstrates that apertures with holes do not clear the area - only the aperture hole*
+%FSLAX26Y26*%
+%MOIN*%
+%ADD10C,1X0.5*%
+%ADD11C,0.1*%
+G01*
+%LPD*%
+D11*
+X-1000000Y-250000D02*
+X1000000Y250000D01*
+D10*
+X0Y0D03*
+M02*

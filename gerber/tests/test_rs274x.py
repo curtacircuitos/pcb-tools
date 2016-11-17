@@ -39,10 +39,9 @@ def test_size_parameter():
 
 
 def test_conversion():
-    import copy
     top_copper = read(TOP_COPPER_FILE)
     assert_equal(top_copper.units, 'inch')
-    top_copper_inch = copy.deepcopy(top_copper)
+    top_copper_inch = read(TOP_COPPER_FILE)
     top_copper.to_metric()
     for statement in top_copper_inch.statements:
         statement.to_metric()

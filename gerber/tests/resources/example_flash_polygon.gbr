@@ -1,0 +1,10 @@
+G04 Flashes of rectangular apertures*
+%FSLAX24Y24*%
+%MOMM*%
+%ADD10P,.40X6*%
+%ADD11P,.40X6X0.0X0.19*%
+D10*
+X000000Y000000D03*
+D11*
+X010000D03*
+M02*

@@ -109,12 +109,15 @@ def sort_layers(layers, from_top=True):
     append_after = ['drill', 'drawing']
 
     output = []
+    drill_layers = [layer for layer in layers if layer.layer_class == 'drill']
     internal_layers = list(sorted([layer for layer in layers
                                    if layer.layer_class == 'internal']))
 
     for layer_class in layer_order:
         if layer_class == 'internal':
             output += internal_layers
+        elif layer_class == 'drill':
+            output += drill_layers
         else:
             for layer in layers:
                 if layer.layer_class == layer_class:

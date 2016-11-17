@@ -65,7 +65,7 @@ class GerberContext(object):
         self._background_color = (0.0, 0.0, 0.0)
         self._drill_color = (0.0, 0.0, 0.0)
         self._alpha = 1.0
-        self.invert = False
+        self._invert = False
         self.ctx = None
 
     @property
@@ -127,7 +127,20 @@ class GerberContext(object):
             raise ValueError('Alpha must be between 0.0 and 1.0')
         self._alpha = alpha
 
+    @property
+    def invert(self):
+        return self._invert
+
+    @invert.setter
+    def invert(self, invert):
+        self._invert = invert
+
     def render(self, primitive):
+        if not primitive:
+            return
+
+        self._pre_render_primitive(primitive)
+
         color = self.color
         if isinstance(primitive, Line):
             self._render_line(primitive, color)
@@ -144,11 +157,32 @@ class GerberContext(object):
         elif isinstance(primitive, Polygon):
             self._render_polygon(primitive, color)
         elif isinstance(primitive, Drill):
-            self._render_drill(primitive, color)
+            self._render_drill(primitive, self.color)
+        elif isinstance(primitive, Slot):
+            self._render_slot(primitive, self.color)
+        elif isinstance(primitive, AMGroup):
+            self._render_amgroup(primitive, color)
+        elif isinstance(primitive, Outline):
+            self._render_region(primitive, color)
         elif isinstance(primitive, TestRecord):
             self._render_test_record(primitive, color)
-        else:
-            return
+
+        self._post_render_primitive(primitive)
+
+    def _pre_render_primitive(self, primitive):
+        """
+        Called before rendering a primitive. Use the callback to perform some action before rendering
+        a primitive, for example adding a comment.
+        """
+        return
+
+    def _post_render_primitive(self, primitive):
+        """
+        Called after rendering a primitive. Use the callback to perform some action after rendering
+        a primitive
+        """
+        return
+
 
     def _render_line(self, primitive, color):
         pass
@@ -172,6 +206,12 @@ class GerberContext(object):
         pass
 
     def _render_drill(self, primitive, color):
+        pass
+
+    def _render_slot(self, primitive, color):
+        pass
+
+    def _render_amgroup(self, primitive, color):
         pass
 
     def _render_test_record(self, primitive, color):

@@ -34,7 +34,10 @@ nosetests.xml
 .mr.developer.cfg
 .project
 .pydevproject
+.idea/workspace.xml
+.idea/misc.xml
 .idea
+.settings
 
 # Komodo Files
 *.komodoproject
@@ -42,3 +45,6 @@ nosetests.xml
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Virtual environment
+venv

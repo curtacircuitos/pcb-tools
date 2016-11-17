@@ -17,6 +17,7 @@ def test_read():
     assert(isinstance(ipcfile, IPCNetlist))
 
 
+
 def test_parser():
     ipcfile = read(IPC_D_356_FILE)
     assert_equal(ipcfile.settings.units, 'inch')
