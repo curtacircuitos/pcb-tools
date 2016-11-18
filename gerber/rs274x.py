@@ -20,6 +20,7 @@
 
 import copy
 import json
+import os
 import re
 import sys
 
@@ -146,7 +147,7 @@ class GerberFile(CamFile):
         return ((min_x, max_x), (min_y, max_y))
 
     def write(self, filename, settings=None):
-        """ Write data out to a gerber file
+        """ Write data out to a gerber file.
         """
         with open(filename, 'w') as f:
             for statement in self.statements:
@@ -193,6 +194,9 @@ class GerberParser(object):
     AD_POLY = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>P)[,](?P<modifiers>[^,%]*)"
     AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>{name})[,]?(?P<modifiers>[^,%]*)".format(name=NAME)
     AM = r"(?P<param>AM)(?P<name>{name})\*(?P<macro>[^%]*)".format(name=NAME)
+    # Include File
+    IF = r"(?P<param>IF)(?P<filename>.*)"
+
 
     # begin deprecated
     AS = r"(?P<param>AS)(?P<mode>(AXBY)|(AYBX))"
@@ -208,7 +212,7 @@ class GerberParser(object):
     # end deprecated
 
     PARAMS = (FS, MO, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY,
-              AD_MACRO, AM, AS, IN, IP, IR, MI, OF, SF, LN)
+              AD_MACRO, AM, AS, IF, IN, IP, IR, MI, OF, SF, LN)
 
     PARAM_STMT = [re.compile(r"%?{0}\*%?".format(p)) for p in PARAMS]
 
@@ -230,7 +234,11 @@ class GerberParser(object):
     REGION_MODE_STMT = re.compile(r'(?P<mode>G3[67])\*')
     QUAD_MODE_STMT = re.compile(r'(?P<mode>G7[45])\*')
 
+    # Keep include loop from crashing us
+    INCLUDE_FILE_RECURSION_LIMIT = 10
+
     def __init__(self):
+        self.filename = None
         self.settings = FileSettings()
         self.statements = []
         self.primitives = []
@@ -248,13 +256,16 @@ class GerberParser(object):
         self.region_mode = 'off'
         self.quadrant_mode = 'multi-quadrant'
         self.step_and_repeat = (1, 1, 0, 0)
+        self._recursion_depth = 0
 
     def parse(self, filename):
+        self.filename = filename
         with open(filename, "rU") as fp:
             data = fp.read()
         return self.parse_raw(data, filename)
 
     def parse_raw(self, data, filename=None):
+        self.filename = filename
         for stmt in self._parse(self._split_commands(data)):
             self.evaluate(stmt)
             self.statements.append(stmt)
@@ -371,6 +382,17 @@ class GerberParser(object):
                         yield stmt
                     elif param["param"] == "OF":
                         yield OFParamStmt.from_dict(param)
+                    elif param["param"] == "IF":
+                        # Don't crash on include loop
+                        if self._recursion_depth < self.INCLUDE_FILE_RECURSION_LIMIT:
+                            self._recursion_depth += 1
+                            with open(os.path.join(os.path.dirname(self.filename), param["filename"]), 'r') as f:
+                                inc_data = f.read()
+                            for stmt in self._parse(self._split_commands(inc_data)):
+                                yield stmt
+                            self._recursion_depth -= 1
+                        else:
+                            raise IOError("Include file nesting depth limit exceeded.")
                     elif param["param"] == "IN":
                         yield INParamStmt.from_dict(param)
                     elif param["param"] == "LN":
