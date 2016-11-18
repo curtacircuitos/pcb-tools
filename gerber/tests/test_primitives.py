@@ -192,15 +192,52 @@ def test_arc_sweep_angle():
 def test_arc_bounds():
     """ Test Arc primitive bounding box calculation
     """
-    cases = [((1, 0), (0, 1), (0, 0), 'clockwise', ((-1.5, 1.5), (-1.5, 1.5))),
-             ((1, 0), (0, 1), (0, 0), 'counterclockwise',
-              ((-0.5, 1.5), (-0.5, 1.5))),
-             # TODO: ADD MORE TEST CASES HERE
-             ]
+    cases = [
+        ((1, 0), (0, 1), (0, 0), 'clockwise', ((-1.5, 1.5), (-1.5, 1.5))),
+        ((1, 0), (0, 1), (0, 0), 'counterclockwise',((-0.5, 1.5), (-0.5, 1.5))),
+
+        ((0, 1), (-1, 0), (0, 0), 'clockwise', ((-1.5, 1.5), (-1.5, 1.5))),
+        ((0, 1), (-1, 0), (0, 0), 'counterclockwise', ((-1.5, 0.5), (-0.5, 1.5))),
+
+        ((-1, 0), (0, -1), (0, 0), 'clockwise', ((-1.5, 1.5), (-1.5, 1.5))),
+        ((-1, 0), (0, -1), (0, 0), 'counterclockwise', ((-1.5, 0.5), (-1.5, 0.5))),
+
+        ((0, -1), (1, 0), (0, 0), 'clockwise', ((-1.5, 1.5), (-1.5, 1.5))),
+        ((0, -1), (1, 0), (0, 0), 'counterclockwise',((-0.5, 1.5), (-1.5, 0.5))),
+
+        # Arcs with the same start and end point render a full circle
+        ((1, 0), (1, 0), (0, 0), 'clockwise', ((-1.5, 1.5), (-1.5, 1.5))),
+        ((1, 0), (1, 0), (0, 0), 'counterclockwise', ((-1.5, 1.5), (-1.5, 1.5))),
+    ]
     for start, end, center, direction, bounds in cases:
         c = Circle((0,0), 1)
-        a = Arc(start, end, center, direction, c, 'single-quadrant')
+        a = Arc(start, end, center, direction, c, 'multi-quadrant')
         assert_equal(a.bounding_box, bounds)
+
+def test_arc_bounds_no_aperture():
+    """ Test Arc primitive bounding box calculation ignoring aperture
+    """
+    cases = [
+        ((1, 0), (0, 1), (0, 0), 'clockwise', ((-1.0, 1.0), (-1.0, 1.0))),
+        ((1, 0), (0, 1), (0, 0), 'counterclockwise',((0.0, 1.0), (0.0, 1.0))),
+
+        ((0, 1), (-1, 0), (0, 0), 'clockwise', ((-1.0, 1.0), (-1.0, 1.0))),
+        ((0, 1), (-1, 0), (0, 0), 'counterclockwise', ((-1.0, 0.0), (0.0, 1.0))),
+
+        ((-1, 0), (0, -1), (0, 0), 'clockwise', ((-1.0, 1.0), (-1.0, 1.0))),
+        ((-1, 0), (0, -1), (0, 0), 'counterclockwise', ((-1.0, 0.0), (-1.0, 0.0))),
+
+        ((0, -1), (1, 0), (0, 0), 'clockwise', ((-1.0, 1.0), (-1.0, 1.0))),
+        ((0, -1), (1, 0), (0, 0), 'counterclockwise',((-0.0, 1.0), (-1.0, 0.0))),
+
+        # Arcs with the same start and end point render a full circle
+        ((1, 0), (1, 0), (0, 0), 'clockwise', ((-1.0, 1.0), (-1.0, 1.0))),
+        ((1, 0), (1, 0), (0, 0), 'counterclockwise', ((-1.0, 1.0), (-1.0, 1.0))),
+    ]
+    for start, end, center, direction, bounds in cases:
+        c = Circle((0,0), 1)
+        a = Arc(start, end, center, direction, c, 'multi-quadrant')
+        assert_equal(a.bounding_box_no_aperture, bounds)
 
 
 def test_arc_conversion():
@@ -438,6 +475,7 @@ def test_rectangle_ctor():
         assert_equal(r.width, width)
         assert_equal(r.height, height)
 
+
 def test_rectangle_hole_radius():
     """ Test rectangle hole diameter calculation
     """
@@ -446,7 +484,6 @@ def test_rectangle_hole_radius():
 
     r = Rectangle((0,0), 2, 2, 1)
     assert_equal(0.5, r.hole_radius)
-
 
 
 def test_rectangle_bounds():
@@ -460,6 +497,32 @@ def test_rectangle_bounds():
     xbounds, ybounds = r.bounding_box
     assert_array_almost_equal(xbounds, (-math.sqrt(2), math.sqrt(2)))
     assert_array_almost_equal(ybounds, (-math.sqrt(2), math.sqrt(2)))
+
+def test_rectangle_vertices():
+    sqrt2 = math.sqrt(2.0)
+    TEST_VECTORS = [
+        ((0, 0), 2.0, 2.0, 0.0, ((-1.0, -1.0), (-1.0, 1.0), (1.0, 1.0), (1.0, -1.0))),
+        ((0, 0), 2.0, 3.0, 0.0, ((-1.0, -1.5), (-1.0, 1.5), (1.0, 1.5), (1.0, -1.5))),
+        ((0, 0), 2.0, 2.0, 90.0,((-1.0, -1.0), (-1.0, 1.0), (1.0, 1.0), (1.0, -1.0))),
+        ((0, 0), 3.0, 2.0, 90.0,((-1.0, -1.5), (-1.0, 1.5), (1.0, 1.5), (1.0, -1.5))),
+        ((0, 0), 2.0, 2.0, 45.0,((-sqrt2, 0.0), (0.0, sqrt2), (sqrt2, 0), (0, -sqrt2))),
+    ]
+    for pos, width, height, rotation, expected in TEST_VECTORS:
+        r = Rectangle(pos, width, height, rotation=rotation)
+        for test, expect in zip(sorted(r.vertices), sorted(expected)):
+            assert_array_almost_equal(test, expect)
+
+    r = Rectangle((0, 0), 2.0, 2.0, rotation=0.0)
+    r.rotation = 45.0
+    for test, expect in zip(sorted(r.vertices), sorted(((-sqrt2, 0.0), (0.0, sqrt2), (sqrt2, 0), (0, -sqrt2)))):
+        assert_array_almost_equal(test, expect)
+
+def test_rectangle_segments():
+
+    r = Rectangle((0, 0), 2.0, 2.0)
+    expected = [vtx for segment in r.segments for vtx in segment]
+    for vertex in r.vertices:
+        assert_in(vertex, expected)
 
 
 def test_rectangle_conversion():
@@ -696,6 +759,18 @@ def test_chamfer_rectangle_offset():
     assert_equal(r.position, (1., 0.))
     r.offset(0, 1)
     assert_equal(r.position, (1., 1.))
+
+def test_chamfer_rectangle_vertices():
+    TEST_VECTORS = [
+        (1.0, (True, True, True, True), ((-2.5, -1.5), (-2.5, 1.5), (-1.5, 2.5), (1.5, 2.5), (2.5, 1.5), (2.5, -1.5), (1.5, -2.5), (-1.5, -2.5))),
+        (1.0, (True, False, False, False), ((-2.5, -2.5), (-2.5, 2.5), (1.5, 2.5), (2.5, 1.5), (2.5, -2.5))),
+        (1.0, (False, True, False, False), ((-2.5, -2.5), (-2.5, 1.5), (-1.5, 2.5), (2.5, 2.5), (2.5, -2.5))),
+        (1.0, (False, False, True, False), ((-2.5, -1.5), (-2.5, 2.5), (2.5, 2.5), (2.5, -2.5), (-1.5, -2.5))),
+        (1.0, (False, False, False, True), ((-2.5, -2.5), (-2.5, 2.5), (2.5, 2.5), (2.5, -1.5), (1.5, -2.5))),
+    ]
+    for chamfer, corners, expected in TEST_VECTORS:
+        r = ChamferRectangle((0, 0), 5, 5, chamfer, corners)
+        assert_equal(set(r.vertices), set(expected))
 
 
 def test_round_rectangle_ctor():
@@ -1237,7 +1312,7 @@ def test_drill_conversion():
     assert_equal(d.position, (0.1, 1.0))
     assert_equal(d.diameter, 10.0)
 
-    d = Drill((0.1, 1.0), 10., None, units='inch')
+    d = Drill((0.1, 1.0), 10., units='inch')
 
     # No effect
     d.to_inch()
@@ -1255,7 +1330,7 @@ def test_drill_conversion():
 
 
 def test_drill_offset():
-    d = Drill((0, 0), 1., None)
+    d = Drill((0, 0), 1.)
     d.offset(1, 0)
     assert_equal(d.position, (1., 0.))
     d.offset(0, 1)
@@ -1263,8 +1338,8 @@ def test_drill_offset():
 
 
 def test_drill_equality():
-    d = Drill((2.54, 25.4), 254., None)
-    d1 = Drill((2.54, 25.4), 254., None)
+    d = Drill((2.54, 25.4), 254.)
+    d1 = Drill((2.54, 25.4), 254.)
     assert_equal(d, d1)
-    d1 = Drill((2.54, 25.4), 254.2, None)
+    d1 = Drill((2.54, 25.4), 254.2)
     assert_not_equal(d, d1)
