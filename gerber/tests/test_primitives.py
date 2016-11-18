@@ -1270,7 +1270,7 @@ def test_drill_ctor():
     """
     test_cases = (((0, 0), 2), ((1, 1), 3), ((2, 2), 5))
     for position, diameter in test_cases:
-        d = Drill(position, diameter, None)
+        d = Drill(position, diameter)
         assert_equal(d.position, position)
         assert_equal(d.diameter, diameter)
         assert_equal(d.radius, diameter / 2.)
@@ -1279,24 +1279,24 @@ def test_drill_ctor():
 def test_drill_ctor_validation():
     """ Test drill argument validation
     """
-    assert_raises(TypeError, Drill, 3, 5, None)
-    assert_raises(TypeError, Drill, (3,4,5), 5, None)
+    assert_raises(TypeError, Drill, 3, 5)
+    assert_raises(TypeError, Drill, (3,4,5), 5)
 
 
 
 def test_drill_bounds():
-    d = Drill((0, 0), 2, None)
+    d = Drill((0, 0), 2)
     xbounds, ybounds = d.bounding_box
     assert_array_almost_equal(xbounds, (-1, 1))
     assert_array_almost_equal(ybounds, (-1, 1))
-    d = Drill((1, 2), 2, None)
+    d = Drill((1, 2), 2)
     xbounds, ybounds = d.bounding_box
     assert_array_almost_equal(xbounds, (0, 2))
     assert_array_almost_equal(ybounds, (1, 3))
 
 
 def test_drill_conversion():
-    d = Drill((2.54, 25.4), 254., None, units='metric')
+    d = Drill((2.54, 25.4), 254., units='metric')
 
     #No effect
     d.to_metric()
