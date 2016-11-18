@@ -25,9 +25,7 @@ files.
 
 import os
 from math import radians, sin, cos
-from operator import sub
-from copy import deepcopy
-from pyhull.convex_hull import ConvexHull
+from scipy.spatial import ConvexHull
 
 MILLIMETERS_PER_INCH = 25.4
 
@@ -344,5 +342,4 @@ def listdir(directory, ignore_hidden=True, ignore_os=True):
 
 def convex_hull(points):
     vertices = ConvexHull(points).vertices
-    return [points[idx] for idx in
-            set([point for pair in vertices for point in pair])]
+    return [points[idx] for idx in vertices]
