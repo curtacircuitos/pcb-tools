@@ -113,16 +113,16 @@ class ExcellonTool(ExcellonStatement):
     hit_count : integer
         Number of tool hits in excellon file.
     """
-    
+
     PLATED_UNKNOWN = None
     PLATED_YES = 'plated'
     PLATED_NO = 'nonplated'
     PLATED_OPTIONAL = 'optional'
-    
+
     @classmethod
     def from_tool(cls, tool):
         args = {}
-        
+
         args['depth_offset'] = tool.depth_offset
         args['diameter'] = tool.diameter
         args['feed_rate'] = tool.feed_rate
@@ -131,7 +131,7 @@ class ExcellonTool(ExcellonStatement):
         args['plated'] = tool.plated
         args['retract_rate'] = tool.retract_rate
         args['rpm'] = tool.rpm
-        
+
         return cls(None, **args)
 
     @classmethod
@@ -172,9 +172,9 @@ class ExcellonTool(ExcellonStatement):
                 args['number'] = int(val)
             elif cmd == 'Z':
                 args['depth_offset'] = parse_gerber_value(val, nformat, zero_suppression)
-                
+
         if plated != ExcellonTool.PLATED_UNKNOWN:
-            # Sometimees we can can parse the 
+            # Sometimees we can can parse the plating status
             args['plated'] = plated
         return cls(settings, **args)
 
@@ -209,7 +209,7 @@ class ExcellonTool(ExcellonStatement):
         self.max_hit_count = kwargs.get('max_hit_count')
         self.depth_offset = kwargs.get('depth_offset')
         self.plated = kwargs.get('plated')
-            
+
         self.hit_count = 0
 
     def to_excellon(self, settings=None):
@@ -249,15 +249,15 @@ class ExcellonTool(ExcellonStatement):
 
     def _hit(self):
         self.hit_count += 1
-        
+
     def equivalent(self, other):
         """
         Is the other tool equal to this, ignoring the tool number, and other file specified properties
         """
-        
+
         if type(self) != type(other):
             return False
-        
+
         return (self.diameter == other.diameter
             and self.feed_rate == other.feed_rate
             and self.retract_rate == other.retract_rate
@@ -314,12 +314,12 @@ class ToolSelectionStmt(ExcellonStatement):
         if self.compensation_index is not None:
             stmt += '%02d' % self.compensation_index
         return stmt
-    
+
 class NextToolSelectionStmt(ExcellonStatement):
-    
+
     # TODO the statement exists outside of the context of the file,
     # so it is imposible to know that it is really the next tool
-    
+
     def __init__(self, cur_tool, next_tool, **kwargs):
         """
         Select the next tool in the wheel.
@@ -329,10 +329,10 @@ class NextToolSelectionStmt(ExcellonStatement):
         next_tool : the that that is now selected
         """
         super(NextToolSelectionStmt, self).__init__(**kwargs)
-        
+
         self.cur_tool = cur_tool
         self.next_tool = next_tool
-        
+
     def to_excellon(self, settings=None):
         stmt = 'M00'
         return stmt
@@ -651,11 +651,11 @@ class EndOfProgramStmt(ExcellonStatement):
 
 
 class UnitStmt(ExcellonStatement):
-    
+
     @classmethod
     def from_settings(cls, settings):
         """Create the unit statement from the FileSettings"""
-        
+
         return cls(settings.units, settings.zeros)
 
     @classmethod
@@ -742,7 +742,7 @@ class FormatStmt(ExcellonStatement):
 
     def to_excellon(self, settings=None):
         return 'FMAT,%d' % self.format
-    
+
     @property
     def format_tuple(self):
         return (self.format, 6 - self.format)
@@ -844,38 +844,38 @@ class UnknownStmt(ExcellonStatement):
 class SlotStmt(ExcellonStatement):
     """
     G85 statement.  Defines a slot created by multiple drills between two specified points.
-    
+
     Format is two coordinates, split by G85in the middle, for example, XnY0nG85XnYn
     """
-    
+
     @classmethod
     def from_points(cls, start, end):
-        
+
         return cls(start[0], start[1], end[0], end[1])
-    
+
     @classmethod
     def from_excellon(cls, line, settings, **kwargs):
         # Split the line based on the G85 separator
         sub_coords = line.split('G85')
         (x_start_coord, y_start_coord) = SlotStmt.parse_sub_coords(sub_coords[0], settings)
         (x_end_coord, y_end_coord) = SlotStmt.parse_sub_coords(sub_coords[1], settings)
-        
+
         # Some files seem to specify only one of the coordinates
         if x_end_coord == None:
             x_end_coord = x_start_coord
         if y_end_coord == None:
             y_end_coord = y_start_coord
-            
+
         c = cls(x_start_coord, y_start_coord, x_end_coord, y_end_coord, **kwargs)
         c.units = settings.units
-        return c  
-        
+        return c
+
     @staticmethod
     def parse_sub_coords(line, settings):
-        
+
         x_coord = None
         y_coord = None
-        
+
         if line[0] == 'X':
             splitline = line.strip('X').split('Y')
             x_coord = parse_gerber_value(splitline[0], settings.format,
@@ -886,7 +886,7 @@ class SlotStmt(ExcellonStatement):
         else:
             y_coord = parse_gerber_value(line.strip(' Y'), settings.format,
                                          settings.zero_suppression)
-            
+
         return (x_coord, y_coord)
 
 
@@ -907,16 +907,16 @@ class SlotStmt(ExcellonStatement):
         if self.y_start is not None:
             stmt += 'Y%s' % write_gerber_value(self.y_start, settings.format,
                                                settings.zero_suppression)
-            
+
         stmt += 'G85'
-        
+
         if self.x_end is not None:
             stmt += 'X%s' % write_gerber_value(self.x_end, settings.format,
                                                settings.zero_suppression)
         if self.y_end is not None:
             stmt += 'Y%s' % write_gerber_value(self.y_end, settings.format,
                                                settings.zero_suppression)
-        
+
         return stmt
 
     def to_inch(self):
@@ -959,7 +959,7 @@ class SlotStmt(ExcellonStatement):
             start_str += 'X: %g ' % self.x_start
         if self.y_start is not None:
             start_str += 'Y: %g ' % self.y_start
-            
+
         end_str = ''
         if self.x_end is not None:
             end_str += 'X: %g ' % self.x_end
