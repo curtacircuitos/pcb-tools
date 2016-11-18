@@ -1,0 +1,11 @@
+G04 Test include file 1 *
+G04 Crosshairs should be drawn at 0,0 in final rendering*
+G04 Handcoded by Julian Lamb *
+%MOIN*%
+%FSLAX23Y23*%
+%IOA-2.0B-1.0*%
+%ADD10C,0.050*%
+
+G04 Crosshairs to be on 0,0 *
+%IFinclude-file-1.gbx*%
+M02*

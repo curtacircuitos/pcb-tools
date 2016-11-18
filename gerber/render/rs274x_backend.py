@@ -159,7 +159,7 @@ class Rs274xContext(GerberContext):
         # Select the right aperture if not already selected
         if aperture:
             if isinstance(aperture, Circle):
-                aper = self._get_circle(aperture.diameter, aperture.hole_diameter)
+                aper = self._get_circle(aperture.diameter, aperture.hole_diameter, aperture.hole_width, aperture.hole_height)
             elif isinstance(aperture, Rectangle):
                 aper = self._get_rectangle(aperture.width, aperture.height)
             elif isinstance(aperture, Obround):
@@ -283,10 +283,12 @@ class Rs274xContext(GerberContext):
 
         self._pos = primitive.position
 
-    def _get_circle(self, diameter, hole_diameter, dcode = None):
+    def _get_circle(self, diameter, hole_diameter=None, hole_width=None,
+                    hole_height=None, dcode = None):
         '''Define a circlar aperture'''
 
-        aper = self._circles.get((diameter, hole_diameter), None)
+        key = (diameter, hole_diameter, hole_width, hole_height)
+        aper = self._circles.get(key, None)
 
         if not aper:
             if not dcode:
@@ -295,21 +297,22 @@ class Rs274xContext(GerberContext):
             else:
                 self._next_dcode = max(dcode + 1, self._next_dcode)
 
-            aper = ADParamStmt.circle(dcode, diameter, hole_diameter)
-            self._circles[(diameter, hole_diameter)] = aper
+            aper = ADParamStmt.circle(dcode, diameter, hole_diameter, hole_width, hole_height)
+            self._circles[(diameter, hole_diameter, hole_width, hole_height)] = aper
             self.header.append(aper)
 
         return aper
 
     def _render_circle(self, circle, color):
 
-        aper = self._get_circle(circle.diameter, circle.hole_diameter)
+        aper = self._get_circle(circle.diameter, circle.hole_diameter, circle.hole_width, circle.hole_height)
         self._render_flash(circle, aper)
 
-    def _get_rectangle(self, width, height, dcode = None):
+    def _get_rectangle(self, width, height, hole_diameter=None, hole_width=None,
+                       hole_height=None, dcode = None):
         '''Get a rectanglar aperture. If it isn't defined, create it'''
 
-        key = (width, height)
+        key = (width, height, hole_diameter, hole_width, hole_height)
         aper = self._rects.get(key, None)
 
         if not aper:
@@ -319,20 +322,23 @@ class Rs274xContext(GerberContext):
             else:
                 self._next_dcode = max(dcode + 1, self._next_dcode)
 
-            aper = ADParamStmt.rect(dcode, width, height)
-            self._rects[(width, height)] = aper
+            aper = ADParamStmt.rect(dcode, width, height, hole_diameter, hole_width, hole_height)
+            self._rects[(width, height, hole_diameter, hole_width, hole_height)] = aper
             self.header.append(aper)
 
         return aper
 
     def _render_rectangle(self, rectangle, color):
 
-        aper = self._get_rectangle(rectangle.width, rectangle.height)
+        aper = self._get_rectangle(rectangle.width, rectangle.height,
+                                   rectangle.hole_diameter,
+                                   rectangle.hole_width, rectangle.hole_height)
         self._render_flash(rectangle, aper)
 
-    def _get_obround(self, width, height, dcode = None):
+    def _get_obround(self, width, height, hole_diameter=None, hole_width=None,
+                     hole_height=None, dcode = None):
 
-        key = (width, height)
+        key = (width, height, hole_diameter, hole_width, hole_height)
         aper = self._obrounds.get(key, None)
 
         if not aper:
@@ -342,7 +348,7 @@ class Rs274xContext(GerberContext):
             else:
                 self._next_dcode = max(dcode + 1, self._next_dcode)
 
-            aper = ADParamStmt.obround(dcode, width, height)
+            aper = ADParamStmt.obround(dcode, width, height, hole_diameter, hole_width, hole_height)
             self._obrounds[key] = aper
             self.header.append(aper)
 
@@ -350,17 +356,22 @@ class Rs274xContext(GerberContext):
 
     def _render_obround(self, obround, color):
 
-        aper = self._get_obround(obround.width, obround.height)
+        aper = self._get_obround(obround.width, obround.height,
+                                 obround.hole_diameter, obround.hole_width,
+                                 obround.hole_height)
         self._render_flash(obround, aper)
 
     def _render_polygon(self, polygon, color):
 
-        aper = self._get_polygon(polygon.radius, polygon.sides, polygon.rotation, polygon.hole_radius)
+        aper = self._get_polygon(polygon.radius, polygon.sides,
+                                 polygon.rotation, polygon.hole_diameter,
+                                 polygon.hole_width, polygon.hole_height)
         self._render_flash(polygon, aper)
 
-    def _get_polygon(self, radius, num_vertices, rotation, hole_radius, dcode = None):
+    def _get_polygon(self, radius, num_vertices, rotation, hole_diameter=None,
+                     hole_width=None, hole_height=None, dcode = None):
 
-        key = (radius, num_vertices, rotation, hole_radius)
+        key = (radius, num_vertices, rotation, hole_diameter, hole_width, hole_height)
         aper = self._polygons.get(key, None)
 
         if not aper:
@@ -370,7 +381,9 @@ class Rs274xContext(GerberContext):
             else:
                 self._next_dcode = max(dcode + 1, self._next_dcode)
 
-            aper = ADParamStmt.polygon(dcode, radius * 2, num_vertices, rotation, hole_radius * 2)
+            aper = ADParamStmt.polygon(dcode, radius * 2, num_vertices,
+                                       rotation, hole_diameter, hole_width,
+                                       hole_height)
             self._polygons[key] = aper
             self.header.append(aper)
 

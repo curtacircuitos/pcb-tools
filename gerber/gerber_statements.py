@@ -279,22 +279,36 @@ class ADParamStmt(ParamStmt):
         return cls('AD', dcode, 'R', ([width, height],))
 
     @classmethod
-    def circle(cls, dcode, diameter, hole_diameter):
+    def circle(cls, dcode, diameter, hole_diameter=None, hole_width=None, hole_height=None):
         '''Create a circular aperture definition statement'''
 
-        if hole_diameter != None:
+        if hole_diameter is not None and hole_diameter > 0:
             return cls('AD', dcode, 'C', ([diameter, hole_diameter],))
+        elif (hole_width is not None and hole_width > 0
+              and hole_height is not None and hole_height > 0):
+            return cls('AD', dcode, 'C', ([diameter, hole_width, hole_height],))
         return cls('AD', dcode, 'C', ([diameter],))
 
     @classmethod
-    def obround(cls, dcode, width, height):
+    def obround(cls, dcode, width, height, hole_diameter=None, hole_width=None, hole_height=None):
         '''Create an obround aperture definition statement'''
+        if hole_diameter is not None and hole_diameter > 0:
+            return cls('AD', dcode, 'O', ([width, height, hole_diameter],))
+        elif (hole_width is not None and hole_width > 0
+              and hole_height is not None and hole_height > 0):
+            return cls('AD', dcode, 'O', ([width, height, hole_width, hole_height],))
         return cls('AD', dcode, 'O', ([width, height],))
 
     @classmethod
-    def polygon(cls, dcode, diameter, num_vertices, rotation, hole_diameter):
+    def polygon(cls, dcode, diameter, num_vertices, rotation, hole_diameter=None, hole_width=None, hole_height=None):
         '''Create a polygon aperture definition statement'''
-        return cls('AD', dcode, 'P', ([diameter, num_vertices, rotation, hole_diameter],))
+        if hole_diameter is not None and hole_diameter > 0:
+            return cls('AD', dcode, 'P', ([diameter, num_vertices, rotation, hole_diameter],))
+        elif (hole_width is not None and hole_width > 0
+              and hole_height is not None and hole_height > 0):
+            return cls('AD', dcode, 'P', ([diameter, num_vertices, rotation, hole_width, hole_height],))
+        return cls('AD', dcode, 'P', ([diameter, num_vertices, rotation],))
+
 
     @classmethod
     def macro(cls, dcode, name):

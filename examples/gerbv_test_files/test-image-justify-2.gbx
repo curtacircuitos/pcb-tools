@@ -1,0 +1,19 @@
+G04 Test image justify 2*
+G04 Crosshairs should be centered in X and Y (platen size *
+G04    is assumed to be 2x the overall size of the image) *
+G04 Handcoded by Julian Lamb *
+%MOIN*%
+%FSLAX23Y23*%
+%IJACBC*%
+%ADD10C,0.050*%
+
+G04 Crosshairs *
+X-1000Y0D02*
+G54D10*
+X1000Y0D01*
+
+X0Y-1000D02*
+G54D10*
+X0Y1000D01*
+
+M02*

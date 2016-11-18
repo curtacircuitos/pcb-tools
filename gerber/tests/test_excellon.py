@@ -6,6 +6,7 @@ import os
 
 from ..cam import FileSettings
 from ..excellon import read, detect_excellon_format, ExcellonFile, ExcellonParser
+from ..excellon import DrillHit, DrillSlot
 from ..excellon_statements import ExcellonTool
 from .tests import *
 
@@ -50,29 +51,28 @@ def test_read_settings():
     assert_equal(ncdrill.settings['zeros'], 'trailing')
 
 
-def test_bounds():
+def test_bounding_box():
     ncdrill = read(NCDRILL_FILE)
-    xbound, ybound = ncdrill.bounds
+    xbound, ybound = ncdrill.bounding_box
     assert_array_almost_equal(xbound, (0.1300, 2.1430))
     assert_array_almost_equal(ybound, (0.3946, 1.7164))
 
 
 def test_report():
     ncdrill = read(NCDRILL_FILE)
-
+    rprt = ncdrill.report()
 
 def test_conversion():
     import copy
     ncdrill = read(NCDRILL_FILE)
     assert_equal(ncdrill.settings.units, 'inch')
     ncdrill_inch = copy.deepcopy(ncdrill)
+
     ncdrill.to_metric()
     assert_equal(ncdrill.settings.units, 'metric')
-    inch_primitives = ncdrill_inch.primitives
     for tool in iter(ncdrill_inch.tools.values()):
         tool.to_metric()
-    for primitive in inch_primitives:
-        primitive.to_metric()
+
     for statement in ncdrill_inch.statements:
         statement.to_metric()
 
@@ -80,7 +80,8 @@ def test_conversion():
                               iter(ncdrill_inch.tools.values())):
         assert_equal(i_tool, m_tool)
 
-    for m, i in zip(ncdrill.primitives, inch_primitives):
+    for m, i in zip(ncdrill.primitives, ncdrill_inch.primitives):
+
         assert_equal(m.position, i.position, '%s not equal to %s' % (m, i))
         assert_equal(m.diameter, i.diameter, '%s not equal to %s' % (m, i))
 
@@ -197,3 +198,142 @@ def test_parse_unknown():
     p = ExcellonParser(FileSettings())
     p._parse_line('Not A Valid Statement')
     assert_equal(p.statements[0].stmt, 'Not A Valid Statement')
+
+def test_drill_hit_units_conversion():
+    """ Test unit conversion for drill hits
+    """
+    # Inch hit
+    settings = FileSettings(units='inch')
+    tool = ExcellonTool(settings, diameter=1.0)
+    hit = DrillHit(tool, (1.0, 1.0))
+
+    assert_equal(hit.tool.settings.units, 'inch')
+    assert_equal(hit.tool.diameter, 1.0)
+    assert_equal(hit.position, (1.0, 1.0))
+
+    # No Effect
+    hit.to_inch()
+
+    assert_equal(hit.tool.settings.units, 'inch')
+    assert_equal(hit.tool.diameter, 1.0)
+    assert_equal(hit.position, (1.0, 1.0))
+
+    # Should convert
+    hit.to_metric()
+
+    assert_equal(hit.tool.settings.units, 'metric')
+    assert_equal(hit.tool.diameter, 25.4)
+    assert_equal(hit.position, (25.4, 25.4))
+
+    # No Effect
+    hit.to_metric()
+
+    assert_equal(hit.tool.settings.units, 'metric')
+    assert_equal(hit.tool.diameter, 25.4)
+    assert_equal(hit.position, (25.4, 25.4))
+
+    # Convert back to inch
+    hit.to_inch()
+
+    assert_equal(hit.tool.settings.units, 'inch')
+    assert_equal(hit.tool.diameter, 1.0)
+    assert_equal(hit.position, (1.0, 1.0))
+
+def test_drill_hit_offset():
+    TEST_VECTORS = [
+        ((0.0 ,0.0), (0.0, 1.0), (0.0, 1.0)),
+        ((0.0, 0.0), (1.0, 1.0), (1.0, 1.0)),
+        ((1.0, 1.0), (0.0, -1.0), (1.0, 0.0)),
+        ((1.0, 1.0), (-1.0, -1.0), (0.0, 0.0)),
+
+    ]
+    for position, offset, expected in TEST_VECTORS:
+        settings = FileSettings(units='inch')
+        tool = ExcellonTool(settings, diameter=1.0)
+        hit = DrillHit(tool, position)
+
+        assert_equal(hit.position, position)
+
+        hit.offset(offset[0], offset[1])
+
+        assert_equal(hit.position, expected)
+
+
+def test_drill_slot_units_conversion():
+    """ Test unit conversion for drill hits
+    """
+    # Inch hit
+    settings = FileSettings(units='inch')
+    tool = ExcellonTool(settings, diameter=1.0)
+    hit = DrillSlot(tool, (1.0, 1.0), (10.0, 10.0), DrillSlot.TYPE_ROUT)
+
+    assert_equal(hit.tool.settings.units, 'inch')
+    assert_equal(hit.tool.diameter, 1.0)
+    assert_equal(hit.start, (1.0, 1.0))
+    assert_equal(hit.end, (10.0, 10.0))
+
+    # No Effect
+    hit.to_inch()
+
+    assert_equal(hit.tool.settings.units, 'inch')
+    assert_equal(hit.tool.diameter, 1.0)
+    assert_equal(hit.start, (1.0, 1.0))
+    assert_equal(hit.end, (10.0, 10.0))
+
+    # Should convert
+    hit.to_metric()
+
+    assert_equal(hit.tool.settings.units, 'metric')
+    assert_equal(hit.tool.diameter, 25.4)
+    assert_equal(hit.start, (25.4, 25.4))
+    assert_equal(hit.end, (254.0, 254.0))
+
+    # No Effect
+    hit.to_metric()
+
+    assert_equal(hit.tool.settings.units, 'metric')
+    assert_equal(hit.tool.diameter, 25.4)
+    assert_equal(hit.start, (25.4, 25.4))
+    assert_equal(hit.end, (254.0, 254.0))
+
+    # Convert back to inch
+    hit.to_inch()
+
+    assert_equal(hit.tool.settings.units, 'inch')
+    assert_equal(hit.tool.diameter, 1.0)
+    assert_equal(hit.start, (1.0, 1.0))
+    assert_equal(hit.end, (10.0, 10.0))
+
+def test_drill_slot_offset():
+    TEST_VECTORS = [
+        ((0.0 ,0.0), (1.0, 1.0), (0.0, 0.0), (0.0, 0.0), (1.0, 1.0)),
+        ((0.0, 0.0), (1.0, 1.0), (1.0, 0.0), (1.0, 0.0), (2.0, 1.0)),
+        ((0.0, 0.0), (1.0, 1.0), (1.0, 1.0), (1.0, 1.0), (2.0, 2.0)),
+        ((0.0, 0.0), (1.0, 1.0), (-1.0, 1.0), (-1.0, 1.0), (0.0, 2.0)),
+    ]
+    for start, end, offset, expected_start, expected_end in TEST_VECTORS:
+        settings = FileSettings(units='inch')
+        tool = ExcellonTool(settings, diameter=1.0)
+        slot = DrillSlot(tool, start, end, DrillSlot.TYPE_ROUT)
+
+        assert_equal(slot.start, start)
+        assert_equal(slot.end, end)
+
+        slot.offset(offset[0], offset[1])
+
+        assert_equal(slot.start, expected_start)
+        assert_equal(slot.end, expected_end)
+
+def test_drill_slot_bounds():
+    TEST_VECTORS = [
+        ((0.0, 0.0), (1.0, 1.0), 1.0, ((-0.5, 1.5), (-0.5, 1.5))),
+        ((0.0, 0.0), (1.0, 1.0), 0.5, ((-0.25, 1.25), (-0.25, 1.25))),
+    ]
+    for start, end, diameter, expected, in TEST_VECTORS:
+        settings = FileSettings(units='inch')
+        tool = ExcellonTool(settings, diameter=diameter)
+        slot = DrillSlot(tool, start, end, DrillSlot.TYPE_ROUT)
+
+        assert_equal(slot.bounding_box, expected)
+
+#def test_exce

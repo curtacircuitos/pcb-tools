@@ -1,0 +1,28 @@
+G04 Test layer knockout 1*
+G04 A cleared 3x3 square should surround the crosshairs *
+G04 Handcoded by Julian Lamb *
+%MOIN*%
+%FSLAX23Y23*%
+%ADD10C,0.050*%
+
+G04 Create a large dark area *
+G36*
+X-2000Y-2000D02*
+X2000Y-2000D01*
+X2000Y2000D01*
+X-2000Y2000D01*
+X-2000Y-2000D01*
+G37*
+
+G04 Create the knockout region *
+%KOCX-1.5Y-1.5I3J3*%
+
+G04 Draw crosshairs *
+X-1000Y0D02*
+G54D10*
+X1000Y0D01*
+X0Y-1000D02*
+G54D10*
+X0Y1000D01*
+
+M02*

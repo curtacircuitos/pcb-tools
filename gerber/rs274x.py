@@ -20,6 +20,7 @@
 
 import copy
 import json
+import os
 import re
 import sys
 
@@ -146,7 +147,7 @@ class GerberFile(CamFile):
         return ((min_x, max_x), (min_y, max_y))
 
     def write(self, filename, settings=None):
-        """ Write data out to a gerber file
+        """ Write data out to a gerber file.
         """
         with open(filename, 'w') as f:
             for statement in self.statements:
@@ -193,6 +194,9 @@ class GerberParser(object):
     AD_POLY = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>P)[,](?P<modifiers>[^,%]*)"
     AD_MACRO = r"(?P<param>AD)D(?P<d>\d+)(?P<shape>{name})[,]?(?P<modifiers>[^,%]*)".format(name=NAME)
     AM = r"(?P<param>AM)(?P<name>{name})\*(?P<macro>[^%]*)".format(name=NAME)
+    # Include File
+    IF = r"(?P<param>IF)(?P<filename>.*)"
+
 
     # begin deprecated
     AS = r"(?P<param>AS)(?P<mode>(AXBY)|(AYBX))"
@@ -208,7 +212,7 @@ class GerberParser(object):
     # end deprecated
 
     PARAMS = (FS, MO, LP, AD_CIRCLE, AD_RECT, AD_OBROUND, AD_POLY,
-              AD_MACRO, AM, AS, IN, IP, IR, MI, OF, SF, LN)
+              AD_MACRO, AM, AS, IF, IN, IP, IR, MI, OF, SF, LN)
 
     PARAM_STMT = [re.compile(r"%?{0}\*%?".format(p)) for p in PARAMS]
 
@@ -230,7 +234,11 @@ class GerberParser(object):
     REGION_MODE_STMT = re.compile(r'(?P<mode>G3[67])\*')
     QUAD_MODE_STMT = re.compile(r'(?P<mode>G7[45])\*')
 
+    # Keep include loop from crashing us
+    INCLUDE_FILE_RECURSION_LIMIT = 10
+
     def __init__(self):
+        self.filename = None
         self.settings = FileSettings()
         self.statements = []
         self.primitives = []
@@ -248,13 +256,16 @@ class GerberParser(object):
         self.region_mode = 'off'
         self.quadrant_mode = 'multi-quadrant'
         self.step_and_repeat = (1, 1, 0, 0)
+        self._recursion_depth = 0
 
     def parse(self, filename):
+        self.filename = filename
         with open(filename, "rU") as fp:
             data = fp.read()
         return self.parse_raw(data, filename)
 
     def parse_raw(self, data, filename=None):
+        self.filename = filename
         for stmt in self._parse(self._split_commands(data)):
             self.evaluate(stmt)
             self.statements.append(stmt)
@@ -371,6 +382,17 @@ class GerberParser(object):
                         yield stmt
                     elif param["param"] == "OF":
                         yield OFParamStmt.from_dict(param)
+                    elif param["param"] == "IF":
+                        # Don't crash on include loop
+                        if self._recursion_depth < self.INCLUDE_FILE_RECURSION_LIMIT:
+                            self._recursion_depth += 1
+                            with open(os.path.join(os.path.dirname(self.filename), param["filename"]), 'r') as f:
+                                inc_data = f.read()
+                            for stmt in self._parse(self._split_commands(inc_data)):
+                                yield stmt
+                            self._recursion_depth -= 1
+                        else:
+                            raise IOError("Include file nesting depth limit exceeded.")
                     elif param["param"] == "IN":
                         yield INParamStmt.from_dict(param)
                     elif param["param"] == "LN":
@@ -492,32 +514,51 @@ class GerberParser(object):
         if shape == 'C':
             diameter = modifiers[0][0]
 
-            if len(modifiers[0]) >= 2:
+            hole_diameter = 0
+            rectangular_hole = (0, 0)
+            if len(modifiers[0]) == 2:
                 hole_diameter = modifiers[0][1]
-            else:
-                hole_diameter = None
+            elif len(modifiers[0]) == 3:
+                rectangular_hole = modifiers[0][1:3]
 
-            aperture = Circle(position=None, diameter=diameter, hole_diameter=hole_diameter, units=self.settings.units)
+            aperture = Circle(position=None, diameter=diameter,
+                              hole_diameter=hole_diameter,
+                              hole_width=rectangular_hole[0],
+                              hole_height=rectangular_hole[1],
+                              units=self.settings.units)
+
         elif shape == 'R':
             width = modifiers[0][0]
             height = modifiers[0][1]
 
-            if len(modifiers[0]) >= 3:
+            hole_diameter = 0
+            rectangular_hole = (0, 0)
+            if len(modifiers[0]) == 3:
                 hole_diameter = modifiers[0][2]
-            else:
-                hole_diameter = None
+            elif len(modifiers[0]) == 4:
+                rectangular_hole = modifiers[0][2:4]
 
-            aperture = Rectangle(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
+            aperture = Rectangle(position=None, width=width, height=height,
+                                 hole_diameter=hole_diameter,
+                                 hole_width=rectangular_hole[0],
+                                 hole_height=rectangular_hole[1],
+                                 units=self.settings.units)
         elif shape == 'O':
             width = modifiers[0][0]
             height = modifiers[0][1]
 
-            if len(modifiers[0]) >= 3:
+            hole_diameter = 0
+            rectangular_hole = (0, 0)
+            if len(modifiers[0]) == 3:
                 hole_diameter = modifiers[0][2]
-            else:
-                hole_diameter = None
+            elif len(modifiers[0]) == 4:
+                rectangular_hole = modifiers[0][2:4]
 
-            aperture = Obround(position=None, width=width, height=height, hole_diameter=hole_diameter, units=self.settings.units)
+            aperture = Obround(position=None, width=width, height=height,
+                               hole_diameter=hole_diameter,
+                               hole_width=rectangular_hole[0],
+                               hole_height=rectangular_hole[1],
+                               units=self.settings.units)
         elif shape == 'P':
             outer_diameter = modifiers[0][0]
             number_vertices = int(modifiers[0][1])
@@ -526,11 +567,19 @@ class GerberParser(object):
             else:
                 rotation = 0
 
-            if len(modifiers[0]) > 3:
+            hole_diameter = 0
+            rectangular_hole = (0, 0)
+            if len(modifiers[0]) == 4:
                 hole_diameter = modifiers[0][3]
-            else:
-                hole_diameter = None
-            aperture = Polygon(position=None, sides=number_vertices, radius=outer_diameter/2.0, hole_diameter=hole_diameter, rotation=rotation)
+            elif len(modifiers[0]) >= 5:
+                rectangular_hole = modifiers[0][3:5]
+
+            aperture = Polygon(position=None, sides=number_vertices,
+                               radius=outer_diameter/2.0,
+                               hole_diameter=hole_diameter,
+                               hole_width=rectangular_hole[0],
+                               hole_height=rectangular_hole[1],
+                               rotation=rotation)
         else:
             aperture = self.macros[shape].build(modifiers)
 
@@ -641,13 +690,18 @@ class GerberParser(object):
                                                        quadrant_mode=self.quadrant_mode,
                                                        level_polarity=self.level_polarity,
                                                        units=self.settings.units))
+                    # Gerbv seems to reset interpolation mode in regions..
+                    # TODO: Make sure this is right.
+                    self.interpolation = 'linear'
 
         elif self.op == "D02" or self.op == "D2":
 
             if self.region_mode == "on":
                 # D02 in the middle of a region finishes that region and starts a new one
                 if self.current_region and len(self.current_region) > 1:
-                    self.primitives.append(Region(self.current_region, level_polarity=self.level_polarity, units=self.settings.units))
+                    self.primitives.append(Region(self.current_region,
+                                                  level_polarity=self.level_polarity,
+                                                  units=self.settings.units))
                 self.current_region = None
 
         elif self.op == "D03" or self.op == "D3":
@@ -672,36 +726,59 @@ class GerberParser(object):
 
     def _find_center(self, start, end, offsets):
         """
-        In single quadrant mode, the offsets are always positive, which means there are 4 possible centers.
-        The correct center is the only one that results in an arc with sweep angle of less than or equal to 90 degrees
+        In single quadrant mode, the offsets are always positive, which means
+        there are 4 possible centers. The correct center is the only one that
+        results in an arc with sweep angle of less than or equal to 90 degrees
+        in the specified direction
         """
-
+        two_pi = 2 * math.pi
         if self.quadrant_mode == 'single-quadrant':
+            # The Gerber spec says single quadrant only has one possible center,
+            # and you can detect it based on the angle. But for real files, this
+            # seems to work better - there is usually only one option that makes
+            # sense for the center (since the distance should be the same
+            # from start and end). We select the center with the least error in
+            # radius from all the options with a valid sweep angle.
 
-            # The Gerber spec says single quadrant only has one possible center, and you can detect
-            # based on the angle. But for real files, this seems to work better - there is usually
-            # only one option that makes sense for the center (since the distance should be the same
-            # from start and end). Find the center that makes the most sense
             sqdist_diff_min = sys.maxint
             center = None
             for factors in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
 
-                test_center = (start[0] + offsets[0] * factors[0], start[1] + offsets[1] * factors[1])
+                test_center = (start[0] + offsets[0] * factors[0],
+                               start[1] + offsets[1] * factors[1])
 
+                # Find angle from center to start and end points
+                start_angle = math.atan2(*reversed([_start - _center for _start, _center in zip(start, test_center)]))
+                end_angle = math.atan2(*reversed([_end - _center for _end, _center in zip(end, test_center)]))
+
+                # Clamp angles to 0, 2pi
+                theta0 = (start_angle + two_pi) % two_pi
+                theta1 = (end_angle + two_pi) % two_pi
+
+                # Determine sweep angle in the current arc direction
+                if self.direction == 'counterclockwise':
+                    sweep_angle = abs(theta1 - theta0)
+                else:
+                    theta0 += two_pi
+                    sweep_angle = abs(theta0 - theta1) % two_pi
+
+                # Calculate the radius error
                 sqdist_start = sq_distance(start, test_center)
                 sqdist_end = sq_distance(end, test_center)
 
-                if abs(sqdist_start - sqdist_end) < sqdist_diff_min:
+                # Take the option with the lowest radius error from the set of
+                # options with a valid sweep angle
+                if ((abs(sqdist_start - sqdist_end) < sqdist_diff_min)
+                        and (sweep_angle >= 0)
+                        and (sweep_angle <= math.pi / 2.0)):
                     center = test_center
                     sqdist_diff_min = abs(sqdist_start - sqdist_end)
-
             return center
         else:
             return (start[0] + offsets[0], start[1] + offsets[1])
 
     def _evaluate_aperture(self, stmt):
         self.aperture = stmt.d
-
 
 def _match_one(expr, data):
     match = expr.match(data)

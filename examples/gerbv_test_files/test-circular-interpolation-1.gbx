@@ -1,0 +1,35 @@
+G04 Test circular interpolation*
+G04 Hand coded by Julian Lamb *
+%MOIN*%
+%FSLAX23Y23*%
+%ADD10C,0.050*%
+G54D10*
+
+G04 Recenter to 0,0*
+G01X0Y0D02*
+
+G04 Turn on multi-quadrant mode*
+G75*
+G03X0Y00200I0J00100D01*
+
+G04 Switch to quadrant mode, draw ccwise*
+G74*
+G01X00400Y0D02*
+G03X00470Y00080I0J00100D01*
+
+G04 Draw things clockwise on the top two objects*
+
+G04 Turn on multi-quadrant mode*
+G75*
+G01X00100Y00300D02*
+G02X00100Y00500I0J00100D01*
+
+G04 Switch to quadrant mode, draw clockwise*
+G04 Note: since this is single quadrant mode, I and J must be*
+G04  positive, and the parser should automatically negate the J value*
+G04  to make the curve travel in the clockwise direction*
+G74*
+G01X00400Y00300D02*
+G02X00500Y00300I00150J00300D01*
+
+M02*

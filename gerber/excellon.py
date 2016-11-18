@@ -100,12 +100,12 @@ class DrillHit(object):
         self.position = position
 
     def to_inch(self):
-        if self.tool.units == 'metric':
+        if self.tool.settings.units == 'metric':
             self.tool.to_inch()
             self.position = tuple(map(inch, self.position))
 
     def to_metric(self):
-        if self.tool.units == 'inch':
+        if self.tool.settings.units == 'inch':
             self.tool.to_metric()
             self.position = tuple(map(metric, self.position))
 
@@ -120,7 +120,7 @@ class DrillHit(object):
         max_y = position[1] + radius
         return ((min_x, max_x), (min_y, max_y))
 
-    def offset(self, x_offset, y_offset):
+    def offset(self, x_offset=0, y_offset=0):
         self.position = tuple(map(operator.add, self.position, (x_offset, y_offset)))
 
     def __str__(self):
@@ -141,13 +141,13 @@ class DrillSlot(object):
         self.slot_type = slot_type
 
     def to_inch(self):
-        if self.tool.units == 'metric':
+        if self.tool.settings.units == 'metric':
             self.tool.to_inch()
             self.start = tuple(map(inch, self.start))
             self.end = tuple(map(inch, self.end))
 
     def to_metric(self):
-        if self.tool.units == 'inch':
+        if self.tool.settings.units == 'inch':
             self.tool.to_metric()
             self.start = tuple(map(metric, self.start))
             self.end = tuple(map(metric, self.end))
@@ -163,7 +163,7 @@ class DrillSlot(object):
         max_y = max(start[1], end[1]) + radius
         return ((min_x, max_x), (min_y, max_y))
 
-    def offset(self, x_offset, y_offset):
+    def offset(self, x_offset=0, y_offset=0):
         self.start = tuple(map(operator.add, self.start, (x_offset, y_offset)))
         self.end = tuple(map(operator.add, self.end, (x_offset, y_offset)))
 
@@ -183,6 +183,7 @@ class ExcellonFile(CamFile):
 
     hits : list of tuples
         list of drill hits as (<Tool>, (x, y))
+
     settings : dict
         Dictionary of gerber file settings
 
@@ -211,16 +212,17 @@ class ExcellonFile(CamFile):
         primitives = []
         for hit in self.hits:
             if isinstance(hit, DrillHit):
-                primitives.append(Drill(hit.position, hit.tool.diameter, hit, units=self.settings.units))
+                primitives.append(Drill(hit.position, hit.tool.diameter,
+                                        units=self.settings.units))
             elif isinstance(hit, DrillSlot):
-                primitives.append(Slot(hit.start, hit.end, hit.tool.diameter, hit, units=self.settings.units))
+                primitives.append(Slot(hit.start, hit.end, hit.tool.diameter,
+                                       units=self.settings.units))
             else:
                 raise ValueError('Unknown hit type')
-
         return primitives
 
     @property
-    def bounds(self):
+    def bounding_box(self):
         xmin = ymin = 100000000000
         xmax = ymax = -100000000000
         for hit in self.hits:
@@ -282,29 +284,31 @@ class ExcellonFile(CamFile):
         Convert units to inches
         """
         if self.units != 'inch':
-            self.units = 'inch'
             for statement in self.statements:
                 statement.to_inch()
             for tool in iter(self.tools.values()):
                 tool.to_inch()
-            for primitive in self.primitives:
-                primitive.to_inch()
-            for hit in self.hits:
-                hit.to_inch()
+            #for primitive in self.primitives:
+            #    primitive.to_inch()
+            #for hit in self.hits:
+            #    hit.to_inch()
+            self.units = 'inch'
 
     def to_metric(self):
         """  Convert units to metric
         """
         if self.units != 'metric':
-            self.units = 'metric'
             for statement in self.statements:
                 statement.to_metric()
             for tool in iter(self.tools.values()):
                 tool.to_metric()
-            for primitive in self.primitives:
-                primitive.to_metric()
+            #for primitive in self.primitives:
+            #    print("Converting to metric: {}".format(primitive))
+            #    primitive.to_metric()
+            #    print(primitive)
             for hit in self.hits:
                 hit.to_metric()
+            self.units = 'metric'
 
     def offset(self, x_offset=0, y_offset=0):
         for statement in self.statements:
@@ -663,7 +667,8 @@ class ExcellonParser(object):
             if 'G85' in line:
                 stmt = SlotStmt.from_excellon(line, self._settings())
 
-                # I don't know if this is actually correct, but it makes sense that this is where the tool would end
+                # I don't know if this is actually correct, but it makes sense
+                # that this is where the tool would end
                 x = stmt.x_end
                 y = stmt.y_end
 
@@ -835,7 +840,7 @@ def detect_excellon_format(data=None, filename=None):
             try:
                 p = ExcellonParser(settings)
                 ef = p.parse_raw(data)
-                size = tuple([t[0] - t[1] for t in ef.bounds])
+                size = tuple([t[0] - t[1] for t in ef.bounding_box])
                 hole_area = 0.0
                 for hit in p.hits:
                     tool = hit.tool
