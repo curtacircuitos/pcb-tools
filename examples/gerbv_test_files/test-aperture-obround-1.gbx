@@ -1,0 +1,38 @@
+G04 Test drawing with rectangular apertures*
+G04 Hand coded by Julian Lamb *
+%MOIN*%
+%FSLAX23Y23*%
+%ADD10O,0.050X0.025*%
+G04 Note: aperture 11 has a round hole in it, but this shouldn't ever show when*
+G04  drawing with it (only should show in flashes)*
+%ADD11O,0.075X0.050X0.025*%
+
+G04 No hole, centered at 0,0 *
+G54D10*
+G04 Recenter to 0,0
+G01X0Y0D02*
+G04 Draw a line segment*
+X00100Y0D01*
+G04 Turn off for a segment*
+X00200Y0D02*
+G04 Draw another line at angle*
+G54D11*
+X00300Y00100D01*
+G04 Turn off for a segment*
+X0Y00100D02*
+G54D10*
+G04 Turn on circular interpolation*
+G75*
+G03X0Y00300I0J00100D01*
+
+G04 Turn off for a segment*
+X00500Y00D02*
+G04 Draw a larger radius arc*
+G03X00350Y00150I-00250J-00050D01*
+
+G04 Turn off for a segment*
+X00250Y00200D02*
+G04 Draw a larger clockwise radius arc*
+G02X00350Y00350I00250J-00050D01*
+
+M02*

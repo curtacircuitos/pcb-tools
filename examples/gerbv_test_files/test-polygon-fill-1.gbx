@@ -1,0 +1,45 @@
+G04 Test drawing with polygon apertures*
+G04 Four small polygon fills aranged in a square
+G04 Hand coded by Julian Lamb *
+%MOIN*%
+%FSLAX23Y23*%
+%ADD10C,0.050*%
+
+G04 Draw a rectangle with a rounded right side*
+G36*
+G01X0Y0D02*
+X00200Y0D01*
+G75*
+G03X00200Y00200I0J00100D01*
+X0Y00200D01*
+G04 Do not close with a final line, so let gerbv automatically close*
+G37*
+
+G04 Draw a simple square*
+G36*
+G01X00400Y0D02*
+X00600Y0D01*
+X00600Y00200D01*
+X00400Y00200D01*
+X00400Y0D01*
+G37*
+
+G04 Draw a small diamond*
+G36*
+G01X00100Y00300D02*
+X00200Y00400D01*
+X00100Y00500D01*
+X0Y00400D01*
+X00100Y00300D01*
+G37*
+
+G04 Draw a very-narrow slit*
+G36*
+G01X00500Y00300D02*
+X00510Y00300D01*
+X00510Y00500D01*
+X00500Y00500D01*
+X00500Y00300D01*
+G37*
+
+M02*
