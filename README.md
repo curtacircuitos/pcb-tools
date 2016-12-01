@@ -36,6 +36,7 @@ Install from source:
 ```
 $ git clone https://github.com/curtacircuitos/pcb-tools.git
 $ cd pcb-tools
+$ pip install -r requirements.txt
 $ python setup.py install
 ```
 
