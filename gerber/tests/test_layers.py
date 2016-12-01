@@ -48,6 +48,27 @@ def test_guess_layer_class():
     for filename, layer_class in test_vectors:
         assert_equal(layer_class, guess_layer_class(filename))
 
+def test_guess_layer_class_regex():
+    """ Test regular expressions for layer matching
+    """
+
+    # Add any specific test case (filename, layer_class)
+    test_vectors = [('test - top copper.gbr', 'top'),
+                    ('test - copper top.gbr', 'top'), ]
+
+    # Add custom regular expressions
+    layer_hints = [
+        Hint(layer='top',
+                ext=[],
+                name=[],
+                regex=r'(.*)(\scopper top|\stop copper)$'
+            ),
+    ]
+    hints.extend(layer_hints)
+
+    for filename, layer_class in test_vectors:
+        assert_equal(layer_class, guess_layer_class(filename))
+
 
 def test_sort_layers():
     """ Test layer ordering

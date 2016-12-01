@@ -24,59 +24,71 @@ from .excellon import ExcellonFile
 from .ipc356 import IPCNetlist
 
 
-Hint = namedtuple('Hint', 'layer ext name')
+Hint = namedtuple('Hint', 'layer ext name regex')
 
 hints = [
     Hint(layer='top',
          ext=['gtl', 'cmp', 'top', ],
-         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', 'F.Cu', ]
+         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', 'F.Cu', ],
+         regex=''
          ),
     Hint(layer='bottom',
          ext=['gbl', 'sld', 'bot', 'sol', 'bottom', ],
-         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', 'B.Cu', ]
+         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', 'B.Cu', ],
+         regex=''
          ),
     Hint(layer='internal',
          ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1',
               'g2', 'g3', 'g4', 'g5', 'g6', ],
          name=['art', 'internal', 'pgp', 'pwr', 'gp1', 'gp2', 'gp3', 'gp4',
-               'gt5', 'gp6', 'gnd', 'ground', 'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu']
+               'gt5', 'gp6', 'gnd', 'ground', 'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu'],
+         regex=''
          ),
     Hint(layer='topsilk',
          ext=['gto', 'sst', 'plc', 'ts', 'skt', 'topsilk', ],
-         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS']
+         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS'],
+         regex=''
          ),
     Hint(layer='bottomsilk',
          ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk',],
-         name=['bsilk', 'ssb', 'botsilk', 'B.SilkS']
+         name=['bsilk', 'ssb', 'botsilk', 'B.SilkS'],
+         regex=''
          ),
     Hint(layer='topmask',
          ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', ],
          name=['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
-               'mst', 'F.Mask',]
+               'mst', 'F.Mask',],
+         regex=''
          ),
     Hint(layer='bottommask',
          ext=['gbs', 'sts', 'bmk', 'smb', 'br', 'bottommask', ],
-         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', 'B.Mask',]
+         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', 'B.Mask',],
+         regex=''
          ),
     Hint(layer='toppaste',
          ext=['gtp', 'tm', 'toppaste', ],
-         name=['sp01', 'toppaste', 'pst', 'F.Paste']
+         name=['sp01', 'toppaste', 'pst', 'F.Paste'],
+         regex=''
          ),
     Hint(layer='bottompaste',
          ext=['gbp', 'bm', 'bottompaste', ],
-         name=['sp02', 'botpaste', 'psb', 'B.Paste', ]
+         name=['sp02', 'botpaste', 'psb', 'B.Paste', ],
+         regex=''
          ),
     Hint(layer='outline',
          ext=['gko', 'outline', ],
-         name=['BDR', 'border', 'out', 'Edge.Cuts', ]
+         name=['BDR', 'border', 'out', 'Edge.Cuts', ],
+         regex=''
          ),
     Hint(layer='ipc_netlist',
          ext=['ipc'],
          name=[],
+         regex=''
          ),
     Hint(layer='drawing',
          ext=['fab'],
-         name=['assembly drawing', 'assembly', 'fabrication', 'fab drawing']
+         name=['assembly drawing', 'assembly', 'fabrication', 'fab drawing'],
+         regex=''
          ),
 ]
 
@@ -94,6 +106,10 @@ def guess_layer_class(filename):
         directory, name = os.path.split(filename)
         name, ext = os.path.splitext(name.lower())
         for hint in hints:
+            if hint.regex:
+                if re.findall(hint.regex, name, re.IGNORECASE):
+                    return hint.layer
+
             patterns = [r'^(\w*[.-])*{}([.-]\w*)?$'.format(x) for x in hint.name]
             if ext[1:] in hint.ext or any(re.findall(p, name, re.IGNORECASE) for p in patterns):
                 return hint.layer
