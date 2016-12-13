@@ -149,9 +149,7 @@ class GerberCairoContext(GerberContext):
         self.size_in_inch = None
         self._xform_matrix = None
         self._render_count = 0
-        if hasattr(self.surface_buffer, 'close'):
-            self.surface_buffer.close()
-            self.surface_buffer = None
+        self.surface_buffer = None
 
     def _new_mask(self):
         class Mask:
@@ -180,29 +178,31 @@ class GerberCairoContext(GerberContext):
         self._flatten(settings.color, settings.alpha)
 
     def _render_line(self, line, color):
-        start = [pos * scale for pos, scale in zip(line.start, self.scale)]
-        end = [pos * scale for pos, scale in zip(line.end, self.scale)]
+        start = self.scale_point(line.start)
+        end = self.scale_point(line.end)
         self.ctx.set_operator(cairo.OPERATOR_OVER
                               if (not self.invert)
                                  and line.level_polarity == 'dark'
                               else cairo.OPERATOR_CLEAR)
-        with self._new_mask() as mask:
-            if isinstance(line.aperture, Circle):
-                width = line.aperture.diameter
-                mask.ctx.set_line_width(width * self.scale[0])
-                mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-                mask.ctx.move_to(*start)
-                mask.ctx.line_to(*end)
-                mask.ctx.stroke()
 
-            elif hasattr(line, 'vertices') and line.vertices is not None:
-                points = [self.scale_point(x) for x in line.vertices]
-                mask.ctx.set_line_width(0)
-                mask.ctx.move_to(*points[-1])
-                for point in points:
-                    mask.ctx.line_to(*point)
-                mask.ctx.fill()
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
+        with self._clip_primitive(line):
+            with self._new_mask() as mask:
+                if isinstance(line.aperture, Circle):
+                    width = line.aperture.diameter
+                    mask.ctx.set_line_width(width * self.scale[0])
+                    mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+                    mask.ctx.move_to(*start)
+                    mask.ctx.line_to(*end)
+                    mask.ctx.stroke()
+
+                elif hasattr(line, 'vertices') and line.vertices is not None:
+                    points = [self.scale_point(x) for x in line.vertices]
+                    mask.ctx.set_line_width(0)
+                    mask.ctx.move_to(*points[-1])
+                    for point in points:
+                        mask.ctx.line_to(*point)
+                    mask.ctx.fill()
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_arc(self, arc, color):
         center = self.scale_point(arc.center)
@@ -224,58 +224,58 @@ class GerberCairoContext(GerberContext):
                               if (not self.invert)
                                  and arc.level_polarity == 'dark'
                               else cairo.OPERATOR_CLEAR)
+        with self._clip_primitive(arc):
+            with self._new_mask() as mask:
+                mask.ctx.set_line_width(width * self.scale[0])
+                mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND if isinstance(arc.aperture, Circle) else cairo.LINE_CAP_SQUARE)
+                mask.ctx.move_to(*start)  # You actually have to do this...
+                if arc.direction == 'counterclockwise':
+                    mask.ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
+                else:
+                    mask.ctx.arc_negative(*center, radius=radius,
+                                          angle1=angle1, angle2=angle2)
+                mask.ctx.move_to(*end)  # ...lame
+                mask.ctx.stroke()
 
-        with self._new_mask() as mask:
-            mask.ctx.set_line_width(width * self.scale[0])
-            mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND if isinstance(arc.aperture, Circle) else cairo.LINE_CAP_SQUARE)
-            mask.ctx.move_to(*start)  # You actually have to do this...
-            if arc.direction == 'counterclockwise':
-                mask.ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
-            else:
-                mask.ctx.arc_negative(*center, radius=radius,
-                                      angle1=angle1, angle2=angle2)
-            mask.ctx.move_to(*end)  # ...lame
-            mask.ctx.stroke()
+                #if isinstance(arc.aperture, Rectangle):
+                #    print("Flash Rectangle Ends")
+                #    print(arc.aperture.rotation * 180/math.pi)
+                #    rect = arc.aperture
+                #    width = self.scale[0] * rect.width
+                #    height = self.scale[1] * rect.height
+                #    for point, angle in zip((start, end), (angle1, angle2)):
+                #        print("{} w {} h{}".format(point, rect.width, rect.height))
+                #        mask.ctx.rectangle(point[0] - width/2.0,
+                #                           point[1] - height/2.0, width, height)
+                #        mask.ctx.fill()
 
-            #if isinstance(arc.aperture, Rectangle):
-            #    print("Flash Rectangle Ends")
-            #    print(arc.aperture.rotation * 180/math.pi)
-            #    rect = arc.aperture
-            #    width = self.scale[0] * rect.width
-            #    height = self.scale[1] * rect.height
-            #    for point, angle in zip((start, end), (angle1, angle2)):
-            #        print("{} w {} h{}".format(point, rect.width, rect.height))
-            #        mask.ctx.rectangle(point[0] - width/2.0,
-            #                           point[1] - height/2.0, width, height)
-            #        mask.ctx.fill()
-
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
-
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_region(self, region, color):
         self.ctx.set_operator(cairo.OPERATOR_OVER
                               if (not self.invert) and region.level_polarity == 'dark'
                               else cairo.OPERATOR_CLEAR)
-        with self._new_mask() as mask:
-            mask.ctx.set_line_width(0)
-            mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-            mask.ctx.move_to(*self.scale_point(region.primitives[0].start))
-            for prim in region.primitives:
-                if isinstance(prim, Line):
-                    mask.ctx.line_to(*self.scale_point(prim.end))
-                else:
-                    center = self.scale_point(prim.center)
-                    radius = self.scale[0] * prim.radius
-                    angle1 = prim.start_angle
-                    angle2 = prim.end_angle
-                    if prim.direction == 'counterclockwise':
-                        mask.ctx.arc(*center, radius=radius,
-                                     angle1=angle1, angle2=angle2)
+        with self._clip_primitive(region):
+            with self._new_mask() as mask:
+                mask.ctx.set_line_width(0)
+                mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+                mask.ctx.move_to(*self.scale_point(region.primitives[0].start))
+                for prim in region.primitives:
+                    if isinstance(prim, Line):
+                        mask.ctx.line_to(*self.scale_point(prim.end))
                     else:
-                        mask.ctx.arc_negative(*center, radius=radius,
-                                              angle1=angle1, angle2=angle2)
-            mask.ctx.fill()
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
+                        center = self.scale_point(prim.center)
+                        radius = self.scale[0] * prim.radius
+                        angle1 = prim.start_angle
+                        angle2 = prim.end_angle
+                        if prim.direction == 'counterclockwise':
+                            mask.ctx.arc(*center, radius=radius,
+                                         angle1=angle1, angle2=angle2)
+                        else:
+                            mask.ctx.arc_negative(*center, radius=radius,
+                                                  angle1=angle1, angle2=angle2)
+                mask.ctx.fill()
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_circle(self, circle, color):
         center = self.scale_point(circle.position)
@@ -283,49 +283,47 @@ class GerberCairoContext(GerberContext):
                               if (not self.invert)
                                  and circle.level_polarity == 'dark'
                               else cairo.OPERATOR_CLEAR)
-
-        with self._new_mask() as mask:
-            mask.ctx.set_line_width(0)
-            mask.ctx.arc(center[0],
-                         center[1],
-                         radius=(circle.radius * self.scale[0]),
-                         angle1=0,
-                         angle2=(2 * math.pi))
-            mask.ctx.fill()
-
-            if hasattr(circle, 'hole_diameter') and circle.hole_diameter > 0:
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR)
+        with self._clip_primitive(circle):
+            with self._new_mask() as mask:
+                mask.ctx.set_line_width(0)
                 mask.ctx.arc(center[0],
                              center[1],
-                             radius=circle.hole_radius * self.scale[0],
+                             radius=(circle.radius * self.scale[0]),
                              angle1=0,
-                             angle2=2 * math.pi)
+                             angle2=(2 * math.pi))
                 mask.ctx.fill()
 
-            if (hasattr(circle, 'hole_width') and hasattr(circle, 'hole_height')
-                    and circle.hole_width > 0 and circle.hole_height > 0):
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR
-                                      if circle.level_polarity == 'dark'
-                                         and (not self.invert)
-                                      else cairo.OPERATOR_OVER)
-                width, height = self.scale_point((circle.hole_width, circle.hole_height))
-                lower_left = rotate_point(
-                    (center[0] - width / 2.0, center[1] - height / 2.0),
-                                          circle.rotation, center)
-                lower_right = rotate_point((center[0] + width / 2.0, center[1] - height / 2.0),
-                                           circle.rotation, center)
-                upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0),
-                                          circle.rotation, center)
-                upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0),
-                                           circle.rotation, center)
-                points = (lower_left, lower_right, upper_right, upper_left)
-                mask.ctx.move_to(*points[-1])
-                for point in points:
-                    mask.ctx.line_to(*point)
-                mask.ctx.fill()
+                if hasattr(circle, 'hole_diameter') and circle.hole_diameter > 0:
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR)
+                    mask.ctx.arc(center[0],
+                                 center[1],
+                                 radius=circle.hole_radius * self.scale[0],
+                                 angle1=0,
+                                 angle2=2 * math.pi)
+                    mask.ctx.fill()
 
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
-
+                if (hasattr(circle, 'hole_width') and hasattr(circle, 'hole_height')
+                        and circle.hole_width > 0 and circle.hole_height > 0):
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR
+                                          if circle.level_polarity == 'dark'
+                                             and (not self.invert)
+                                          else cairo.OPERATOR_OVER)
+                    width, height = self.scale_point((circle.hole_width, circle.hole_height))
+                    lower_left = rotate_point(
+                        (center[0] - width / 2.0, center[1] - height / 2.0),
+                                              circle.rotation, center)
+                    lower_right = rotate_point((center[0] + width / 2.0, center[1] - height / 2.0),
+                                               circle.rotation, center)
+                    upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0),
+                                              circle.rotation, center)
+                    upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0),
+                                               circle.rotation, center)
+                    points = (lower_left, lower_right, upper_right, upper_left)
+                    mask.ctx.move_to(*points[-1])
+                    for point in points:
+                        mask.ctx.line_to(*point)
+                    mask.ctx.fill()
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_rectangle(self, rectangle, color):
         lower_left = self.scale_point(rectangle.lower_left)
@@ -336,152 +334,153 @@ class GerberCairoContext(GerberContext):
                               if (not self.invert)
                                  and rectangle.level_polarity == 'dark'
                               else cairo.OPERATOR_CLEAR)
-        with self._new_mask() as mask:
-
-            mask.ctx.set_line_width(0)
-            mask.ctx.rectangle(*lower_left, width=width, height=height)
-            mask.ctx.fill()
-
-            center = self.scale_point(rectangle.position)
-            if rectangle.hole_diameter > 0:
-                # Render the center clear
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR
-                                      if rectangle.level_polarity == 'dark'
-                                         and (not self.invert)
-                                      else cairo.OPERATOR_OVER)
-
-                mask.ctx.arc(center[0], center[1],
-                             radius=rectangle.hole_radius * self.scale[0], angle1=0,
-                             angle2=2 * math.pi)
+        with self._clip_primitive(rectangle):
+            with self._new_mask() as mask:
+                mask.ctx.set_line_width(0)
+                mask.ctx.rectangle(*lower_left, width=width, height=height)
                 mask.ctx.fill()
 
-            if rectangle.hole_width > 0 and rectangle.hole_height > 0:
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR
-                                      if rectangle.level_polarity == 'dark'
-                                         and (not self.invert)
-                                      else cairo.OPERATOR_OVER)
-                width, height = self.scale_point((rectangle.hole_width, rectangle.hole_height))
-                lower_left = rotate_point((center[0] - width/2.0, center[1] - height/2.0), rectangle.rotation, center)
-                lower_right = rotate_point((center[0] + width/2.0, center[1] - height/2.0), rectangle.rotation, center)
-                upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0), rectangle.rotation, center)
-                upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0), rectangle.rotation, center)
-                points = (lower_left, lower_right, upper_right, upper_left)
-                mask.ctx.move_to(*points[-1])
-                for point in points:
-                    mask.ctx.line_to(*point)
-                mask.ctx.fill()
+                center = self.scale_point(rectangle.position)
+                if rectangle.hole_diameter > 0:
+                    # Render the center clear
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR
+                                          if rectangle.level_polarity == 'dark'
+                                             and (not self.invert)
+                                          else cairo.OPERATOR_OVER)
 
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
+                    mask.ctx.arc(center[0], center[1],
+                                 radius=rectangle.hole_radius * self.scale[0], angle1=0,
+                                 angle2=2 * math.pi)
+                    mask.ctx.fill()
+
+                if rectangle.hole_width > 0 and rectangle.hole_height > 0:
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR
+                                          if rectangle.level_polarity == 'dark'
+                                             and (not self.invert)
+                                          else cairo.OPERATOR_OVER)
+                    width, height = self.scale_point((rectangle.hole_width, rectangle.hole_height))
+                    lower_left = rotate_point((center[0] - width/2.0, center[1] - height/2.0), rectangle.rotation, center)
+                    lower_right = rotate_point((center[0] + width/2.0, center[1] - height/2.0), rectangle.rotation, center)
+                    upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0), rectangle.rotation, center)
+                    upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0), rectangle.rotation, center)
+                    points = (lower_left, lower_right, upper_right, upper_left)
+                    mask.ctx.move_to(*points[-1])
+                    for point in points:
+                        mask.ctx.line_to(*point)
+                    mask.ctx.fill()
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_obround(self, obround, color):
         self.ctx.set_operator(cairo.OPERATOR_OVER
                               if (not self.invert)
                                  and obround.level_polarity == 'dark'
                               else cairo.OPERATOR_CLEAR)
-        with self._new_mask() as mask:
-            mask.ctx.set_line_width(0)
+        with self._clip_primitive(obround):
+            with self._new_mask() as mask:
+                mask.ctx.set_line_width(0)
 
-            # Render circles
-            for circle in (obround.subshapes['circle1'], obround.subshapes['circle2']):
-                center = self.scale_point(circle.position)
-                mask.ctx.arc(center[0],
-                             center[1],
-                             radius=(circle.radius * self.scale[0]),
-                             angle1=0,
-                             angle2=(2 * math.pi))
+                # Render circles
+                for circle in (obround.subshapes['circle1'], obround.subshapes['circle2']):
+                    center = self.scale_point(circle.position)
+                    mask.ctx.arc(center[0],
+                                 center[1],
+                                 radius=(circle.radius * self.scale[0]),
+                                 angle1=0,
+                                 angle2=(2 * math.pi))
+                    mask.ctx.fill()
+
+                # Render Rectangle
+                rectangle = obround.subshapes['rectangle']
+                lower_left = self.scale_point(rectangle.lower_left)
+                width, height = tuple([abs(coord) for coord in
+                                       self.scale_point((rectangle.width,
+                                                         rectangle.height))])
+                mask.ctx.rectangle(*lower_left, width=width, height=height)
                 mask.ctx.fill()
 
-            # Render Rectangle
-            rectangle = obround.subshapes['rectangle']
-            lower_left = self.scale_point(rectangle.lower_left)
-            width, height = tuple([abs(coord) for coord in
-                                   self.scale_point((rectangle.width,
-                                                     rectangle.height))])
-            mask.ctx.rectangle(*lower_left, width=width, height=height)
-            mask.ctx.fill()
+                center = self.scale_point(obround.position)
+                if obround.hole_diameter > 0:
+                    # Render the center clear
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR)
+                    mask.ctx.arc(center[0], center[1],
+                                 radius=obround.hole_radius * self.scale[0], angle1=0,
+                                 angle2=2 * math.pi)
+                    mask.ctx.fill()
 
-            center = self.scale_point(obround.position)
-            if obround.hole_diameter > 0:
-                # Render the center clear
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR)
-                mask.ctx.arc(center[0], center[1],
-                             radius=obround.hole_radius * self.scale[0], angle1=0,
-                             angle2=2 * math.pi)
-                mask.ctx.fill()
+                if obround.hole_width > 0 and obround.hole_height > 0:
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR
+                                          if rectangle.level_polarity == 'dark'
+                                             and (not self.invert)
+                                          else cairo.OPERATOR_OVER)
+                    width, height =self.scale_point((obround.hole_width, obround.hole_height))
+                    lower_left = rotate_point((center[0] - width / 2.0, center[1] - height / 2.0),
+                                              obround.rotation, center)
+                    lower_right = rotate_point((center[0] + width / 2.0, center[1] - height / 2.0),
+                                               obround.rotation, center)
+                    upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0),
+                                              obround.rotation, center)
+                    upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0),
+                                               obround.rotation, center)
+                    points = (lower_left, lower_right, upper_right, upper_left)
+                    mask.ctx.move_to(*points[-1])
+                    for point in points:
+                        mask.ctx.line_to(*point)
+                    mask.ctx.fill()
 
-            if obround.hole_width > 0 and obround.hole_height > 0:
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR
-                                      if rectangle.level_polarity == 'dark'
-                                         and (not self.invert)
-                                      else cairo.OPERATOR_OVER)
-                width, height =self.scale_point((obround.hole_width, obround.hole_height))
-                lower_left = rotate_point((center[0] - width / 2.0, center[1] - height / 2.0),
-                                          obround.rotation, center)
-                lower_right = rotate_point((center[0] + width / 2.0, center[1] - height / 2.0),
-                                           obround.rotation, center)
-                upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0),
-                                          obround.rotation, center)
-                upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0),
-                                           obround.rotation, center)
-                points = (lower_left, lower_right, upper_right, upper_left)
-                mask.ctx.move_to(*points[-1])
-                for point in points:
-                    mask.ctx.line_to(*point)
-                mask.ctx.fill()
-
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_polygon(self, polygon, color):
         self.ctx.set_operator(cairo.OPERATOR_OVER
                               if (not self.invert)
                                  and polygon.level_polarity == 'dark'
                               else cairo.OPERATOR_CLEAR)
-        with self._new_mask() as mask:
+        with self._clip_primitive(polygon):
+            with self._new_mask() as mask:
 
-            vertices = polygon.vertices
-            mask.ctx.set_line_width(0)
-            mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-            # Start from before the end so it is easy to iterate and make sure
-            # it is closed
-            mask.ctx.move_to(*self.scale_point(vertices[-1]))
-            for v in vertices:
-                mask.ctx.line_to(*self.scale_point(v))
-            mask.ctx.fill()
-
-            center = self.scale_point(polygon.position)
-            if polygon.hole_radius > 0:
-                # Render the center clear
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR
-                                      if polygon.level_polarity == 'dark'
-                                         and (not self.invert)
-                                      else cairo.OPERATOR_OVER)
+                vertices = polygon.vertices
                 mask.ctx.set_line_width(0)
-                mask.ctx.arc(center[0],
-                             center[1],
-                             polygon.hole_radius * self.scale[0], 0, 2 * math.pi)
+                mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+                # Start from before the end so it is easy to iterate and make sure
+                # it is closed
+                mask.ctx.move_to(*self.scale_point(vertices[-1]))
+                for v in vertices:
+                    mask.ctx.line_to(*self.scale_point(v))
                 mask.ctx.fill()
 
-            if polygon.hole_width > 0 and polygon.hole_height > 0:
-                mask.ctx.set_operator(cairo.OPERATOR_CLEAR
-                                      if polygon.level_polarity == 'dark'
-                                         and (not self.invert)
-                                      else cairo.OPERATOR_OVER)
-                width, height = self.scale_point((polygon.hole_width, polygon.hole_height))
-                lower_left = rotate_point((center[0] - width / 2.0, center[1] - height / 2.0),
-                                          polygon.rotation, center)
-                lower_right = rotate_point((center[0] + width / 2.0, center[1] - height / 2.0),
-                                           polygon.rotation, center)
-                upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0),
-                                          polygon.rotation, center)
-                upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0),
-                                           polygon.rotation, center)
-                points = (lower_left, lower_right, upper_right, upper_left)
-                mask.ctx.move_to(*points[-1])
-                for point in points:
-                    mask.ctx.line_to(*point)
-                mask.ctx.fill()
+                center = self.scale_point(polygon.position)
+                if polygon.hole_radius > 0:
+                    # Render the center clear
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR
+                                          if polygon.level_polarity == 'dark'
+                                             and (not self.invert)
+                                          else cairo.OPERATOR_OVER)
+                    mask.ctx.set_line_width(0)
+                    mask.ctx.arc(center[0],
+                                 center[1],
+                                 polygon.hole_radius * self.scale[0], 0, 2 * math.pi)
+                    mask.ctx.fill()
 
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
+                if polygon.hole_width > 0 and polygon.hole_height > 0:
+                    mask.ctx.set_operator(cairo.OPERATOR_CLEAR
+                                          if polygon.level_polarity == 'dark'
+                                             and (not self.invert)
+                                          else cairo.OPERATOR_OVER)
+                    width, height = self.scale_point((polygon.hole_width, polygon.hole_height))
+                    lower_left = rotate_point((center[0] - width / 2.0, center[1] - height / 2.0),
+                                              polygon.rotation, center)
+                    lower_right = rotate_point((center[0] + width / 2.0, center[1] - height / 2.0),
+                                               polygon.rotation, center)
+                    upper_left = rotate_point((center[0] - width / 2.0, center[1] + height / 2.0),
+                                              polygon.rotation, center)
+                    upper_right = rotate_point((center[0] + width / 2.0, center[1] + height / 2.0),
+                                               polygon.rotation, center)
+                    points = (lower_left, lower_right, upper_right, upper_left)
+                    mask.ctx.move_to(*points[-1])
+                    for point in points:
+                        mask.ctx.line_to(*point)
+                    mask.ctx.fill()
+
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_drill(self, circle, color=None):
         color = color if color is not None else self.drill_color
@@ -496,13 +495,14 @@ class GerberCairoContext(GerberContext):
         self.ctx.set_operator(cairo.OPERATOR_OVER
                               if slot.level_polarity == 'dark' and
                                  (not self.invert) else cairo.OPERATOR_CLEAR)
-        with self._new_mask() as mask:
-            mask.ctx.set_line_width(width * self.scale[0])
-            mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
-            mask.ctx.move_to(*start)
-            mask.ctx.line_to(*end)
-            mask.ctx.stroke()
-            self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
+        with self._clip_primitive(slot):
+            with self._new_mask() as mask:
+                mask.ctx.set_line_width(width * self.scale[0])
+                mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND)
+                mask.ctx.move_to(*start)
+                mask.ctx.line_to(*end)
+                mask.ctx.stroke()
+                self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
     def _render_amgroup(self, amgroup, color):
         for primitive in amgroup.primitives:
@@ -558,6 +558,53 @@ class GerberCairoContext(GerberContext):
             self.has_bg = True
             self.output_ctx.set_source_rgba(*color, alpha=alpha)
             self.output_ctx.paint()
+
+    def _clip_primitive(self, primitive):
+        """ Clip rendering context to pixel-aligned bounding box
+
+        Calculates pixel- and axis- aligned bounding box, and clips current
+        context to that region. Improves rendering speed significantly. This
+        returns a context manager, use as follows:
+
+            with self._clip_primitive(some_primitive):
+                do_rendering_stuff()
+                do_more_rendering stuff(with, arguments)
+
+        The context manager will reset the context's clipping region when it
+        goes out of scope.
+
+        """
+        class Clip:
+            def __init__(clp, primitive):
+                x_range, y_range = primitive.bounding_box
+                xmin, xmax = x_range
+                ymin, ymax = y_range
+
+                # Round bounds to the nearest pixel outside of the primitive
+                clp.xmin = math.floor(self.scale[0] * xmin)
+                clp.xmax = math.ceil(self.scale[0] * xmax)
+
+                # We need to offset Y to take care of the difference in y-pos
+                # caused by flipping the axis.
+                clp.ymin = math.floor(
+                    (self.scale[1] * ymin) - math.ceil(self.origin_in_pixels[1]))
+                clp.ymax = math.floor(
+                    (self.scale[1] * ymax) - math.floor(self.origin_in_pixels[1]))
+
+                # Calculate width and height, rounded to the nearest pixel
+                clp.width = abs(clp.xmax - clp.xmin)
+                clp.height = abs(clp.ymax - clp.ymin)
+
+            def __enter__(clp):
+                # Clip current context to primitive's bounding box
+                self.ctx.rectangle(clp.xmin, clp.ymin, clp.width, clp.height)
+                self.ctx.clip()
+
+            def __exit__(clp, exc_type, exc_val, traceback):
+                # Reset context clip region
+                self.ctx.reset_clip()
+
+        return Clip(primitive)
 
     def scale_point(self, point):
         return tuple([coord * scale for coord, scale in zip(point, self.scale)])
