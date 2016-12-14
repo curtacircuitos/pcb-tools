@@ -97,10 +97,29 @@ class GerberCairoContext(GerberContext):
             self.dump(filename, verbose)
 
     def render_layers(self, layers, filename, theme=THEMES['default'],
-                      verbose=False):
+                      verbose=False, max_width=800, max_height=600):
         """ Render a set of layers
         """
+        # Calculate scale parameter
+        x_range = [10000, -10000]
+        y_range = [10000, -10000]
+        for layer in layers:
+            bounds = layer.bounds
+            if bounds is not None:
+                layer_x, layer_y = bounds
+                x_range[0] = min(x_range[0], layer_x[0])
+                x_range[1] = max(x_range[1], layer_x[1])
+                y_range[0] = min(y_range[0], layer_y[0])
+                y_range[1] = max(y_range[1], layer_y[1])
+        width = x_range[1] - x_range[0]
+        height = y_range[1] - y_range[0]
+
+        scale = math.floor(min(float(max_width)/width, float(max_height)/height))
+        self.scale = (scale, scale)
+
         self.clear()
+
+        # Render layers
         bgsettings = theme['background']
         for layer in layers:
             settings = theme.get(layer.layer_class, RenderSettings())
@@ -293,7 +312,7 @@ class GerberCairoContext(GerberContext):
                              angle2=(2 * math.pi))
                 mask.ctx.fill()
 
-                if hasattr(circle, 'hole_diameter') and circle.hole_diameter > 0:
+                if hasattr(circle, 'hole_diameter') and circle.hole_diameter is not None and circle.hole_diameter > 0:
                     mask.ctx.set_operator(cairo.OPERATOR_CLEAR)
                     mask.ctx.arc(center[0],
                                  center[1],
@@ -303,6 +322,7 @@ class GerberCairoContext(GerberContext):
                     mask.ctx.fill()
 
                 if (hasattr(circle, 'hole_width') and hasattr(circle, 'hole_height')
+                        and circle.hole_width is not None and circle.hole_height is not None
                         and circle.hole_width > 0 and circle.hole_height > 0):
                     mask.ctx.set_operator(cairo.OPERATOR_CLEAR
                                           if circle.level_polarity == 'dark'

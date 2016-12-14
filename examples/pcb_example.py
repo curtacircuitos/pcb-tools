@@ -37,16 +37,16 @@ pcb = PCB.from_directory(GERBER_FOLDER)
 # Render PCB top view
 ctx.render_layers(pcb.top_layers,
                   os.path.join(os.path.dirname(__file__), 'pcb_top.png',),
-                  theme.THEMES['OSH Park'])
+                  theme.THEMES['OSH Park'], max_width=800, max_height=600)
 
 # Render PCB bottom view
 ctx.render_layers(pcb.bottom_layers,
                   os.path.join(os.path.dirname(__file__), 'pcb_bottom.png'),
-                  theme.THEMES['OSH Park'])
+                  theme.THEMES['OSH Park'], max_width=800, max_height=600)
 
 # Render copper layers only
 ctx.render_layers(pcb.copper_layers + pcb.drill_layers,
                   os.path.join(os.path.dirname(__file__),
                                'pcb_transparent_copper.png'),
-                  theme.THEMES['Transparent Copper'])
+                  theme.THEMES['Transparent Copper'], max_width=800, max_height=600)
 
