@@ -39,7 +39,7 @@ METADATA = {
 }
 
 SETUPTOOLS_METADATA = {
-    'install_requires': ['svgwrite', 'cairocffi'],
+    'install_requires': ['cairocffi==0.6', 'scipy'],
 }
 
 
