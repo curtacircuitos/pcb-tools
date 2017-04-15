@@ -139,7 +139,7 @@ class GerberCairoContext(GerberContext):
         if is_svg:
             self.surface.finish()
             self.surface_buffer.flush()
-            with open(filename, "w") as f:
+            with open(filename, "wb") as f:
                 self.surface_buffer.seek(0)
                 f.write(self.surface_buffer.read())
                 f.flush()
