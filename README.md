@@ -25,7 +25,7 @@ Usage Example:
 
 Rendering Examples:
 -------------------
-###Top Composite rendering
+### Top Composite rendering
 ![Composite Top Image](examples/cairo_example.png)
 ![Composite Bottom Image](examples/cairo_bottom.png)
 
