@@ -77,7 +77,7 @@ class GerberCairoContext(GerberContext):
             self.output_ctx = cairo.Context(self.surface)
 
     def render_layer(self, layer, filename=None, settings=None, bgsettings=None,
-                     verbose=False):
+                     verbose=False, bounds=None):
         if settings is None:
             settings = THEMES['default'].get(layer.layer_class, RenderSettings())
         if bgsettings is None:
@@ -87,7 +87,10 @@ class GerberCairoContext(GerberContext):
             if verbose:
                 print('[Render]: Rendering Background.')
             self.clear()
-            self.set_bounds(layer.bounds)
+            if bounds is not None:
+                self.set_bounds(bounds)
+            else:
+                self.set_bounds(layer.bounds)
             self._paint_background(bgsettings)
         if verbose:
             print('[Render]: Rendering {} Layer.'.format(layer.layer_class))
