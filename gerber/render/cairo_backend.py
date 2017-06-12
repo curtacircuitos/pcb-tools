@@ -565,7 +565,7 @@ class GerberCairoContext(GerberContext):
     def _flatten(self, color=None, alpha=None):
         color = color if color is not None else self.color
         alpha = alpha if alpha is not None else self.alpha
-        self.output_ctx.set_source_rgba(*color, alpha=alpha)
+        self.output_ctx.set_source_rgba(color[0], color[1], color[2], alpha)
         self.output_ctx.mask_surface(self.active_layer)
         self.ctx = None
         self.active_layer = None
@@ -576,7 +576,7 @@ class GerberCairoContext(GerberContext):
         alpha = settings.alpha if settings is not None else 1.0
         if not self.has_bg:
             self.has_bg = True
-            self.output_ctx.set_source_rgba(*color, alpha=alpha)
+            self.output_ctx.set_source_rgba(color[0], color[1], color[2], alpha)
             self.output_ctx.paint()
 
     def _clip_primitive(self, primitive):
