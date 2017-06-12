@@ -765,14 +765,17 @@ class GerberParser(object):
                 # Calculate the radius error
                 sqdist_start = sq_distance(start, test_center)
                 sqdist_end = sq_distance(end, test_center)
+                sqdist_diff = abs(sqdist_start - sqdist_end)
 
                 # Take the option with the lowest radius error from the set of
                 # options with a valid sweep angle
-                if ((abs(sqdist_start - sqdist_end) < sqdist_diff_min)
-                        and (sweep_angle >= 0)
-                        and (sweep_angle <= math.pi / 2.0)):
+                # In some rare cases, the sweep angle is numerically (10**-14) above pi/2
+                # So it is safer to compare the angles with some tolerance
+                is_lowest_radius_error = sqdist_diff < sqdist_diff_min
+                is_valid_sweep_angle = sweep_angle >= 0 and sweep_angle <= math.pi / 2.0 + 1e-6
+                if is_lowest_radius_error and is_valid_sweep_angle:
                     center = test_center
-                    sqdist_diff_min = abs(sqdist_start - sqdist_end)
+                    sqdist_diff_min = sqdist_diff
             return center
         else:
             return (start[0] + offsets[0], start[1] + offsets[1])
