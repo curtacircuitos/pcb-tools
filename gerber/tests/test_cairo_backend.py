@@ -3,7 +3,8 @@
 
 # Author: Garret Fick <garret@ficksworkshop.com>
 import os
-
+import shutil
+import tempfile
 
 from ..render.cairo_backend import GerberCairoContext
 from ..rs274x import read
@@ -136,6 +137,11 @@ def _DISABLED_test_render_am_exposure_modifier():
     _test_render('resources/example_am_exposure_modifier.gbr', 'golden/example_am_exposure_modifier.png')
 
 
+def test_render_svg_simple_contour():
+    """Example of rendering to an SVG file"""
+    _test_simple_render_svg('resources/example_simple_contour.gbr')
+
+
 def _resolve_path(path):
     return os.path.join(os.path.dirname(__file__),
                                 path)
@@ -187,3 +193,35 @@ def _test_render(gerber_path, png_expected_path, create_output_path = None):
     assert_true(equal)
 
     return gerber
+
+
+def _test_simple_render_svg(gerber_path):
+    """Render the gerber file as SVG
+
+    Note: verifies only the header, not the full content.
+
+    Parameters
+    ----------
+    gerber_path : string
+        Path to Gerber file to open
+    """
+
+    gerber_path = _resolve_path(gerber_path)
+    gerber = read(gerber_path)
+
+    # Create SVG image to the memory stream
+    ctx = GerberCairoContext()
+    gerber.render(ctx)
+
+    temp_dir = tempfile.mkdtemp()
+    svg_temp_path = os.path.join(temp_dir, 'output.svg')
+
+    assert_false(os.path.exists(svg_temp_path))
+    ctx.dump(svg_temp_path)
+    assert_true(os.path.exists(svg_temp_path))
+
+    with open(svg_temp_path, 'r') as expected_file:
+        expected_bytes = expected_file.read()
+    assert_equal(expected_bytes[:38], '<?xml version="1.0" encoding="UTF-8"?>')
+
+    shutil.rmtree(temp_dir)
