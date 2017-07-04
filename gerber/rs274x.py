@@ -740,7 +740,7 @@ class GerberParser(object):
             # from start and end). We select the center with the least error in
             # radius from all the options with a valid sweep angle.
 
-            sqdist_diff_min = sys.maxint
+            sqdist_diff_min = sys.maxsize
             center = None
             for factors in [(1, 1), (1, -1), (-1, 1), (-1, -1)]:
 
