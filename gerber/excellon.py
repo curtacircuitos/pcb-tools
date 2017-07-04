@@ -391,6 +391,7 @@ class ExcellonParser(object):
         self.active_tool = None
         self.pos = [0., 0.]
         self.drill_down = False
+        self._previous_line = ''
         # Default for plated is None, which means we don't know
         self.plated = ExcellonTool.PLATED_UNKNOWN
         if settings is not None:
@@ -439,6 +440,11 @@ class ExcellonParser(object):
 
     def _parse_line(self, line):
         # skip empty lines
+        # Prepend previous line's data...
+        line = '{}{}'.format(self._previous_line, line)
+        self._previous_line = ''
+
+        # Skip empty lines
         if not line.strip():
             return
 
@@ -514,6 +520,11 @@ class ExcellonParser(object):
             self.statements.append(stmt)
 
         elif line[:3] == 'G00':
+            # Coordinates may be on the next line
+            if line.strip() == 'G00':
+                self._previous_line = line
+                return
+
             self.statements.append(RouteModeStmt())
             self.state = 'ROUT'
 
@@ -535,6 +546,12 @@ class ExcellonParser(object):
                     self.pos[1] += y
 
         elif line[:3] == 'G01':
+
+            # Coordinates might be on the next line...
+            if line.strip() == 'G01':
+                self._previous_line = line
+                return
+
             self.statements.append(RouteModeStmt())
             self.state = 'LINEAR'
 

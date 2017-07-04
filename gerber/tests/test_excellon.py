@@ -7,7 +7,7 @@ import os
 from ..cam import FileSettings
 from ..excellon import read, detect_excellon_format, ExcellonFile, ExcellonParser
 from ..excellon import DrillHit, DrillSlot
-from ..excellon_statements import ExcellonTool
+from ..excellon_statements import ExcellonTool, RouteModeStmt
 from .tests import *
 
 
@@ -127,7 +127,7 @@ def test_parse_header():
 
 def test_parse_rout():
     p = ExcellonParser(FileSettings())
-    p._parse_line('G00  ')
+    p._parse_line('G00X040944Y019842')
     assert_equal(p.state, 'ROUT')
     p._parse_line('G05 ')
     assert_equal(p.state, 'DRILL')
@@ -336,4 +336,25 @@ def test_drill_slot_bounds():
 
         assert_equal(slot.bounding_box, expected)
 
-#def test_exce
+def test_handling_multi_line_g00_and_g1():
+    """Route Mode statements with coordinates on separate line are handled
+    """
+    test_data = """
+%
+M48
+M72
+T01C0.0236
+%
+T01
+G00
+X040944Y019842
+M15
+G01
+X040944Y020708
+M16
+"""
+    uut = ExcellonParser()
+    uut.parse_raw(test_data)
+    assert_equal(len([stmt for stmt in uut.statements
+                      if isinstance(stmt, RouteModeStmt)]), 2)
+
