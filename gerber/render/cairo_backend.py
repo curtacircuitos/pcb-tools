@@ -252,10 +252,10 @@ class GerberCairoContext(GerberContext):
                 mask.ctx.set_line_cap(cairo.LINE_CAP_ROUND if isinstance(arc.aperture, Circle) else cairo.LINE_CAP_SQUARE)
                 mask.ctx.move_to(*start)  # You actually have to do this...
                 if arc.direction == 'counterclockwise':
-                    mask.ctx.arc(*center, radius=radius, angle1=angle1, angle2=angle2)
+                    mask.ctx.arc(center[0], center[1], radius, angle1, angle2)
                 else:
-                    mask.ctx.arc_negative(*center, radius=radius,
-                                          angle1=angle1, angle2=angle2)
+                    mask.ctx.arc_negative(center[0], center[1], radius,
+                                          angle1, angle2)
                 mask.ctx.move_to(*end)  # ...lame
                 mask.ctx.stroke()
 
@@ -291,11 +291,11 @@ class GerberCairoContext(GerberContext):
                         angle1 = prim.start_angle
                         angle2 = prim.end_angle
                         if prim.direction == 'counterclockwise':
-                            mask.ctx.arc(*center, radius=radius,
-                                         angle1=angle1, angle2=angle2)
+                            mask.ctx.arc(center[0], center[1], radius,
+                                         angle1, angle2)
                         else:
-                            mask.ctx.arc_negative(*center, radius=radius,
-                                                  angle1=angle1, angle2=angle2)
+                            mask.ctx.arc_negative(center[0], center[1], radius,
+                                                  angle1, angle2)
                 mask.ctx.fill()
                 self.ctx.mask_surface(mask.surface, self.origin_in_pixels[0])
 
@@ -360,7 +360,7 @@ class GerberCairoContext(GerberContext):
         with self._clip_primitive(rectangle):
             with self._new_mask() as mask:
                 mask.ctx.set_line_width(0)
-                mask.ctx.rectangle(*lower_left, width=width, height=height)
+                mask.ctx.rectangle(lower_left[0], lower_left[1], width, height)
                 mask.ctx.fill()
 
                 center = self.scale_point(rectangle.position)
@@ -418,7 +418,7 @@ class GerberCairoContext(GerberContext):
                 width, height = tuple([abs(coord) for coord in
                                        self.scale_point((rectangle.width,
                                                          rectangle.height))])
-                mask.ctx.rectangle(*lower_left, width=width, height=height)
+                mask.ctx.rectangle(lower_left[0], lower_left[1], width, height)
                 mask.ctx.fill()
 
                 center = self.scale_point(obround.position)
