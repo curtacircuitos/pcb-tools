@@ -24,8 +24,7 @@ files.
 """
 
 import os
-from math import radians, sin, cos
-from scipy.spatial import ConvexHull
+from math import radians, sin, cos, sqrt, atan2, pi
 
 MILLIMETERS_PER_INCH = 25.4
 
@@ -339,7 +338,117 @@ def listdir(directory, ignore_hidden=True, ignore_os=True):
         files = [f for f in files if not f in os_files]
     return files
 
+def ConvexHull_qh(points):
+    #a hull must be a planar shape with nonzero area, so there must be at least 3 points
+    if(len(points)<3):
+        raise Exception("not a planar shape")
+    #find points with lowest and highest X coordinates
+    minxp=0;
+    maxxp=0;
+    for i in range(len(points)):
+        if(points[i][0]<points[minxp][0]):
+            minxp=i;
+        if(points[i][0]>points[maxxp][0]):
+            maxxp=i;
+    if minxp==maxxp:
+        #all points are collinear
+        raise Exception("not a planar shape")
+    #separate points into those above and those below the minxp-maxxp line
+    lpoints=[]
+    rpoints=[]
+    #to detemine if point X is on the left or right of dividing line A-B, compare slope of A-B to slope of A-X
+    #slope is (By-Ay)/(Bx-Ax)
+    a=points[minxp]
+    b=points[maxxp]
+    slopeab=atan2(b[1]-a[1],b[0]-a[0])
+    for i in range(len(points)):
+        p=points[i]
+        if i == minxp or i == maxxp:
+            continue
+        slopep=atan2(p[1]-a[1],p[0]-a[0])
+        sdiff=slopep-slopeab
+        if(sdiff<pi):sdiff+=2*pi
+        if(sdiff>pi):sdiff-=2*pi
+        if(sdiff>0):
+            lpoints+=[i]
+        if(sdiff<0):
+            rpoints+=[i]
+    hull=[minxp]+_findhull(rpoints, maxxp, minxp, points)+[maxxp]+_findhull(lpoints, minxp, maxxp, points)
+    hullo=_optimize(hull,points)
+    return hullo
+
+def _optimize(hull,points):
+    #find triplets that are collinear and remove middle point
+    toremove=[]
+    newhull=hull[:]
+    l=len(hull)
+    for i in range(l):
+        p1=hull[i]
+        p2=hull[(i+1)%l]
+        p3=hull[(i+2)%l]
+        #(p1.y-p2.y)*(p1.x-p3.x)==(p1.y-p3.y)*(p1.x-p2.x)
+        if (points[p1][1]-points[p2][1])*(points[p1][0]-points[p3][0])==(points[p1][1]-points[p3][1])*(points[p1][0]-points[p2][0]):
+            toremove+=[p2]
+    for i in toremove:
+        newhull.remove(i)
+    return newhull
+
+def _distance(a, b, x):
+    #find the distance between point x and line a-b
+    return abs((b[1]-a[1])*x[0]-(b[0]-a[0])*x[1]+b[0]*a[1]-a[0]*b[1])/sqrt((b[1]-a[1])**2 + (b[0]-a[0])**2 );
+
+def _findhull(idxp, a_i, b_i, points):
+    #if no points in input, return no points in output
+    if(len(idxp)==0):
+        return [];
+    #find point c furthest away from line a-b
+    farpoint=-1
+    fdist=-1.0;
+    for i in idxp:
+        d=_distance(points[a_i], points[b_i], points[i])
+        if(d>fdist):
+            fdist=d;
+            farpoint=i
+    if(fdist<=0):
+        #none of the points have a positive distance from line, bad things have happened
+        return []
+    #separate points into those inside triangle, those outside triangle left of far point, and those outside triangle right of far point
+    a=points[a_i]
+    b=points[b_i]
+    c=points[farpoint]
+    slopeac=atan2(c[1]-a[1],c[0]-a[0])
+    slopecb=atan2(b[1]-c[1],b[0]-c[0])
+    lpoints=[]
+    rpoints=[]
+    for i in idxp:
+        if i==farpoint:
+            #ignore triangle vertex
+            continue
+        x=points[i]
+        #if point x is left of line a-c it's in left set
+        slopeax=atan2(x[1]-a[1],x[0]-a[0])
+        if slopeac==slopeax:
+            continue
+        sdiff=slopeac-slopeax
+        if(sdiff<-pi):sdiff+=2*pi
+        if(sdiff>pi):sdiff-=2*pi
+        if(sdiff<0):
+            lpoints+=[i]
+        else:
+            #if point x is right of line b-c it's in right set, otherwise it's inside triangle and can be ignored
+            slopecx=atan2(x[1]-c[1],x[0]-c[0])
+            if slopecx==slopecb:
+                continue
+            sdiff=slopecx-slopecb
+            if(sdiff<-pi):sdiff+=2*pi
+            if(sdiff>pi):sdiff-=2*pi
+            if(sdiff>0):
+                rpoints+=[i]
+    #the hull segment between points a and b consists of the hull segment between a and c, the point c, and the hull segment between c and b
+    ret=_findhull(rpoints, farpoint, b_i, points)+[farpoint]+_findhull(lpoints, a_i, farpoint, points)
+    return ret
+
 
 def convex_hull(points):
-    vertices = ConvexHull(points).vertices
+    vertices = ConvexHull_qh(points)
     return [points[idx] for idx in vertices]
