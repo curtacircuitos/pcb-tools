@@ -1666,6 +1666,7 @@ class Slot(Primitive):
     def flashed(self):
         return False
 
+    @property
     def bounding_box(self):
         if self._bounding_box is None:
             ll = tuple([c - self.diameter / 2. for c in self.position])
