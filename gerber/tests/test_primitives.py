@@ -1343,3 +1343,17 @@ def test_drill_equality():
     assert_equal(d, d1)
     d1 = Drill((2.54, 25.4), 254.2)
     assert_not_equal(d, d1)
+
+
+def test_slot_bounds():
+    """ Test Slot primitive bounding box calculation
+    """
+    cases = [((0, 0), (1, 1), ((-1, 2), (-1, 2))),
+             ((-1, -1), (1, 1), ((-2, 2), (-2, 2))),
+             ((1, 1), (-1, -1), ((-2, 2), (-2, 2))),
+             ((-1, 1), (1, -1), ((-2, 2), (-2, 2))), ]
+
+    for start, end, expected in cases:
+        s = Slot(start, end, 2.0)
+        assert_equal(s.bounding_box, expected)
+
