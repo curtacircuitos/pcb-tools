@@ -1669,9 +1669,12 @@ class Slot(Primitive):
     @property
     def bounding_box(self):
         if self._bounding_box is None:
-            ll = tuple([c - self.diameter / 2. for c in self.position])
-            ur = tuple([c + self.diameter / 2. for c in self.position])
-            self._bounding_box = ((ll[0], ur[0]), (ll[1], ur[1]))
+            radius = self.diameter / 2.
+            min_x = min(self.start[0], self.end[0]) - radius
+            max_x = max(self.start[0], self.end[0]) + radius
+            min_y = min(self.start[1], self.end[1]) - radius
+            max_y = max(self.start[1], self.end[1]) + radius
+            self._bounding_box = ((min_x, max_x), (min_y, max_y))
         return self._bounding_box
 
     def offset(self, x_offset=0, y_offset=0):
