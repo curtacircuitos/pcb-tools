@@ -61,13 +61,35 @@ def test_guess_layer_class_regex():
         Hint(layer='top',
                 ext=[],
                 name=[],
-                regex=r'(.*)(\scopper top|\stop copper)$'
+                regex=r'(.*)(\scopper top|\stop copper)$',
+                content=[]
             ),
     ]
     hints.extend(layer_hints)
 
     for filename, layer_class in test_vectors:
         assert_equal(layer_class, guess_layer_class(filename))
+
+
+def test_guess_layer_class_by_content():
+    """ Test layer class by checking content
+    """
+
+    expected_layer_class = 'bottom'
+    filename = os.path.join(os.path.dirname(__file__),
+                               'resources/example_guess_by_content.g0')
+
+    layer_hints = [
+        Hint(layer='bottom',
+                ext=[],
+                name=[],
+                regex='',
+                content=['G04 Layer name: Bottom']
+            )
+    ]
+    hints.extend(layer_hints)
+
+    assert_equal(expected_layer_class, guess_layer_class_by_content(filename))
 
 
 def test_sort_layers():

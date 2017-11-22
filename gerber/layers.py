@@ -24,71 +24,83 @@ from .excellon import ExcellonFile
 from .ipc356 import IPCNetlist
 
 
-Hint = namedtuple('Hint', 'layer ext name regex')
+Hint = namedtuple('Hint', 'layer ext name regex content')
 
 hints = [
     Hint(layer='top',
          ext=['gtl', 'cmp', 'top', ],
          name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', 'F.Cu', ],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='bottom',
          ext=['gbl', 'sld', 'bot', 'sol', 'bottom', ],
          name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', 'B.Cu', ],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='internal',
          ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1',
               'g2', 'g3', 'g4', 'g5', 'g6', ],
          name=['art', 'internal', 'pgp', 'pwr', 'gp1', 'gp2', 'gp3', 'gp4',
                'gt5', 'gp6', 'gnd', 'ground', 'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu'],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='topsilk',
          ext=['gto', 'sst', 'plc', 'ts', 'skt', 'topsilk', ],
          name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS'],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='bottomsilk',
          ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk',],
          name=['bsilk', 'ssb', 'botsilk', 'B.SilkS'],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='topmask',
          ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', ],
          name=['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
                'mst', 'F.Mask',],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='bottommask',
          ext=['gbs', 'sts', 'bmk', 'smb', 'br', 'bottommask', ],
          name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', 'B.Mask',],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='toppaste',
          ext=['gtp', 'tm', 'toppaste', ],
          name=['sp01', 'toppaste', 'pst', 'F.Paste'],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='bottompaste',
          ext=['gbp', 'bm', 'bottompaste', ],
          name=['sp02', 'botpaste', 'psb', 'B.Paste', ],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='outline',
          ext=['gko', 'outline', ],
          name=['BDR', 'border', 'out', 'Edge.Cuts', ],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='ipc_netlist',
          ext=['ipc'],
          name=[],
-         regex=''
+         regex='',
+         content=[]
          ),
     Hint(layer='drawing',
          ext=['fab'],
          name=['assembly drawing', 'assembly', 'fabrication', 'fab drawing'],
-         regex=''
+         regex='',
+         content=[]
          ),
 ]
 
@@ -103,6 +115,13 @@ def load_layer_data(data, filename=None):
 
 def guess_layer_class(filename):
     try:
+        layer = guess_layer_class_by_content(filename)
+        if layer:
+            return layer
+    except:
+        pass
+
+    try:
         directory, name = os.path.split(filename)
         name, ext = os.path.splitext(name.lower())
         for hint in hints:
@@ -116,6 +135,21 @@ def guess_layer_class(filename):
     except:
         pass
     return 'unknown'
+
+
+def guess_layer_class_by_content(filename):
+    try:
+        file = open(filename, 'r')
+        for line in file:
+            for hint in hints:
+                if len(hint.content) > 0:
+                    patterns = [r'^(.*){}(.*)$'.format(x) for x in hint.content]
+                    if any(re.findall(p, line, re.IGNORECASE) for p in patterns):
+                        return hint.layer
+    except:
+        pass
+
+    return False
 
 
 def sort_layers(layers, from_top=True):
