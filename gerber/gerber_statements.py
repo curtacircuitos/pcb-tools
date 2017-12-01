@@ -274,14 +274,18 @@ class ADParamStmt(ParamStmt):
     """
 
     @classmethod
-    def rect(cls, dcode, width, height):
+    def rect(cls, dcode, width, height, hole_diameter=None, hole_width=None, hole_height=None):
         '''Create a rectangular aperture definition statement'''
+        if hole_diameter is not None and hole_diameter > 0:
+            return cls('AD', dcode, 'R', ([width, height, hole_diameter],))
+        elif (hole_width is not None and hole_width > 0
+              and hole_height is not None and hole_height > 0):
+            return cls('AD', dcode, 'R', ([width, height, hole_width, hole_height],))
         return cls('AD', dcode, 'R', ([width, height],))
 
     @classmethod
     def circle(cls, dcode, diameter, hole_diameter=None, hole_width=None, hole_height=None):
         '''Create a circular aperture definition statement'''
-
         if hole_diameter is not None and hole_diameter > 0:
             return cls('AD', dcode, 'C', ([diameter, hole_diameter],))
         elif (hole_width is not None and hole_width > 0

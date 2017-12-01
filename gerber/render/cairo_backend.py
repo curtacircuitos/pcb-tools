@@ -308,20 +308,12 @@ class GerberCairoContext(GerberContext):
         with self._clip_primitive(circle):
             with self._new_mask() as mask:
                 mask.ctx.set_line_width(0)
-                mask.ctx.arc(center[0],
-                             center[1],
-                             radius=(circle.radius * self.scale[0]),
-                             angle1=0,
-                             angle2=(2 * math.pi))
+                mask.ctx.arc(center[0], center[1], (circle.radius * self.scale[0]), 0, (2 * math.pi))
                 mask.ctx.fill()
 
                 if hasattr(circle, 'hole_diameter') and circle.hole_diameter is not None and circle.hole_diameter > 0:
                     mask.ctx.set_operator(cairo.OPERATOR_CLEAR)
-                    mask.ctx.arc(center[0],
-                                 center[1],
-                                 radius=circle.hole_radius * self.scale[0],
-                                 angle1=0,
-                                 angle2=2 * math.pi)
+                    mask.ctx.arc(center[0], center[1], circle.hole_radius * self.scale[0], 0, 2 * math.pi)
                     mask.ctx.fill()
 
                 if (hasattr(circle, 'hole_width') and hasattr(circle, 'hole_height')
@@ -371,9 +363,7 @@ class GerberCairoContext(GerberContext):
                                              and (not self.invert)
                                           else cairo.OPERATOR_OVER)
 
-                    mask.ctx.arc(center[0], center[1],
-                                 radius=rectangle.hole_radius * self.scale[0], angle1=0,
-                                 angle2=2 * math.pi)
+                    mask.ctx.arc(center[0], center[1], rectangle.hole_radius * self.scale[0], 0, 2 * math.pi)
                     mask.ctx.fill()
 
                 if rectangle.hole_width > 0 and rectangle.hole_height > 0:
@@ -405,11 +395,7 @@ class GerberCairoContext(GerberContext):
                 # Render circles
                 for circle in (obround.subshapes['circle1'], obround.subshapes['circle2']):
                     center = self.scale_point(circle.position)
-                    mask.ctx.arc(center[0],
-                                 center[1],
-                                 radius=(circle.radius * self.scale[0]),
-                                 angle1=0,
-                                 angle2=(2 * math.pi))
+                    mask.ctx.arc(center[0], center[1], (circle.radius * self.scale[0]), 0, (2 * math.pi))
                     mask.ctx.fill()
 
                 # Render Rectangle
@@ -425,9 +411,7 @@ class GerberCairoContext(GerberContext):
                 if obround.hole_diameter > 0:
                     # Render the center clear
                     mask.ctx.set_operator(cairo.OPERATOR_CLEAR)
-                    mask.ctx.arc(center[0], center[1],
-                                 radius=obround.hole_radius * self.scale[0], angle1=0,
-                                 angle2=2 * math.pi)
+                    mask.ctx.arc(center[0], center[1], obround.hole_radius * self.scale[0], 0, 2 * math.pi)
                     mask.ctx.fill()
 
                 if obround.hole_width > 0 and obround.hole_height > 0:
