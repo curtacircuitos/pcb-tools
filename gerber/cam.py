@@ -250,6 +250,10 @@ class CamFile(object):
         """
         pass
 
+    @property
+    def bounding_box(self):
+        pass
+
     def to_inch(self):
         pass
 
@@ -271,12 +275,12 @@ class CamFile(object):
             from .render import GerberCairoContext
             ctx = GerberCairoContext()
         ctx.set_bounds(self.bounding_box)
-        ctx._paint_background()
+        ctx.paint_background()
         ctx.invert = invert
-        ctx._new_render_layer()
+        ctx.new_render_layer()
         for p in self.primitives:
             ctx.render(p)
-        ctx._flatten()
+        ctx.flatten()
 
         if filename is not None:
             ctx.dump(filename)

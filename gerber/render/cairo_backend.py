@@ -91,7 +91,7 @@ class GerberCairoContext(GerberContext):
                 self.set_bounds(bounds)
             else:
                 self.set_bounds(layer.bounds)
-            self._paint_background(bgsettings)
+            self.paint_background(bgsettings)
         if verbose:
             print('[Render]: Rendering {} Layer.'.format(layer.layer_class))
         self._render_count += 1
@@ -193,11 +193,11 @@ class GerberCairoContext(GerberContext):
     def _render_layer(self, layer, settings):
         self.invert = settings.invert
         # Get a new clean layer to render on
-        self._new_render_layer(mirror=settings.mirror)
+        self.new_render_layer(mirror=settings.mirror)
         for prim in layer.primitives:
             self.render(prim)
         # Add layer to image
-        self._flatten(settings.color, settings.alpha)
+        self.flatten(settings.color, settings.alpha)
 
     def _render_line(self, line, color):
         start = self.scale_point(line.start)
@@ -530,7 +530,7 @@ class GerberCairoContext(GerberContext):
         self.ctx.show_text(primitive.net_name)
         self.ctx.scale(1, -1)
 
-    def _new_render_layer(self, color=None, mirror=False):
+    def new_render_layer(self, color=None, mirror=False):
         size_in_pixels = self.scale_point(self.size_in_inch)
         matrix = copy.copy(self._xform_matrix)
         layer = cairo.SVGSurface(None, size_in_pixels[0], size_in_pixels[1])
@@ -548,8 +548,7 @@ class GerberCairoContext(GerberContext):
         self.active_layer = layer
         self.active_matrix = matrix
 
-
-    def _flatten(self, color=None, alpha=None):
+    def flatten(self, color=None, alpha=None):
         color = color if color is not None else self.color
         alpha = alpha if alpha is not None else self.alpha
         self.output_ctx.set_source_rgba(color[0], color[1], color[2], alpha)
@@ -558,7 +557,7 @@ class GerberCairoContext(GerberContext):
         self.active_layer = None
         self.active_matrix = None
 
-    def _paint_background(self, settings=None):
+    def paint_background(self, settings=None):
         color = settings.color if settings is not None else self.background_color
         alpha = settings.alpha if settings is not None else 1.0
         if not self.has_bg:
