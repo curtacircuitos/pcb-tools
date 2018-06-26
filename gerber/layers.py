@@ -103,11 +103,11 @@ def load_layer_data(data, filename=None):
 
 def guess_layer_class(filename):
     try:
-        directory, name = os.path.split(filename)
-        name, ext = os.path.splitext(name.lower())
+        directory, filename = os.path.split(filename)
+        name, ext = os.path.splitext(filename.lower())
         for hint in hints:
             if hint.regex:
-                if re.findall(hint.regex, name, re.IGNORECASE):
+                if re.findall(hint.regex, filename, re.IGNORECASE):
                     return hint.layer
 
             patterns = [r'^(\w*[.-])*{}([.-]\w*)?$'.format(x) for x in hint.name]
