@@ -61,7 +61,7 @@ def test_guess_layer_class_regex():
         Hint(layer='top',
                 ext=[],
                 name=[],
-                regex=r'(.*)(\scopper top|\stop copper)$',
+                regex=r'(.*)(\scopper top|\stop copper).gbr',
                 content=[]
             ),
     ]
