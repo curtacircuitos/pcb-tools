@@ -48,6 +48,9 @@ class PCB(object):
             except ParseError:
                 if verbose:
                     print('[PCB]: Skipping file {}'.format(filename))
+            except IOError:
+                if verbose:
+                    print('[PCB]: Skipping file {}'.format(filename))
 
         # Try to guess board name
         if board_name is None:
