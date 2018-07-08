@@ -30,7 +30,8 @@ METADATA = {
     'keywords': "pcb gerber tools",
     'url': "http://github.com/curtacircuitos/pcb-tools",
     'packages': ['gerber', 'gerber.render'],
-    'long_description': read('README.md'),
+    'long_description': read('README.rst'),
+    'long_description_content_type': 'text/x-rst',
     'classifiers':[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
