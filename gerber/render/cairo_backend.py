@@ -532,7 +532,7 @@ class GerberCairoContext(GerberContext):
 
     def _new_render_layer(self, color=None, mirror=False):
         size_in_pixels = self.scale_point(self.size_in_inch)
-        matrix = copy.copy(self._xform_matrix)
+        matrix = cairo.Matrix() * self._xform_matrix
         layer = cairo.SVGSurface(None, size_in_pixels[0], size_in_pixels[1])
         ctx = cairo.Context(layer)
 
