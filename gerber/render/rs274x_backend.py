@@ -148,10 +148,10 @@ class Rs274xContext(GerberContext):
     def statements(self):
         return self.comments + self.header + self.body + self.end
 
-    def set_bounds(self, bounds):
+    def set_bounds(self, bounds, *args, **kwargs):
         pass
 
-    def _paint_background(self):
+    def paint_background(self):
         pass
 
     def _select_aperture(self, aperture):
@@ -173,7 +173,7 @@ class Rs274xContext(GerberContext):
                 self.body.append(ApertureStmt(aper.d))
                 self._dcode = aper.d
 
-    def _pre_render_primitive(self, primitive):
+    def pre_render_primitive(self, primitive):
 
         if hasattr(primitive, 'comment'):
             self.body.append(CommentStmt(primitive.comment))
@@ -489,11 +489,11 @@ class Rs274xContext(GerberContext):
     def _render_inverted_layer(self):
         pass
 
-    def _new_render_layer(self):
+    def new_render_layer(self):
         # TODO Might need to implement this
         pass
 
-    def _flatten(self):
+    def flatten(self):
         # TODO Might need to implement this
         pass
 

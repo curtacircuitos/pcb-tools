@@ -139,7 +139,7 @@ class GerberContext(object):
         if not primitive:
             return
 
-        self._pre_render_primitive(primitive)
+        self.pre_render_primitive(primitive)
 
         color = self.color
         if isinstance(primitive, Line):
@@ -167,16 +167,35 @@ class GerberContext(object):
         elif isinstance(primitive, TestRecord):
             self._render_test_record(primitive, color)
 
-        self._post_render_primitive(primitive)
+        self.post_render_primitive(primitive)
 
-    def _pre_render_primitive(self, primitive):
+    def set_bounds(self, bounds, *args, **kwargs):
+        """Called by the renderer to set the extents of the file to render.
+
+        Parameters
+        ----------
+        bounds: Tuple[Tuple[float, float], Tuple[float, float]]
+            ( (x_min, x_max), (y_min, y_max)
+        """
+        pass
+
+    def paint_background(self):
+        pass
+
+    def new_render_layer(self):
+        pass
+
+    def flatten(self):
+        pass
+
+    def pre_render_primitive(self, primitive):
         """
         Called before rendering a primitive. Use the callback to perform some action before rendering
         a primitive, for example adding a comment.
         """
         return
 
-    def _post_render_primitive(self, primitive):
+    def post_render_primitive(self, primitive):
         """
         Called after rendering a primitive. Use the callback to perform some action after rendering
         a primitive
