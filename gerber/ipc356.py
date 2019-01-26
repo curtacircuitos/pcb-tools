@@ -281,7 +281,8 @@ class IPC356_TestRecord(object):
         units = settings.units
         angle = settings.angle_units
         feature_types = {'1': 'through-hole', '2': 'smt',
-                         '3': 'tooling-feature', '4': 'tooling-hole'}
+                         '3': 'tooling-feature', '4': 'tooling-hole',
+                         '6': 'non-plated-tooling-hole'}
         access = ['both', 'top', 'layer2', 'layer3', 'layer4', 'layer5',
                   'layer6', 'layer7', 'bottom']
         record = {}
