@@ -236,11 +236,6 @@ class LPParamStmt(ParamStmt):
         lp = 'clear' if stmt_dict.get('lp') == 'C' else 'dark'
         return cls(param, lp)
 
-    @classmethod
-    def from_region(cls, region):
-        #todo what is the first param?
-        return cls(None, region.level_polarity)
-
     def __init__(self, param, lp):
         """ Initialize LPParamStmt class
 

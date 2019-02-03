@@ -206,8 +206,9 @@ class Line(Primitive):
     """
     """
 
-    def __init__(self, start, end, aperture, **kwargs):
+    def __init__(self, start, end, aperture, level_polarity=None, **kwargs):
         super(Line, self).__init__(**kwargs)
+        self.level_polarity = level_polarity
         self._start = start
         self._end = end
         self.aperture = aperture
@@ -324,8 +325,9 @@ class Arc(Primitive):
     """
 
     def __init__(self, start, end, center, direction, aperture, quadrant_mode,
-                 **kwargs):
+            level_polarity=None, **kwargs):
         super(Arc, self).__init__(**kwargs)
+        self.level_polarity = level_polarity
         self._start = start
         self._end = end
         self._center = center
