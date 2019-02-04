@@ -178,11 +178,11 @@ class Rs274xContext(GerberContext):
         if hasattr(primitive, 'comment'):
             self.body.append(CommentStmt(primitive.comment))
 
-    def _render_line(self, line, color):
+    def _render_line(self, line, color, default_polarity='dark'):
 
         self._select_aperture(line.aperture)
 
-        self._render_level_polarity(line)
+        self._render_level_polarity(line, default_polarity)
 
         # Get the right function
         if self._func != CoordStmt.FUNC_LINEAR:
@@ -206,7 +206,7 @@ class Rs274xContext(GerberContext):
         elif func:
             self.body.append(CoordStmt.mode(func))
 
-    def _render_arc(self, arc, color):
+    def _render_arc(self, arc, color, default_polarity='dark'):
 
         # Optionally set the quadrant mode if it has changed:
         if arc.quadrant_mode != self._quadrant_mode:
@@ -221,7 +221,7 @@ class Rs274xContext(GerberContext):
         # Select the right aperture if not already selected
         self._select_aperture(arc.aperture)
 
-        self._render_level_polarity(arc)
+        self._render_level_polarity(arc, default_polarity)
 
         # Find the right movement mode. Always set to be sure it is really right
         dir = arc.direction
@@ -252,20 +252,23 @@ class Rs274xContext(GerberContext):
 
         for p in region.primitives:
 
+            # Make programmatically generated primitives within a region with
+            # unset level polarity inherit the region's level polarity
             if isinstance(p, Line):
-                self._render_line(p, color)
+                self._render_line(p, color, default_polarity=region.level_polarity)
             else:
-                self._render_arc(p, color)
+                self._render_arc(p, color, default_polarity=region.level_polarity)
 
         if self.explicit_region_move_end:
             self.body.append(CoordStmt.move(None, None))
 
         self.body.append(RegionModeStmt.off())
 
-    def _render_level_polarity(self, region):
-        if region.level_polarity != self._level_polarity:
-            self._level_polarity = region.level_polarity
-            self.body.append(LPParamStmt.from_region(region))
+    def _render_level_polarity(self, obj, default='dark'):
+        obj_polarity = obj.level_polarity if obj.level_polarity is not None else default
+        if obj_polarity != self._level_polarity:
+            self._level_polarity = obj_polarity
+            self.body.append(LPParamStmt('LP', obj_polarity))
 
     def _render_flash(self, primitive, aperture):
 
