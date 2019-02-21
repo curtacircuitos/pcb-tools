@@ -22,7 +22,7 @@ def read(fname):
 
 METADATA = {
     'name': 'pcb-tools',
-    'version': 0.1,
+    'version': '0.1.5',
     'author': 'Paulo Henrique Silva <ph.silva@gmail.com>, Hamilton Kibbe <ham@hamiltonkib.be>',
     'author_email': "ph.silva@gmail.com, ham@hamiltonkib.be",
     'description': ("Utilities to handle Gerber (RS-274X) files."),
