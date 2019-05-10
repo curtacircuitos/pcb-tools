@@ -23,6 +23,7 @@ COLORS = {
     'white': (1.0, 1.0, 1.0),
     'red': (1.0, 0.0, 0.0),
     'green': (0.0, 1.0, 0.0),
+    'yellow': (1.0, 1.0, 0),
     'blue': (0.0, 0.0, 1.0),
     'fr-4': (0.290, 0.345, 0.0),
     'green soldermask': (0.0, 0.412, 0.278),
@@ -33,6 +34,18 @@ COLORS = {
     'enig copper': (0.694, 0.533, 0.514),
     'hasl copper': (0.871, 0.851, 0.839)
 }
+
+
+SPECTRUM = [
+    (0.804, 0.216, 0),
+    (0.78, 0.776, 0.251),
+    (0.545, 0.451, 0.333),
+    (0.545, 0.137, 0.137),
+    (0.329, 0.545, 0.329),
+    (0.133, 0.545, 0.133),
+    (0, 0.525, 0.545),
+    (0.227, 0.373, 0.804),
+]
 
 
 class Theme(object):
@@ -48,9 +61,21 @@ class Theme(object):
         self.bottom = kwargs.get('bottom', RenderSettings(COLORS['hasl copper'], mirror=True))
         self.drill = kwargs.get('drill', RenderSettings(COLORS['black']))
         self.ipc_netlist = kwargs.get('ipc_netlist', RenderSettings(COLORS['red']))
+        self._internal = kwargs.get('internal', [RenderSettings(x) for x in SPECTRUM])
+        self._internal_gen = None
 
     def __getitem__(self, key):
         return getattr(self, key)
+
+    @property
+    def internal(self):
+        if not self._internal_gen:
+            self._internal_gen = self._internal_gen_func()
+        return next(self._internal_gen)
+
+    def _internal_gen_func(self):
+        for setting in self._internal:
+            yield setting
 
     def get(self, key, noneval=None):
         val = getattr(self, key, None)
@@ -77,4 +102,11 @@ THEMES = {
                                 top=RenderSettings(COLORS['red'], alpha=0.5),
                                 bottom=RenderSettings(COLORS['blue'], alpha=0.5),
                                 drill=RenderSettings((0.3, 0.3, 0.3))),
+
+    'Transparent Multilayer': Theme(name='Transparent Multilayer',
+                                    background=RenderSettings((0, 0, 0)),
+                                    top=RenderSettings(SPECTRUM[0], alpha=0.8),
+                                    bottom=RenderSettings(SPECTRUM[-1], alpha=0.8),
+                                    drill=RenderSettings((0.3, 0.3, 0.3)),
+                                    internal=[RenderSettings(x, alpha=0.5) for x in SPECTRUM[1:-1]]),
 }
