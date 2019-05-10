@@ -18,7 +18,7 @@
 
 import os
 from .exceptions import ParseError
-from .layers import PCBLayer, sort_layers
+from .layers import PCBLayer, sort_layers, layer_signatures
 from .common import read as gerber_read
 from .utils import listdir
 
@@ -41,7 +41,14 @@ class PCB(object):
                 camfile = gerber_read(os.path.join(directory, filename))
                 layer = PCBLayer.from_cam(camfile)
                 layers.append(layer)
-                names.add(os.path.splitext(filename)[0])
+                name = os.path.splitext(filename)[0]
+                if len(os.path.splitext(filename)) > 1:
+                    _name, ext = os.path.splitext(name)
+                    if ext[1:] in layer_signatures(layer.layer_class):
+                        name = _name
+                    if layer.layer_class == 'drill' and 'drill' in ext:
+                        name = _name
+                names.add(name)
                 if verbose:
                     print('[PCB]: Added {} layer <{}>'.format(layer.layer_class,
                                                               filename))

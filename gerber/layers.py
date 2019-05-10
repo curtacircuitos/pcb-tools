@@ -40,10 +40,12 @@ hints = [
          content=[]
          ),
     Hint(layer='internal',
-         ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6', 'g1',
-              'g2', 'g3', 'g4', 'g5', 'g6', ],
-         name=['art', 'internal', 'pgp', 'pwr', 'gp1', 'gp2', 'gp3', 'gp4',
-               'gt5', 'gp6', 'gnd', 'ground', 'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu'],
+         ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6',
+              'g1', 'g2', 'g3', 'g4', 'g5', 'g6', ],
+         name=['art', 'internal', 'pgp', 'pwr', 'gnd', 'ground',
+               'gp1', 'gp2', 'gp3', 'gp4', 'gt5', 'gp6',
+               'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu',
+               'group3', 'group4', 'group5', 'group6', 'group7', 'group8', ],
          regex='',
          content=[]
          ),
@@ -54,21 +56,22 @@ hints = [
          content=[]
          ),
     Hint(layer='bottomsilk',
-         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk',],
-         name=['bsilk', 'ssb', 'botsilk', 'B.SilkS'],
+         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk', ],
+         name=['bsilk', 'ssb', 'botsilk', 'bottomsilk', 'B.SilkS'],
          regex='',
          content=[]
          ),
     Hint(layer='topmask',
          ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', ],
          name=['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
-               'mst', 'F.Mask',],
+               'mst', 'F.Mask', ],
          regex='',
          content=[]
          ),
     Hint(layer='bottommask',
          ext=['gbs', 'sts', 'bmk', 'smb', 'br', 'bottommask', ],
-         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'msb', 'B.Mask',],
+         name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'bottommask',
+               'msb', 'B.Mask', ],
          regex='',
          content=[]
          ),
@@ -80,13 +83,13 @@ hints = [
          ),
     Hint(layer='bottompaste',
          ext=['gbp', 'bm', 'bottompaste', ],
-         name=['sp02', 'botpaste', 'psb', 'B.Paste', ],
+         name=['sp02', 'botpaste', 'bottompaste', 'psb', 'B.Paste', ],
          regex='',
          content=[]
          ),
     Hint(layer='outline',
          ext=['gko', 'outline', ],
-         name=['BDR', 'border', 'out', 'Edge.Cuts', ],
+         name=['BDR', 'border', 'out', 'outline', 'Edge.Cuts', ],
          regex='',
          content=[]
          ),
@@ -98,11 +101,19 @@ hints = [
          ),
     Hint(layer='drawing',
          ext=['fab'],
-         name=['assembly drawing', 'assembly', 'fabrication', 'fab drawing'],
+         name=['assembly drawing', 'assembly', 'fabrication',
+               'fab drawing', 'fab'],
          regex='',
          content=[]
          ),
 ]
+
+
+def layer_signatures(layer_class):
+    for hint in hints:
+        if hint.layer == layer_class:
+            return hint.ext + hint.name
+    return []
 
 
 def load_layer(filename):
