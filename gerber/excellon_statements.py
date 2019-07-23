@@ -965,5 +965,7 @@ def pairwise(iterator):
     e.g. [1, 2, 3, 4, 5, 6] ==> [(1, 2), (3, 4), (5, 6)]
     """
     a, b = itertools.tee(iterator)
-    yield from zip(itertools.islice(a, 0, None, 2), itertools.islice(b, 1, None, 2))
+    itr = zip(itertools.islice(a, 0, None, 2), itertools.islice(b, 1, None, 2))
+    for elem in itr:
+        yield elem
 
