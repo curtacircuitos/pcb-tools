@@ -218,20 +218,20 @@ class ExcellonTool(ExcellonStatement):
         zs = settings.zero_suppression
         stmt = 'T%02d' % self.number
         if self.retract_rate is not None:
-            stmt += 'B%s' % write_gerber_value(self.retract_rate, fmt, zs)
+            stmt += 'B%f' % self.retract_rate, fmt
         if self.feed_rate is not None:
-            stmt += 'F%s' % write_gerber_value(self.feed_rate, fmt, zs)
+            stmt += 'F%f' % self.feed_rate, fmt
         if self.max_hit_count is not None:
-            stmt += 'H%s' % write_gerber_value(self.max_hit_count, fmt, zs)
+            stmt += 'H%f' % self.max_hit_count, fmt
         if self.rpm is not None:
             if self.rpm < 100000.:
-                stmt += 'S%s' % write_gerber_value(self.rpm / 1000., fmt, zs)
+                stmt += 'S%f' % self.rpm / 1000., fmt
             else:
                 stmt += 'S%g' % (self.rpm / 1000.)
         if self.diameter is not None:
             stmt += 'C%s' % decimal_string(self.diameter, fmt[1], True)
         if self.depth_offset is not None:
-            stmt += 'Z%s' % write_gerber_value(self.depth_offset, fmt, zs)
+            stmt += 'Z%f' % self.depth_offset, fmt
         return stmt
 
     def to_inch(self):
@@ -617,9 +617,9 @@ class EndOfProgramStmt(ExcellonStatement):
     def to_excellon(self, settings=None):
         stmt = 'M30'
         if self.x is not None:
-            stmt += 'X%s' % write_gerber_value(self.x)
+            stmt += 'X%f' % self.x
         if self.y is not None:
-            stmt += 'Y%s' % write_gerber_value(self.y)
+            stmt += 'Y%f' % self.y
         return stmt
 
     def to_inch(self):
