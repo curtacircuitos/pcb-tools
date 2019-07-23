@@ -24,8 +24,7 @@ Excellon Statements
 import re
 import uuid
 import itertools
-from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
-                    inch, metric)
+from .utils import (parse_gerber_value, decimal_string, inch, metric)
 
 
 __all__ = ['ExcellonTool', 'ToolSelectionStmt', 'CoordinateStmt',
@@ -406,11 +405,9 @@ class CoordinateStmt(ExcellonStatement):
         if self.mode == "LINEAR":
             stmt += "G01"
         if self.x is not None:
-            stmt += 'X%s' % write_gerber_value(self.x, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'X%f' % self.x
         if self.y is not None:
-            stmt += 'Y%s' % write_gerber_value(self.y, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'Y%f' % self.y
         return stmt
 
     def to_inch(self):
@@ -472,11 +469,9 @@ class RepeatHoleStmt(ExcellonStatement):
     def to_excellon(self, settings):
         stmt = 'R%d' % self.count
         if self.xdelta is not None and self.xdelta != 0.0:
-            stmt += 'X%s' % write_gerber_value(self.xdelta, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'X%f' % self.xdelta
         if self.ydelta is not None and self.ydelta != 0.0:
-            stmt += 'Y%s' % write_gerber_value(self.ydelta, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'Y%f' % self.ydelta
         return stmt
 
     def to_inch(self):
@@ -902,20 +897,16 @@ class SlotStmt(ExcellonStatement):
         stmt = ''
 
         if self.x_start is not None:
-            stmt += 'X%s' % write_gerber_value(self.x_start, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'X%f' % self.x_start
         if self.y_start is not None:
-            stmt += 'Y%s' % write_gerber_value(self.y_start, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'Y%f' % self.y_start
 
         stmt += 'G85'
 
         if self.x_end is not None:
-            stmt += 'X%s' % write_gerber_value(self.x_end, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'X%f' % self.x_end
         if self.y_end is not None:
-            stmt += 'Y%s' % write_gerber_value(self.y_end, settings.format,
-                                               settings.zero_suppression)
+            stmt += 'Y%f' % self.y_end
 
         return stmt
 
@@ -975,3 +966,4 @@ def pairwise(iterator):
     """
     a, b = itertools.tee(iterator)
     yield from zip(itertools.islice(a, 0, None, 2), itertools.islice(b, 1, None, 2))
+
