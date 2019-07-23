@@ -218,20 +218,20 @@ class ExcellonTool(ExcellonStatement):
         zs = settings.zero_suppression
         stmt = 'T%02d' % self.number
         if self.retract_rate is not None:
-            stmt += 'B%f' % self.retract_rate, fmt
+            stmt += 'B%f' % self.retract_rate
         if self.feed_rate is not None:
-            stmt += 'F%f' % self.feed_rate, fmt
+            stmt += 'F%f' % self.feed_rate
         if self.max_hit_count is not None:
-            stmt += 'H%f' % self.max_hit_count, fmt
+            stmt += 'H%f' % self.max_hit_count
         if self.rpm is not None:
             if self.rpm < 100000.:
-                stmt += 'S%f' % self.rpm / 1000., fmt
+                stmt += 'S%f' % self.rpm / 1000.
             else:
                 stmt += 'S%g' % (self.rpm / 1000.)
         if self.diameter is not None:
             stmt += 'C%s' % decimal_string(self.diameter, fmt[1], True)
         if self.depth_offset is not None:
-            stmt += 'Z%f' % self.depth_offset, fmt
+            stmt += 'Z%f' % self.depth_offset
         return stmt
 
     def to_inch(self):
