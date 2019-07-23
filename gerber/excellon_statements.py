@@ -225,7 +225,7 @@ class ExcellonTool(ExcellonStatement):
             stmt += 'H%f' % self.max_hit_count
         if self.rpm is not None:
             if self.rpm < 100000.:
-                stmt += 'S%f' % self.rpm / 1000.
+                stmt += 'S%f' % (self.rpm / 1000.)
             else:
                 stmt += 'S%g' % (self.rpm / 1000.)
         if self.diameter is not None:
