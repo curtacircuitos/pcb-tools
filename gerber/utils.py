@@ -123,6 +123,10 @@ def write_gerber_value(value, format=(2, 5), zero_suppression='trailing'):
     value : string
         The specified value as a Gerber/Excellon-formatted string.
     """
+    
+    if format[0] == float:
+        return "%f" %value
+    
     # Format precision
     integer_digits, decimal_digits = format
     MAX_DIGITS = integer_digits + decimal_digits
