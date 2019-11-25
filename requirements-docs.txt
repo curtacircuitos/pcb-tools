@@ -1,0 +1,6 @@
+# install base requirements
+-r requirements.txt
+
+# documentation generation support
+Sphinx==1.2.3
+numpydoc==0.5
