@@ -55,6 +55,6 @@ Dependencies for developing and testing pcb-tools are listed in requirements-dev
     (venv)$ pip install -r requirements-dev.txt
     (venv)$ pip install -e .
 
-We use nose to run pcb-tools's suite of unittests and doctests.
+We use [pytest](https://docs.pytest.org/en/latest/) to run pcb-tools's suite of unittests and doctests.
 
-    (venv)$ nosetests
+    (venv)$ pytest

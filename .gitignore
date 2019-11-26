@@ -48,3 +48,4 @@ Thumbs.db
 
 # Virtual environment
 venv
+coverage.xml
