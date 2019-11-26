@@ -23,6 +23,7 @@ Excellon Statements
 
 import re
 import uuid
+import itertools
 from .utils import (parse_gerber_value, write_gerber_value, decimal_string,
                     inch, metric)
 
@@ -151,8 +152,7 @@ class ExcellonTool(ExcellonStatement):
         tool : Tool
             An ExcellonTool representing the tool defined in `line`
         """
-        commands = re.split('([BCFHSTZ])', line)[1:]
-        commands = [(command, value) for command, value in pairwise(commands)]
+        commands = pairwise(re.split('([BCFHSTZ])', line)[1:])
         args = {}
         args['id'] = id
         nformat = settings.format
@@ -973,6 +973,7 @@ def pairwise(iterator):
 
     e.g. [1, 2, 3, 4, 5, 6] ==> [(1, 2), (3, 4), (5, 6)]
     """
-    itr = iter(iterator)
-    while True:
-        yield tuple([next(itr) for i in range(2)])
+    a, b = itertools.tee(iterator)
+    itr = zip(itertools.islice(a, 0, None, 2), itertools.islice(b, 1, None, 2))
+    for elem in itr:
+        yield elem
