@@ -1,0 +1,5 @@
+# install base requirements
+-r requirements.txt
+
+coverage==4.5.4
+nose==1.3.7

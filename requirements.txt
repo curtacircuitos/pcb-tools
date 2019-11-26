@@ -1,2 +1,2 @@
-## The following requirements were added by pip --freeze:
+# cairo rendering support
 cairocffi==0.6
