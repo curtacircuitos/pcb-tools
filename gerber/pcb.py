@@ -95,6 +95,12 @@ class PCB(object):
                               ('top', 'bottom', 'internal')]))
 
     @property
+    def outline_layer(self):
+        for layer in self.layers:
+            if layer.layer_class == 'outline':
+                return layer
+
+    @property
     def layer_count(self):
         """ Number of *COPPER* layers
         """
