@@ -2,5 +2,5 @@
 -r requirements.txt
 
 # documentation generation support
-Sphinx==1.2.3
-numpydoc==0.5
+Sphinx==2.2.1
+numpydoc==0.9.1

@@ -17,7 +17,7 @@
 
 if __name__ == '__main__':
     from gerber.common import read
-    from gerber.render import GerberCairoContext
+    from gerber.render.cairo_backend import GerberCairoContext
     import sys
 
     if len(sys.argv) < 2:
