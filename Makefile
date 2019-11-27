@@ -9,6 +9,7 @@ EXAMPLES = examples
 clean: doc-clean
 	find . -name '*.pyc' -delete
 	rm -rf *.egg-info
+	rm -f .coverage
 	rm -f coverage.xml
 
 .PHONY: test
@@ -17,7 +18,8 @@ test:
 
 .PHONY: test-coverage
 test-coverage:
-	rm -rf coverage.xml
+	rm -f .coverage
+	rm -f coverage.xml
 	$(PYTEST) --cov=./ --cov-report=xml 
 
 .PHONY: install
