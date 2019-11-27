@@ -1,6 +1,6 @@
 
 PYTHON ?= python
-NOSETESTS ?= nosetests
+PYTEST ?= pytest
 
 DOC_ROOT = doc
 EXAMPLES = examples
@@ -8,17 +8,19 @@ EXAMPLES = examples
 .PHONY: clean
 clean: doc-clean
 	find . -name '*.pyc' -delete
-	rm -rf coverage .coverage
 	rm -rf *.egg-info
+	rm -f .coverage
+	rm -f coverage.xml
 
 .PHONY: test
 test:
-	$(NOSETESTS) -s -v gerber
+	$(PYTEST)
 
 .PHONY: test-coverage
 test-coverage:
-	rm -rf coverage .coverage
-	$(NOSETESTS) -s -v --with-coverage --cover-package=gerber
+	rm -f .coverage
+	rm -f coverage.xml
+	$(PYTEST) --cov=./ --cov-report=xml 
 
 .PHONY: install
 install:

@@ -1,4 +1,8 @@
+[run]
+branch = True
+source = gerber
+
 [report]
+ignore_errors = True
 omit =
-    */python?.?/*
-    */site-packages/nose/*
+    gerber/tests/*
