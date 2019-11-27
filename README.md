@@ -1,8 +1,8 @@
 pcb-tools
 ============
-[![Travis CI Build Status](https://travis-ci.org/curtacircuitos/pcb-tools.svg?branch=master)](https://travis-ci.org/curtacircuitos/pcb-tools)
-[![Coverage Status](https://coveralls.io/repos/curtacircuitos/pcb-tools/badge.png?branch=master)](https://coveralls.io/r/curtacircuitos/pcb-tools?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/pcb-tools/badge/?version=latest)](https://readthedocs.org/projects/pcb-tools/?badge=latest)
+[![CI](https://github.com/curtacircuitos/pcb-tools/workflows/pcb-tools/badge.svg)](https://github.com/curtacircuitos/pcb-tools/actions)
+[![Coverage](https://codecov.io/gh/curtacircuitos/pcb-tools/branch/master/graph/badge.svg)](https://codecov.io/gh/curtacircuitos/pcb-tools)
+[![Docs](https://readthedocs.org/projects/pcb-tools/badge/?version=latest)](https://readthedocs.org/projects/pcb-tools/?badge=latest)
 
 Tools to handle Gerber and Excellon files in Python.
 
