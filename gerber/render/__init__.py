@@ -24,3 +24,8 @@ SVG is the only supported format.
 """
 
 from .render import RenderSettings
+from .cairo_backend import GerberCairoContext
+
+available_renderers = {
+    'cairo': GerberCairoContext,
+}
