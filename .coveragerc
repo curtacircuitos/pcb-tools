@@ -1,0 +1,8 @@
+[run]
+branch = True
+source = gerber
+
+[report]
+ignore_errors = True
+omit =
+    gerber/tests/*
