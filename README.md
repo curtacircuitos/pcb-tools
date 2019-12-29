@@ -8,20 +8,22 @@ Tools to handle Gerber and Excellon files in Python.
 
 Usage Example:
 ---------------
-    import gerber
-    from gerber.render import GerberCairoContext
 
-    # Read gerber and Excellon files
-    top_copper = gerber.read('example.GTL')
-    nc_drill = gerber.read('example.txt')
+```py
+import gerber
+from gerber.render import GerberCairoContext
 
-    # Rendering context
-    ctx = GerberCairoContext()
+# Read gerber and Excellon files
+top_copper = gerber.read('example.GTL')
+nc_drill = gerber.read('example.txt')
 
-    # Create SVG image
-    top_copper.render(ctx)
-    nc_drill.render(ctx, 'composite.svg')
+# Rendering context
+ctx = GerberCairoContext()
 
+# Create SVG image
+top_copper.render(ctx)
+nc_drill.render(ctx, 'composite.svg')
+```
 
 Rendering Examples:
 -------------------
