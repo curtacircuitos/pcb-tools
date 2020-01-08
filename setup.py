@@ -35,7 +35,7 @@ METADATA = {
     'classifiers': [
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
-        "License :: OSI Approved :: Apple Public Source License",
+        "License :: OSI Approved :: Apache Software License",
     ],
 }
 
