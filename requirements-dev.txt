@@ -2,4 +2,4 @@
 -r requirements.txt
 
  pytest==5.4.1
- pytest-cov==2.8.1
+ pytest-cov==2.9.0
