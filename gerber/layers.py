@@ -28,62 +28,62 @@ Hint = namedtuple('Hint', 'layer ext name regex content')
 
 hints = [
     Hint(layer='top',
-         ext=['gtl', 'cmp', 'top', ],
-         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', 'F.Cu', ],
+         ext=['gtl', 'cmp', 'top', 'gbr', ],
+         name=['art01', 'top', 'GTL', 'layer1', 'soldcom', 'comp', 'F.Cu', "top_l", ],
          regex='',
          content=[]
          ),
     Hint(layer='bottom',
-         ext=['gbl', 'sld', 'bot', 'sol', 'bottom', ],
-         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', 'B.Cu', ],
+         ext=['gbl', 'sld', 'bot', 'sol', 'bottom', 'gbr', ],
+         name=['art02', 'bottom', 'bot', 'GBL', 'layer2', 'soldsold', 'B.Cu', "bottom_l", ],
          regex='',
          content=[]
          ),
     Hint(layer='internal',
          ext=['in', 'gt1', 'gt2', 'gt3', 'gt4', 'gt5', 'gt6',
-              'g1', 'g2', 'g3', 'g4', 'g5', 'g6', ],
+              'g1', 'g2', 'g3', 'g4', 'g5', 'g6', 'gbr', ],
          name=['art', 'internal', 'pgp', 'pwr', 'gnd', 'ground',
                'gp1', 'gp2', 'gp3', 'gp4', 'gt5', 'gp6',
                'In1.Cu', 'In2.Cu', 'In3.Cu', 'In4.Cu',
-               'group3', 'group4', 'group5', 'group6', 'group7', 'group8', ],
+               'group3', 'group4', 'group5', 'group6', 'group7', 'group8', 'inner_l1', 'inner_l2', ],
          regex='',
          content=[]
          ),
     Hint(layer='topsilk',
-         ext=['gto', 'sst', 'plc', 'ts', 'skt', 'topsilk', ],
-         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS'],
+         ext=['gto', 'sst', 'plc', 'ts', 'skt', 'topsilk', 'gbr', ],
+         name=['sst01', 'topsilk', 'silk', 'slk', 'sst', 'F.SilkS', 'screen_t', ],
          regex='',
          content=[]
          ),
     Hint(layer='bottomsilk',
-         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk', ],
-         name=['bsilk', 'ssb', 'botsilk', 'bottomsilk', 'B.SilkS'],
+         ext=['gbo', 'ssb', 'pls', 'bs', 'skb', 'bottomsilk', 'gbr', ],
+         name=['bsilk', 'ssb', 'botsilk', 'bottomsilk', 'B.SilkS', 'screen_b', ],
          regex='',
          content=[]
          ),
     Hint(layer='topmask',
-         ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', ],
+         ext=['gts', 'stc', 'tmk', 'smt', 'tr', 'topmask', 'gbr', ],
          name=['sm01', 'cmask', 'tmask', 'mask1', 'maskcom', 'topmask',
-               'mst', 'F.Mask', ],
+               'mst', 'F.Mask', 'mask_t', ],
          regex='',
          content=[]
          ),
     Hint(layer='bottommask',
-         ext=['gbs', 'sts', 'bmk', 'smb', 'br', 'bottommask', ],
+         ext=['gbs', 'sts', 'bmk', 'smb', 'br', 'bottommask', 'gbr', ],
          name=['sm', 'bmask', 'mask2', 'masksold', 'botmask', 'bottommask',
-               'msb', 'B.Mask', ],
+               'msb', 'B.Mask', 'mask_b', ],
          regex='',
          content=[]
          ),
     Hint(layer='toppaste',
-         ext=['gtp', 'tm', 'toppaste', ],
-         name=['sp01', 'toppaste', 'pst', 'F.Paste'],
+         ext=['gtp', 'tm', 'toppaste', 'gbr', ],
+         name=['sp01', 'toppaste', 'pst', 'F.Paste', 'paste_t', ],
          regex='',
          content=[]
          ),
     Hint(layer='bottompaste',
-         ext=['gbp', 'bm', 'bottompaste', ],
-         name=['sp02', 'botpaste', 'bottompaste', 'psb', 'B.Paste', ],
+         ext=['gbp', 'bm', 'bottompaste', 'gbr', ],
+         name=['sp02', 'botpaste', 'bottompaste', 'psb', 'B.Paste', 'paste_b'],
          regex='',
          content=[]
          ),
@@ -125,13 +125,13 @@ def load_layer_data(data, filename=None):
 
 
 def guess_layer_class(filename):
+
     try:
         layer = guess_layer_class_by_content(filename)
         if layer:
             return layer
     except:
         pass
-
     try:
         directory, filename = os.path.split(filename)
         name, ext = os.path.splitext(filename.lower())
@@ -140,11 +140,18 @@ def guess_layer_class(filename):
                 if re.findall(hint.regex, filename, re.IGNORECASE):
                     return hint.layer
 
-            patterns = [r'^(\w*[.-])*{}([.-]\w*)?$'.format(x) for x in hint.name]
-            if ext[1:] in hint.ext or any(re.findall(p, name, re.IGNORECASE) for p in patterns):
-                return hint.layer
+            if ext[1:] == 'gbr':									#Prateek
+                patterns = [r'(\w*[.-])*{}([.-]\w*)?$'.format(x) for x in hint.name]			#Prateek
+                if any(re.findall(p, name, re.IGNORECASE) for p in patterns):				#Prateek
+                    return hint.layer									#Prateek
+            else :											#Prateek
+                patterns = [r'^(\w*[.-])*{}([.-]\w*)?$'.format(x) for x in hint.name]
+                if ext[1:] in hint.ext or any(re.findall(p, name, re.IGNORECASE) for p in patterns):
+                    return hint.layer
+            
     except:
         pass
+
     return 'unknown'
 
 
