@@ -640,6 +640,7 @@ class ExcellonParser(object):
                 self._merge_properties(tool)
                 self.tools[tool.number] = tool
                 self.statements.append(tool)
+                self.active_tool = tool
             else:
                 self.statements.append(UnknownStmt.from_excellon(line))
 
