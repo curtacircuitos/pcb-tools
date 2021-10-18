@@ -547,7 +547,7 @@ class AMPolygonPrimitive(AMPrimitive):
         return fmt.format(**data)
 
     def to_primitive(self, units):
-        return Polygon(self.position, self.vertices, self.diameter / 2.0, 0, rotation=math.radians(self.rotation), units=units, level_polarity=self._level_polarity)
+        return Polygon(self.position, self.vertices, self.diameter / 2.0, 0, rotation=self.rotation, units=units, level_polarity=self._level_polarity)
 
 
 class AMMoirePrimitive(AMPrimitive):
