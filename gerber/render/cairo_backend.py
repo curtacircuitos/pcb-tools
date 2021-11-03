@@ -23,7 +23,6 @@ except ImportError:
 
 from operator import mul
 import tempfile
-import copy
 import os
 
 from .render import GerberContext, RenderSettings
@@ -532,7 +531,8 @@ class GerberCairoContext(GerberContext):
 
     def new_render_layer(self, color=None, mirror=False):
         size_in_pixels = self.scale_point(self.size_in_inch)
-        matrix = copy.copy(self._xform_matrix)
+        m = self._xform_matrix
+        matrix = cairo.Matrix(m.xx, m.yx, m.xy, m.yy, m.x0, m.y0)
         layer = cairo.SVGSurface(None, size_in_pixels[0], size_in_pixels[1])
         ctx = cairo.Context(layer)
 
