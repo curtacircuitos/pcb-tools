@@ -9,7 +9,7 @@
 The RS-274X (Gerber) format is the most common format for exporting PCB
 artwork.  The Specification is published by Ucamco and is available
 `here <http://www.ucamco.com/files/downloads/file/81/the_gerber_file_format_specification.pdf>`_.
-The :mod:`rs274x` submodule implements calsses to read and write
+The :mod:`rs274x` submodule implements classes to read and write
 RS-274X files without having to know the precise details of the format.
 
 The :mod:`rs274x` submodule's :func:`read` function serves as a
