@@ -1,2 +1,2 @@
 # cairo rendering support
-cairocffi==0.6
+cairocffi==1.2.0
