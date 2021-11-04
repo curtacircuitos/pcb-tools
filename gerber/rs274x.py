@@ -247,6 +247,8 @@ class GerberParser(object):
         self.current_region = None
         self.x = 0
         self.y = 0
+        self.offset_a = 0 
+        self.offset_b = 0 
         self.op = "D02"
         self.aperture = 0
         self.interpolation = 'linear'
@@ -614,10 +616,15 @@ class GerberParser(object):
             self.macros[stmt.name] = stmt
         elif stmt.param == "AD":
             self._define_aperture(stmt.d, stmt.shape, stmt.modifiers)
+        elif stmt.param == "OF":
+            # offset parameters are persistent until the next offset parameter,
+            # which replaces (rather than adds to) the previous offset parameter
+            self.offset_a = self.offset_a if stmt.a is None else stmt.a  
+            self.offset_b = self.offset_b if stmt.b is None else stmt.b  
 
     def _evaluate_coord(self, stmt):
-        x = self.x if stmt.x is None else stmt.x
-        y = self.y if stmt.y is None else stmt.y
+        x = (self.x if stmt.x is None else stmt.x) + self.offset_a
+        y = (self.y if stmt.y is None else stmt.y) + self.offset_b
 
         if stmt.function in ("G01", "G1"):
             self.interpolation = 'linear'
