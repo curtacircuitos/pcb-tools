@@ -92,7 +92,7 @@ def eval_macro(instructions, parameters={}):
         elif opcode == OpCode.SUB:
             op1 = pop()
             op2 = pop()
-            push(op2 - op2)
+            push(op2 - op1)
 
         elif opcode == OpCode.MUL:
             op1 = pop()
