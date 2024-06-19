@@ -1,3 +1,7 @@
+# **ATTENTION**
+
+`pcb-tools` is currently without a maintainer. Code is provided as is. Check https://github.com/curtacircuitos/pcb-tools/issues/228 to a list of possible alternatives. [PyGerber](https://github.com/Argmaster/pygerber) or other forks of `pcb-tools` might be what you need.
+
 pcb-tools
 ============
 [![CI](https://github.com/curtacircuitos/pcb-tools/workflows/pcb-tools/badge.svg)](https://github.com/curtacircuitos/pcb-tools/actions)
