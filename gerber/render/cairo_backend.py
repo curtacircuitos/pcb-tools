@@ -594,7 +594,7 @@ class GerberCairoContext(GerberContext):
                 # caused by flipping the axis.
                 clp.ymin = math.floor(
                     (self.scale[1] * ymin) - math.ceil(self.origin_in_pixels[1]))
-                clp.ymax = math.floor(
+                clp.ymax = math.ceil(
                     (self.scale[1] * ymax) - math.floor(self.origin_in_pixels[1]))
 
                 # Calculate width and height, rounded to the nearest pixel
