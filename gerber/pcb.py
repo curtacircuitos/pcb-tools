@@ -35,6 +35,7 @@ class PCB(object):
         if not os.path.isdir(directory):
             raise TypeError('{} is not a directory.'.format(directory))
 
+
         # Load gerber files
         for filename in listdir(directory, True, True):
             try:
